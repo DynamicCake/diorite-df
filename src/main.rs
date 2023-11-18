@@ -1,9 +1,70 @@
+#![deny(elided_lifetimes_in_paths)]
+
+mod args;
 pub mod ast;
 pub mod lexer;
 pub mod parser;
+pub mod test;
 
+use std::{
+    error::Error,
+    fs::File,
+    io::{self, stdin, BufRead, BufReader, Read},
+    path::PathBuf,
+};
+
+use args::Arguments;
+use ast::top::TopLevel;
+use clap::Parser;
+use lexer::Token;
 use logos::Logos;
 
-fn main() {
-    lexer::Token::lexer("");
+fn main() -> Result<(), Box<dyn Error + 'static>> {
+    let args = Arguments::parse();
+
+    let src = if let Some(path) = args.file {
+        compile_file(path)
+    } else {
+        compile_prompt()
+    }?;
+
+    let res = compile(&src);
+
+    Ok(())
 }
+
+fn compile(src: &str) -> TopLevel<'_> {
+    let lexer = Token::lexer(src);
+    let lexer: std::iter::Peekable<std::iter::Enumerate<logos::Lexer<'_, Token<'_>>>> = lexer.enumerate().peekable();
+
+
+    todo!()
+}
+
+fn compile_file(path: PathBuf) -> Result<String, io::Error> {
+    let mut src = File::open(path)?;
+    let mut buf = String::new();
+    src.read_to_string(&mut buf)?;
+
+    Ok(buf)
+}
+
+fn compile_prompt() -> Result<String, io::Error> {
+    let stdin = stdin();
+    let mut input = BufReader::new(stdin);
+
+    let mut src = Vec::new();
+
+    loop {
+        print!("> ");
+        let mut line = String::new();
+        input.read_line(&mut line)?;
+        let line = line.trim().to_owned();
+        if line.is_empty() {
+            break;
+        }
+        src.push(line)
+    }
+    Ok(src.join("\n"))
+}
+

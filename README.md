@@ -1,5 +1,10 @@
 # Diorite DF
 A sh** practice language that transpiles to DiamondFire code blocks.
+The syntax can be summed up as
+```
+pevent Join
+   paction SendMessage <default> ['Alignment Mode': 'Centered']
+```
 
 This language does NOT have:
 1. Type safety

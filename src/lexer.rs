@@ -1,4 +1,8 @@
-use logos::Logos;
+use std::fmt::Display;
+
+use logos::{Logos, Span};
+
+use crate::ast::Spanned;
 
 #[derive(Logos, Clone, PartialEq, Debug)]
 #[logos(skip r"[ \t\n\f]+")]
@@ -39,7 +43,7 @@ pub enum Token<'src> {
     CloseComp,
 
     #[regex(r#"([a-zA-Z_][a-zA-Z0-9_]*)|('([^'\\]*(?:\\.[^'\\]*)*)')"#, |lexer| lexer.slice() )]
-    Identifier(&'src str),
+    Iden(&'src str),
     #[regex(r"\d+(\.\d+)?", |lexer| lexer.slice() )]
     Number(&'src str),
     #[regex(r#""([^"\\]*(?:\\.[^"\\]*)*)""#, |lexer| lexer.slice())]
@@ -65,4 +69,50 @@ pub enum Token<'src> {
     Potion,
     #[token("gval")]
     GameValue,
+
+    #[token("paction")]
+    PlayerAction,
+    #[token("eaction")]
+    EntityAction,
+    #[token("gaction")]
+    GameAction,
+    #[token("control")]
+    Control,
+    #[token("callf")]
+    CallFunction,
+    #[token("callp")]
+    CallProcess,
+    #[token("select")]
+    Select,
+    #[token("var")]
+    SetVar,
+
+    #[token("ifplayer")]
+    IfPlayer,
+    #[token("ifentity")]
+    IfEntity,
+    #[token("ifgame")]
+    IfGame,
+    #[token("ifvar")]
+    IfVar,
+}
+
+impl<'src> Token<'src> {
+    pub fn spanned(self, span: Span) -> Spanned<Self> {
+        Spanned::new(self, span)
+    }
+
+    // HACK Not sure if it is but get another pair of eyes on this
+    /// When having `Expected: Whatever, Something`, it makes it so the inner contents aren't visible,
+    /// This feels hacky and I don't really like it
+    pub fn expected_print(&self) -> String {
+        match self {
+            Token::Iden(_) => "Iden".to_string(),
+            Token::Number(_) => "Number".to_string(),
+            Token::String(_) => "String".to_string(),
+            it => {
+                format!("{:?}", it)
+            }
+        }
+    }
 }

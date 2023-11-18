@@ -27,7 +27,7 @@ reg_stmt:
 		'(' expr_list? ')'
 	);
 
-if_stmt_type: 'ifplayer' | 'ifentity' | 'ifentity' | 'ifvar';
+if_stmt_type: 'ifplayer' | 'ifentity' | 'ifgame' | 'ifvar';
 
 if_stmt:
 	if_stmt_type 'not'? IDEN ('<' IDEN '>')? (
