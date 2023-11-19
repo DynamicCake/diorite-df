@@ -1,6 +1,7 @@
 use super::statement::*;
 use super::*;
 
+#[derive(Debug)]
 pub enum TopLevel<'src> {
     Event(Event<'src>),
     FuncDef(FuncDef<'src>),
@@ -8,35 +9,56 @@ pub enum TopLevel<'src> {
 }
 
 // Function
+#[derive(Debug)]
 pub struct FuncDef<'src> {
-    type_tok: Spanned<()>,
-    name: Spanned<Iden<'src>>,
-    params: Parameters<FuncParamDef<'src>>,
-    end_tok: Spanned<()>,
+    pub type_tok: Spanned<()>,
+    pub name: Spanned<Iden<'src>>,
+    pub params: Parameters<FuncParamDef<'src>>,
+    pub end_tok: Spanned<()>,
 }
 
+#[derive(Debug)]
 pub struct FuncParamDef<'src> {
-    name: Spanned<&'src str>,
-    colon: Spanned<()>,
-    data_type: Spanned<&'src str>,
-    description: Spanned<&'src str>,
+    pub name: Spanned<&'src str>,
+    pub colon: Spanned<()>,
+    pub data_type: Spanned<&'src str>,
+    pub description: Spanned<&'src str>,
 }
 
 // Process
+#[derive(Debug)]
 pub struct ProcDef<'src> {
-    type_tok: Spanned<()>,
-    name: Spanned<Iden<'src>>,
-    end_tok: Spanned<()>,
+    pub type_tok: Spanned<()>,
+    pub name: Spanned<Iden<'src>>,
+    pub end_tok: Spanned<()>,
 }
 
 // Event
+#[derive(Debug)]
 pub struct Event<'src> {
-    type_tok: Spanned<EventType>,
-    name: Spanned<Iden<'src>>,
-    statements: Spanned<Statements<'src>>,
-    end_tok: Spanned<()>,
+    pub type_tok: Spanned<EventType>,
+    pub name: Spanned<Iden<'src>>,
+    pub statements: Spanned<Statements<'src>>,
+    pub end_tok: Spanned<()>,
 }
 
+impl<'src> Event<'src> {
+    pub fn new(
+        type_tok: Spanned<EventType>,
+        name: Spanned<Iden<'src>>,
+        statements: Spanned<Statements<'src>>,
+        end_tok: Spanned<()>,
+    ) -> Self {
+        Self {
+            type_tok,
+            name,
+            statements,
+            end_tok,
+        }
+    }
+}
+
+#[derive(Debug)]
 pub enum EventType {
     Player,
     Entity,

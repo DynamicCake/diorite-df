@@ -11,74 +11,116 @@ use self::top::*;
 
 pub mod error;
 pub mod top;
+pub mod stmt;
 
 pub struct Parser<'src> {
     toks: Peekable<SpannedIter<'src, Token<'src>>>,
 }
 
 impl<'src> Parser<'src> {
-    fn new(lexer: Lexer<'src, Token<'src>>) -> Self {
+    pub fn new(lexer: Lexer<'src, Token<'src>>) -> Self {
         Self {
             toks: lexer.spanned().peekable(),
         }
     }
 
-    fn parse(&mut self) -> CompilerResult<'src, Program<'src>> {
+    pub fn parse(&mut self) -> CompilerResult<'src, Program<'src>> {
         let mut stmts = Vec::new();
         let mut errors = Vec::new();
-        while let Some(_it) = self.toks.peek() {
+        loop {
+            if let Err(err) = self.peek() {
+                match err {
+                    CompilerError::UnexpectedEOF { expected: _, message: _ } => break,
+                    CompilerError::LexerError(_) => break,
+                    it => panic!("self.peek cannot return error variant {:?}", it),
+                };
+            };
             let mut top = self.top_level();
             errors.append(&mut top.error);
-            stmts.push(top.data);
+            if let Some(data) = top.data {
+                stmts.push(data)
+            };
         }
-        todo!()
-        // CompilerResult::new(Program::new(stmts), errors)
+        CompilerResult::new(Some(Program::new(stmts)), errors)
     }
 
-    fn consume(
+    pub fn next_expect(
         &mut self,
-        expect_tok: Token<'src>,
-        msg: &str,
-    ) -> Result<&Token<'src>, CompilerError<'src>> {
-        let (token, span) = match self.toks.peek() {
-            Some(it) => it,
-            None => todo!(), // return Err(CompilerError::UnexpectedEOF(expect_tok)),
-        };
-
-        let token = match token {
-            Ok(it) => it,
-            Err(_) => {
-                return Err(CompilerError::LexerError(Spanned::<()>::empty(
-                    span.clone(),
-                )));
+        expected: &ExpectedTokens<'src>,
+        msg: Option<&str>,
+    ) -> Result<Spanned<Token<'src>>, CompilerError<'src>> {
+        if let Some(it) = self.toks.next() {
+            let (token, span) = it;
+            if let Ok(token) = token {
+                let _match_expected = &expected.expected;
+                return if matches!(&token, _match_expected) {
+                    Ok(token.spanned(span))
+                } else {
+                    Err(CompilerError::Unexpected {
+                        expected: expected.clone(),
+                        received: token.spanned(span),
+                        message: msg.map(|str| str.to_owned()),
+                    })
+                };
+            } else {
+                Err(CompilerError::LexerError(Spanned::<()>::empty(span)))
             }
-        };
-
-        if token == &expect_tok {
-            Ok(token)
         } else {
-            todo!()
-            /*
-            Err(CompilerError::Unexpected {
-                expected: expect_tok,
-                received: token.to_owned().spanned(span.clone()),
-            }) */
+            Err(CompilerError::UnexpectedEOF {
+                expected: Some(expected.clone()),
+                message: None,
+            })
         }
     }
 
-    pub fn next<T>(&mut self, expected: ExpectedTokens<'src>, data: T) -> Result<Token<'src>, CompilerError<'src>>{
-
-        let (token, span) = if let Some(it) = self.toks.next() {
-            it
+    pub fn peek_expect(
+        &mut self,
+        expected: &ExpectedTokens<'src>,
+        msg: Option<&str>,
+    ) -> Result<Spanned<&Token<'src>>, CompilerError<'src>> {
+        let token = if let Some(it) = self.toks.peek() {
+            let (token, span) = it;
+            if let Ok(token) = token {
+                let _match_expected = &expected.expected;
+                return if matches!(&token, _match_expected) {
+                    Ok(Spanned::new(token, span.clone()))
+                } else {
+                    Err(CompilerError::Unexpected {
+                        expected: expected.clone(),
+                        received: token.clone().spanned(span.clone()),
+                        message: msg.map(|str| str.to_owned()),
+                    })
+                };
+            } else {
+                Err(CompilerError::LexerError(Spanned::<()>::empty(
+                    span.clone(),
+                )))
+            }
         } else {
-            return Err(CompilerResult::new(data, vec![CompilerError::UnexpectedEOF(expected)]));
+            Err(CompilerError::UnexpectedEOF {
+                expected: None,
+                message: None,
+            })
         };
+        token
+    }
 
-        let token = if let Ok(it) = token {
-            it
+    pub fn peek(&mut self) -> Result<Spanned<&Token<'src>>, CompilerError<'src>> {
+        if let Some(it) = self.toks.peek() {
+            let (token, span) = it;
+            if let Ok(token) = token {
+                let spanned = Spanned::new(token, span.clone());
+                Ok(spanned)
+            } else {
+                Err(CompilerError::LexerError(Spanned::<()>::empty(
+                    span.clone(),
+                )))
+            }
         } else {
-            return Err(CompilerResult::new(data, vec![CompilerError::LexerError(Spanned::<()>::empty(span))]));
-        };
-        Ok(token)
+            Err(CompilerError::UnexpectedEOF {
+                expected: None,
+                message: None,
+            })
+        }
     }
 }

@@ -1,4 +1,6 @@
 #![deny(elided_lifetimes_in_paths)]
+// Remove this once it is in a runnable state
+#![allow(unused_imports, unused_import_braces)] 
 
 mod args;
 pub mod ast;
@@ -9,7 +11,7 @@ pub mod test;
 use std::{
     error::Error,
     fs::File,
-    io::{self, stdin, BufRead, BufReader, Read},
+    io::{self, stdin, BufRead, BufReader, Read, stdout, Write},
     path::PathBuf,
 };
 
@@ -35,8 +37,10 @@ fn main() -> Result<(), Box<dyn Error + 'static>> {
 
 fn compile(src: &str) -> TopLevel<'_> {
     let lexer = Token::lexer(src);
-    let lexer: std::iter::Peekable<std::iter::Enumerate<logos::Lexer<'_, Token<'_>>>> = lexer.enumerate().peekable();
+    let mut parser = parser::Parser::new(lexer);
+    let ast = parser.parse();
 
+    println!("{:?}", ast);
 
     todo!()
 }
@@ -51,12 +55,14 @@ fn compile_file(path: PathBuf) -> Result<String, io::Error> {
 
 fn compile_prompt() -> Result<String, io::Error> {
     let stdin = stdin();
+    let mut stdout = stdout();
     let mut input = BufReader::new(stdin);
 
     let mut src = Vec::new();
 
     loop {
         print!("> ");
+        stdout.flush().unwrap();
         let mut line = String::new();
         input.read_line(&mut line)?;
         let line = line.trim().to_owned();

@@ -1,6 +1,6 @@
 grammar diorite;
-// Note that this is just like more structured pseudo code and this isn't supposed be used by an
-// antlr compiler
+// Note that this is just like more structured pseudo code and 
+// this isn't supposed be used by an antlr compiler
 
 start: top_level*;
 top_level: player_event | entity_event | func_def | proc_def;
