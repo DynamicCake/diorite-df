@@ -4,8 +4,9 @@ use self::top::TopLevel;
 
 pub mod statement;
 pub mod top;
+pub mod recovery;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Spanned<T> {
     pub data: T,
     pub span: Span,

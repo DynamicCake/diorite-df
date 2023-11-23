@@ -95,6 +95,9 @@ pub enum Token<'src> {
     IfGame,
     #[token("ifvar")]
     IfVar,
+
+    /// Represents a lexer error
+    Invalid,
 }
 
 impl<'src> Token<'src> {
@@ -115,4 +118,39 @@ impl<'src> Token<'src> {
             }
         }
     }
+}
+
+impl<'src> Token<'src> {
+    pub const STATEMENT: [Token<'_>; 12] = [
+        Token::PlayerAction,
+        Token::EntityAction,
+        Token::GameAction,
+        Token::Control,
+        Token::CallFunction,
+        Token::CallProcess,
+        Token::Select,
+        Token::SetVar,
+        Token::IfPlayer,
+        Token::IfEntity,
+        Token::IfGame,
+        Token::IfVar,
+    ];
+
+    pub const IF_STATEMENT: [Token<'_>; 4] = [
+        Token::IfPlayer,
+        Token::IfEntity,
+        Token::IfGame,
+        Token::IfVar,
+    ];
+
+    pub const SIMPLE_STATEMENT: [Token<'_>; 8] = [
+        Token::PlayerAction,
+        Token::EntityAction,
+        Token::GameAction,
+        Token::Control,
+        Token::CallFunction,
+        Token::CallProcess,
+        Token::Select,
+        Token::SetVar,
+    ];
 }

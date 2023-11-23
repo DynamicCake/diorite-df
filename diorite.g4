@@ -42,7 +42,7 @@ repeat_stmt:
 arg_def_list: arg_def (',' arg_def)* ','?;
 arg_def:
 	// This second IDEN is the type of the param, these aren't keywords because they don't need to be differentianated
-	IDEN ':' IDEN IDEN;
+	IDEN ':' IDEN IDEN?;
 
 expr_list: expr (',' expr)* ','?;
 expr:

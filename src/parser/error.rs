@@ -23,11 +23,11 @@ pub enum CompilerError<'src> {
     Unexpected {
         expected: ExpectedTokens<'src>,
         received: Spanned<Token<'src>>,
-        message: Option<String>,
+        expected_name: Option<String>,
     },
     UnexpectedEOF {
         expected: Option<ExpectedTokens<'src>>,
-        message: Option<String>,
+        expected_name: Option<String>,
     },
     LexerError(Spanned<()>),
 }

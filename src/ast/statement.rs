@@ -1,5 +1,6 @@
 use crate::lexer::Token;
 
+use super::recovery::StatementRecovery;
 use super::top::*;
 use super::*;
 
@@ -23,10 +24,15 @@ pub struct Statements<'src> {
     items: Vec<Statement<'src>>,
 }
 
+impl<'src> Statements<'src> {
+    pub fn new(items: Vec<Statement<'src>>) -> Self { Self { items } }
+}
+
 #[derive(Debug)]
 pub enum Statement<'src> {
     Standard(SimpleStatement<'src>),
     If(IfStatement<'src>),
+    Recovery(StatementRecovery<'src>)
 }
 
 #[derive(Debug)]

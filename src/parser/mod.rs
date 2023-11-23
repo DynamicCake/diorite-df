@@ -10,8 +10,8 @@ use self::error::*;
 use self::top::*;
 
 pub mod error;
-pub mod top;
 pub mod stmt;
+pub mod top;
 
 pub struct Parser<'src> {
     toks: Peekable<SpannedIter<'src, Token<'src>>>,
@@ -30,7 +30,10 @@ impl<'src> Parser<'src> {
         loop {
             if let Err(err) = self.peek() {
                 match err {
-                    CompilerError::UnexpectedEOF { expected: _, message: _ } => break,
+                    CompilerError::UnexpectedEOF {
+                        expected: _,
+                        expected_name: _,
+                    } => break,
                     CompilerError::LexerError(_) => break,
                     it => panic!("self.peek cannot return error variant {:?}", it),
                 };
@@ -47,7 +50,7 @@ impl<'src> Parser<'src> {
     pub fn next_expect(
         &mut self,
         expected: &ExpectedTokens<'src>,
-        msg: Option<&str>,
+        expected_name: Option<&str>,
     ) -> Result<Spanned<Token<'src>>, CompilerError<'src>> {
         if let Some(it) = self.toks.next() {
             let (token, span) = it;
@@ -59,7 +62,7 @@ impl<'src> Parser<'src> {
                     Err(CompilerError::Unexpected {
                         expected: expected.clone(),
                         received: token.spanned(span),
-                        message: msg.map(|str| str.to_owned()),
+                        expected_name: expected_name.map(|str| str.to_owned()),
                     })
                 };
             } else {
@@ -68,7 +71,7 @@ impl<'src> Parser<'src> {
         } else {
             Err(CompilerError::UnexpectedEOF {
                 expected: Some(expected.clone()),
-                message: None,
+                expected_name: None,
             })
         }
     }
@@ -88,7 +91,7 @@ impl<'src> Parser<'src> {
                     Err(CompilerError::Unexpected {
                         expected: expected.clone(),
                         received: token.clone().spanned(span.clone()),
-                        message: msg.map(|str| str.to_owned()),
+                        expected_name: msg.map(|str| str.to_owned()),
                     })
                 };
             } else {
@@ -99,7 +102,7 @@ impl<'src> Parser<'src> {
         } else {
             Err(CompilerError::UnexpectedEOF {
                 expected: None,
-                message: None,
+                expected_name: None,
             })
         };
         token
@@ -119,7 +122,24 @@ impl<'src> Parser<'src> {
         } else {
             Err(CompilerError::UnexpectedEOF {
                 expected: None,
-                message: None,
+                expected_name: None,
+            })
+        }
+    }
+
+    pub fn next(&mut self) -> Result<Spanned<Token<'src>>, CompilerError<'src>> {
+        if let Some(it) = self.toks.next() {
+            let (token, span) = it;
+            if let Ok(token) = token {
+                let spanned = token.spanned(span);
+                Ok(spanned)
+            } else {
+                Err(CompilerError::LexerError(Spanned::<()>::empty(span)))
+            }
+        } else {
+            Err(CompilerError::UnexpectedEOF {
+                expected: None,
+                expected_name: None,
             })
         }
     }
