@@ -16,33 +16,39 @@ use std::{
 };
 
 use args::Arguments;
-use ast::top::TopLevel;
+use ast::{top::TopLevel, Program};
 use clap::Parser;
 use lexer::Token;
 use logos::Logos;
+use parser::error::CompilerResult;
 
 fn main() -> Result<(), Box<dyn Error + 'static>> {
     let args = Arguments::parse();
 
+    /*
     let src = if let Some(path) = args.file {
         compile_file(path)
     } else {
         compile_prompt()
     }?;
+    */
 
+    let src = "pevent Join";
     let res = compile(&src);
+
+    println!("Somehow: {:#?}", res);
 
     Ok(())
 }
 
-fn compile(src: &str) -> TopLevel<'_> {
+fn compile<'src>(src: &'src str) -> CompilerResult<'src, Program<'src>> {
     let lexer = Token::lexer(src);
+    let print_lexer: Vec<_> = lexer.clone().collect();
+    println!("{:?}", print_lexer);
     let mut parser = parser::Parser::new(lexer);
     let ast = parser.parse();
 
-    println!("{:?}", ast);
-
-    todo!()
+    ast
 }
 
 fn compile_file(path: PathBuf) -> Result<String, io::Error> {

@@ -1,3 +1,4 @@
+use super::recovery::TopLevelRecovery;
 use super::statement::*;
 use super::*;
 
@@ -6,6 +7,7 @@ pub enum TopLevel<'src> {
     Event(Event<'src>),
     FuncDef(FuncDef<'src>),
     ProcDef(ProcDef<'src>),
+    Recovery(TopLevelRecovery<'src>)
 }
 
 // Function

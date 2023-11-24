@@ -101,26 +101,6 @@ pub enum Token<'src> {
 }
 
 impl<'src> Token<'src> {
-    pub fn spanned(self, span: Span) -> Spanned<Self> {
-        Spanned::new(self, span)
-    }
-
-    // HACK Not sure if it is but get another pair of eyes on this
-    /// When having `Expected: Whatever, Something`, it makes it so the inner contents aren't visible,
-    /// This feels hacky and I don't really like it
-    pub fn expected_print(&self) -> String {
-        match self {
-            Token::Iden(_) => "Iden".to_string(),
-            Token::Number(_) => "Number".to_string(),
-            Token::String(_) => "String".to_string(),
-            it => {
-                format!("{:?}", it)
-            }
-        }
-    }
-}
-
-impl<'src> Token<'src> {
     pub const STATEMENT: [Token<'_>; 12] = [
         Token::PlayerAction,
         Token::EntityAction,
@@ -153,4 +133,32 @@ impl<'src> Token<'src> {
         Token::Select,
         Token::SetVar,
     ];
+
+    pub const TOP_LEVEL: [Token<'_>; 4] = [
+        Token::FuncDef,
+        Token::ProcDef,
+        Token::PlayerEvent,
+        Token::EntityEvent,
+    ];
 }
+
+impl<'src> Token<'src> {
+    pub fn spanned(self, span: Span) -> Spanned<Self> {
+        Spanned::new(self, span)
+    }
+
+    // HACK Not sure if it is but get another pair of eyes on this
+    /// When having `Expected: Whatever, Something`, it makes it so the inner contents aren't visible,
+    /// This feels hacky and I don't really like it
+    pub fn expected_print(&self) -> String {
+        match self {
+            Token::Iden(_) => "Iden".to_string(),
+            Token::Number(_) => "Number".to_string(),
+            Token::String(_) => "String".to_string(),
+            it => {
+                format!("{:?}", it)
+            }
+        }
+    }
+}
+

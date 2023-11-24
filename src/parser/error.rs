@@ -1,20 +1,33 @@
 use core::fmt;
 use std::fmt::Display;
 
-use crate::{ast::Spanned, lexer::Token};
+use crate::{
+    ast::{recovery::Recovery, Spanned},
+    lexer::Token,
+};
 
 #[derive(Debug)]
 pub struct CompilerResult<'src, T> {
-    pub data: Option<T>,
+    pub data: T,
     pub error: Vec<CompilerError<'src>>,
 }
 
 impl<'src, T> CompilerResult<'src, T> {
-    pub fn new(data: Option<T>, error: Vec<CompilerError<'src>>) -> Self {
+    pub fn new(data: T, error: Vec<CompilerError<'src>>) -> Self {
         CompilerResult { data, error }
     }
-    pub fn single_err(data: Option<T>, error: CompilerError<'src>) -> Self {
+
+    pub fn single_err(data: T, error: CompilerError<'src>) -> Self {
         CompilerResult::new(data, vec![error])
+    }
+
+    pub fn map_inner<R, F>(self, f: F) -> CompilerResult<'src, R>
+    where
+        F: FnOnce(T) -> R,
+    {
+        let Self { data, error } = self;
+        let res = f(data);
+        CompilerResult::<R>::new(res, error)
     }
 }
 
@@ -65,3 +78,4 @@ impl Display for ExpectedTokens<'_> {
         Ok(())
     }
 }
+

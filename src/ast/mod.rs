@@ -2,9 +2,9 @@ use logos::Span;
 
 use self::top::TopLevel;
 
+pub mod recovery;
 pub mod statement;
 pub mod top;
-pub mod recovery;
 
 #[derive(Debug, Clone)]
 pub struct Spanned<T> {
@@ -18,6 +18,17 @@ impl<T> Spanned<T> {
     }
     pub fn empty(span: Span) -> Spanned<()> {
         Spanned { data: (), span }
+    }
+    pub fn to_empty(self) -> Spanned<()> {
+        Self::empty(self.span)
+    }
+    pub fn map_inner<R, F>(self, f: F) -> Spanned<R>
+    where
+        F: FnOnce(T) -> R,
+    {
+        let Self { data, span } = self;
+        let res = f(data);
+        Spanned::<R>::new(res, span)
     }
 }
 
@@ -34,13 +45,12 @@ impl<'src> Program<'src> {
 
 #[derive(Debug)]
 pub struct Parameters<T> {
-    items: Vec<Parameter<T>>,
+    pub items: Vec<Parameter<T>>,
 }
-
 #[derive(Debug)]
 pub struct Parameter<T> {
-    comma: Spanned<()>,
-    data: T,
+    pub comma: Spanned<()>,
+    pub data: T,
 }
 
 #[derive(Debug)]
@@ -59,5 +69,8 @@ pub struct Iden<'src> {
 }
 
 impl<'src> Iden<'src> {
-    pub fn new(name: &'src str) -> Self { Self { name } }
+    pub fn new(name: &'src str) -> Self {
+        Self { name }
+    }
 }
+

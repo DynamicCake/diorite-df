@@ -1,6 +1,14 @@
+use logos::Span;
+
 use crate::lexer::Token;
 
 use super::Spanned;
+
+#[derive(Debug)]
+pub enum Recovery<'src> {
+    Statement(StatementRecovery<'src>),
+    TopLevel(TopLevelRecovery<'src>),
+}
 
 /// Used when a statement is malformed and continues until
 /// it finds another statement decleration like `paction` or `end`
@@ -22,9 +30,31 @@ use super::Spanned;
 pub struct StatementRecovery<'src> {
     pub tokens: Vec<Spanned<Token<'src>>>,
 }
-
 impl<'src> StatementRecovery<'src> {
-    pub fn new(tokens: Vec<Spanned<Token<'src>>>) -> Self { Self { tokens } }
+    pub fn new(tokens: Vec<Spanned<Token<'src>>>) -> Self {
+        Self { tokens }
+    }
+    pub fn empty() -> Self {
+        Self { tokens: Vec::new() }
+    }
+    pub fn calc_span(&self) -> Option<Span> {
+        let toks = &self.tokens;
+        if toks.is_empty() {
+            None
+        } else {
+            let start = toks
+                .first()
+                .expect("Non empty array must have a first")
+                .span
+                .start;
+            let end = toks
+                .last()
+                .expect("Non empty array must have a last")
+                .span
+                .end;
+            Some(start..end)
+        }
+    }
 }
 
 /// Used when there is an error when parsing a top level statement,
@@ -45,12 +75,18 @@ impl<'src> StatementRecovery<'src> {
 /// paction Join
 /// // ...
 /// ```
+#[derive(Debug)]
 pub struct TopLevelRecovery<'src> {
     pub tokens: Vec<Spanned<Token<'src>>>,
 }
 
 impl<'src> TopLevelRecovery<'src> {
-    pub fn new(tokens: Vec<Spanned<Token<'src>>>) -> Self { Self { tokens } }
+    pub fn new(tokens: Vec<Spanned<Token<'src>>>) -> Self {
+        Self { tokens }
+    }
+    pub fn empty() -> Self {
+        Self { tokens: Vec::new() }
+    }
 }
 
 /*

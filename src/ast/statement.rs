@@ -1,9 +1,10 @@
+use logos::Span;
+
 use crate::lexer::Token;
 
 use super::recovery::StatementRecovery;
 use super::top::*;
 use super::*;
-
 
 #[derive(Debug)]
 pub struct Selection<'src> {
@@ -21,18 +22,53 @@ pub struct Tags<'src> {
 
 #[derive(Debug)]
 pub struct Statements<'src> {
-    items: Vec<Statement<'src>>,
+    pub items: Vec<Spanned<Statement<'src>>>,
 }
 
 impl<'src> Statements<'src> {
-    pub fn new(items: Vec<Statement<'src>>) -> Self { Self { items } }
+    pub fn new(items: Vec<Spanned<Statement<'src>>>) -> Self {
+        Self { items }
+    }
 }
 
 #[derive(Debug)]
 pub enum Statement<'src> {
-    Standard(SimpleStatement<'src>),
+    Simple(SimpleStatement<'src>),
     If(IfStatement<'src>),
-    Recovery(StatementRecovery<'src>)
+    Recovery(StatementRecovery<'src>),
+}
+
+impl<'src> Statement<'src> {
+    pub fn calc_span(&self) -> Option<Span> {
+        match self {
+            Statement::Simple(stmt) => {
+                Some(stmt.calc_span())
+            }
+            Statement::If(stmt) => {
+                Some(stmt.calc_span())
+            }
+            Statement::Recovery(stmt) => {
+                stmt.calc_span()
+            }
+        }
+    }
+}
+
+#[derive(Debug)]
+pub struct SimpleStatement<'src> {
+    pub type_tok: Spanned<ActionType>,
+    pub action: Spanned<Iden<'src>>,
+    pub selection: Option<Spanned<Selection<'src>>>,
+    pub tags: Option<Spanned<Tags<'src>>>,
+    pub params: Spanned<Parameters<Expression<'src>>>,
+}
+
+impl<'src> SimpleStatement<'src> {
+    pub fn calc_span(&self) -> Span {
+        let start = self.type_tok.span.start;
+        let end = self.params.span.end;
+        start..end
+    }
 }
 
 #[derive(Debug)]
@@ -45,21 +81,20 @@ pub struct IfStatement<'src> {
     params: Spanned<Parameters<Expression<'src>>>,
 }
 
+impl<'src> IfStatement<'src> {
+    pub fn calc_span(&self) -> Span {
+        let start = self.type_tok.span.start;
+        let end = self.params.span.end;
+        start..end
+    }
+}
+
 #[derive(Debug)]
 pub enum IfActionType {
     Player,
     Entity,
     Game,
     Var,
-}
-
-#[derive(Debug)]
-pub struct SimpleStatement<'src> {
-    pub type_tok: Spanned<ActionType>,
-    pub action: ActionType,
-    pub selection: Option<Spanned<Selection<'src>>>,
-    pub tags: Option<Spanned<Tags<'src>>>,
-    pub params: Spanned<Parameters<Expression<'src>>>,
 }
 
 #[derive(Debug)]
@@ -85,7 +120,7 @@ impl<'src> ActionType {
             Token::CallProcess => Ok(Self::CallProcess),
             Token::Select => Ok(Self::Select),
             Token::SetVar => Ok(Self::Var),
-            tok => Err(tok)
+            tok => Err(tok),
         }
     }
 }
@@ -128,3 +163,4 @@ pub enum ExprLitType {
     Potion,
     GaveValue,
 }
+

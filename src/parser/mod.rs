@@ -15,11 +15,13 @@ pub mod top;
 
 pub struct Parser<'src> {
     toks: Peekable<SpannedIter<'src, Token<'src>>>,
+    source: &'src str
 }
 
 impl<'src> Parser<'src> {
     pub fn new(lexer: Lexer<'src, Token<'src>>) -> Self {
         Self {
+            source: lexer.source(),
             toks: lexer.spanned().peekable(),
         }
     }
@@ -38,20 +40,28 @@ impl<'src> Parser<'src> {
                     it => panic!("self.peek cannot return error variant {:?}", it),
                 };
             };
-            let mut top = self.top_level();
-            errors.append(&mut top.error);
-            if let Some(data) = top.data {
-                stmts.push(data)
-            };
+            let CompilerResult {
+                data,
+                mut error,
+            } = self.top_level();
+            errors.append(&mut error);
+            stmts.push(data);
         }
-        CompilerResult::new(Some(Program::new(stmts)), errors)
+        CompilerResult::new(Program::new(stmts), errors)
     }
 
+    /// Used when you know what next token you expect 
+    /// ```diroite
+    /// paction Name ()
+    ///    HERE ^^^^
+    /// ```
+    /// If you are 100% sure during compiler time use next_assert
     pub fn next_expect(
         &mut self,
         expected: &ExpectedTokens<'src>,
         expected_name: Option<&str>,
     ) -> Result<Spanned<Token<'src>>, CompilerError<'src>> {
+
         if let Some(it) = self.toks.next() {
             let (token, span) = it;
             if let Ok(token) = token {
@@ -143,4 +153,35 @@ impl<'src> Parser<'src> {
             })
         }
     }
+
+    /// Only use if you are sure at compile time that this cannot fail
+    pub fn next_assert(
+        &mut self,
+        expected: &ExpectedTokens<'src>,
+        expected_name: Option<&str>,
+    ) -> Spanned<Token<'src>> {
+        if let Some(it) = self.toks.next() {
+            let (token, span) = it;
+            if let Ok(token) = token {
+                let _match_expected = &expected.expected;
+                return if matches!(&token, _match_expected) {
+                    token.spanned(span)
+                } else {
+                    panic!("{:?}", CompilerError::Unexpected {
+                        expected: expected.clone(),
+                        received: token.spanned(span),
+                        expected_name: expected_name.map(|str| str.to_owned()),
+                    })
+                };
+            } else {
+                panic!("{:#?}", CompilerError::LexerError(Spanned::<()>::empty(span)))
+            }
+        } else {
+            panic!("{:#?}", CompilerError::UnexpectedEOF {
+                expected: Some(expected.clone()),
+                expected_name: None,
+            })
+        }
+    }
 }
+
