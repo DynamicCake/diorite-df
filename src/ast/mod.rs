@@ -1,10 +1,20 @@
 use logos::Span;
 
+use crate::lexer::Token;
+
 use self::top::TopLevel;
 
 pub mod recovery;
 pub mod statement;
 pub mod top;
+
+pub trait AstNode<'src> {
+    fn to_tokens(self) -> Vec<Token<'src>>;
+}
+
+pub trait ToSpannedTokens<'src> {
+    fn to_spanned_tokens(self) -> Vec<Spanned<Token<'src>>>;
+}
 
 #[derive(Debug, Clone)]
 pub struct Spanned<T> {
@@ -43,6 +53,7 @@ impl<'src> Program<'src> {
     }
 }
 
+
 #[derive(Debug)]
 pub struct Parameters<T> {
     pub items: Vec<Parameter<T>>,
@@ -53,9 +64,16 @@ pub struct Parameter<T> {
     pub data: T,
 }
 
+
 #[derive(Debug)]
 pub struct StringLiteral<'src> {
     inner: &'src str,
+}
+
+impl<'src> AstNode<'src> for StringLiteral<'src> {
+    fn to_tokens(self) -> Vec<Token<'src>> {
+        vec![Token::Iden(self.inner)]
+    }
 }
 
 #[derive(Debug)]
@@ -63,9 +81,21 @@ pub struct NumberLiteral<'src> {
     inner: &'src str,
 }
 
+impl<'src> AstNode<'src> for NumberLiteral<'src> {
+    fn to_tokens(self) -> Vec<Token<'src>> {
+        vec![Token::Iden(self.inner)]
+    }
+}
+
 #[derive(Debug)]
 pub struct Iden<'src> {
-    name: &'src str,
+    pub name: &'src str,
+}
+
+impl<'src> AstNode<'src> for Iden<'src> {
+    fn to_tokens(self) -> Vec<Token<'src>> {
+        vec![Token::Iden(self.name)]
+    }
 }
 
 impl<'src> Iden<'src> {

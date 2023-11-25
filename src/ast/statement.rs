@@ -13,6 +13,22 @@ pub struct Selection<'src> {
     close: Spanned<()>,
 }
 
+impl<'src> AstNode<'src> for Selection<'src> {
+    fn to_tokens(self) -> Vec<Token<'src>> {
+        let out = Vec::new();
+        out.push(self.open.map_inner(|_| Token::OpenComp));
+        if let Some(it) = self.selection {
+            out.push(it.map_inner(|it| Token::Iden(it)))
+        };
+        out.push(self.close.map_inner(|_| Token::CloseComp));
+        out
+    }
+}
+
+impl<'src> ToSpannedTokens<'src> for Selection<'src> {
+
+}
+
 #[derive(Debug)]
 pub struct Tags<'src> {
     open: Spanned<()>,
@@ -41,15 +57,19 @@ pub enum Statement<'src> {
 impl<'src> Statement<'src> {
     pub fn calc_span(&self) -> Option<Span> {
         match self {
-            Statement::Simple(stmt) => {
-                Some(stmt.calc_span())
-            }
-            Statement::If(stmt) => {
-                Some(stmt.calc_span())
-            }
-            Statement::Recovery(stmt) => {
-                stmt.calc_span()
-            }
+            Statement::Simple(stmt) => Some(stmt.calc_span()),
+            Statement::If(stmt) => Some(stmt.calc_span()),
+            Statement::Recovery(stmt) => stmt.calc_span(),
+        }
+    }
+}
+
+impl<'src> AstNode<'src> for Statement<'src> {
+    fn to_tokens(self) -> Vec<Token<'src>> {
+        match self {
+            Statement::Simple(inner) => inner.to_tokens(),
+            Statement::If(inner) => inner.to_tokens(),
+            Statement::Recovery(inner) => inner.to_tokens(),
         }
     }
 }
@@ -61,6 +81,20 @@ pub struct SimpleStatement<'src> {
     pub selection: Option<Spanned<Selection<'src>>>,
     pub tags: Option<Spanned<Tags<'src>>>,
     pub params: Spanned<Parameters<Expression<'src>>>,
+}
+
+impl<'src> AstNode<'src> for SimpleStatement<'src> {
+    fn to_tokens(self) -> Vec<Spanned<Token<'src>>> {
+        let mut out = vec![
+            self.type_tok.map_inner(|it| it.into()),
+            self.action.map_inner(|it| it.into()),
+        ];
+        if let Some(it) = self.selection {
+            out.push(it.map_inner(|i| i));
+        }
+
+        out.into()
+    }
 }
 
 impl<'src> SimpleStatement<'src> {
@@ -107,6 +141,21 @@ pub enum ActionType {
     CallProcess,
     Select,
     Var,
+}
+
+impl<'src> AstNode<'src> for Token<'src> {
+    fn to_tokens(self) -> Vec<Token<'src>> {
+        match self {
+            ActionType::PlayerAction => Self::PlayerAction,
+            ActionType::EntityAction => Self::EntityAction,
+            ActionType::GameAction => Self::GameAction,
+            ActionType::Control => Self::Control,
+            ActionType::CallFunction => Self::CallFunction,
+            ActionType::CallProcess => Self::CallProcess,
+            ActionType::Select => Self::Select,
+            ActionType::Var => Self::SetVar,
+        }
+    }
 }
 
 impl<'src> ActionType {

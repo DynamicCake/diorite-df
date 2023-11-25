@@ -20,7 +20,7 @@ use ast::{top::TopLevel, Program};
 use clap::Parser;
 use lexer::Token;
 use logos::Logos;
-use parser::error::CompilerResult;
+use parser::error::{CompilerResult, CompilerError};
 
 fn main() -> Result<(), Box<dyn Error + 'static>> {
     let args = Arguments::parse();
@@ -41,7 +41,7 @@ fn main() -> Result<(), Box<dyn Error + 'static>> {
     Ok(())
 }
 
-fn compile<'src>(src: &'src str) -> CompilerResult<'src, Program<'src>> {
+fn compile<'src>(src: &'src str) -> CompilerResult<Program<'src>, CompilerError<'src>> {
     let lexer = Token::lexer(src);
     let print_lexer: Vec<_> = lexer.clone().collect();
     println!("{:?}", print_lexer);

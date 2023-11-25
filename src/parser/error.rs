@@ -1,48 +1,84 @@
 use core::fmt;
-use std::fmt::Display;
+use std::{fmt::Display, marker::PhantomData};
 
 use crate::{
     ast::{recovery::Recovery, Spanned},
     lexer::Token,
 };
 
+use super::TokAdvanceError;
+
 #[derive(Debug)]
-pub struct CompilerResult<'src, T> {
+pub struct CompilerResult<T, E 
+   // = CompilerResultDefault<'src>
+    > {
     pub data: T,
-    pub error: Vec<CompilerError<'src>>,
+    pub error: Vec<E>,
 }
 
-impl<'src, T> CompilerResult<'src, T> {
-    pub fn new(data: T, error: Vec<CompilerError<'src>>) -> Self {
+impl<T, E> CompilerResult<T, E> {
+    pub fn new(data: T, error: Vec<E>) -> Self {
         CompilerResult { data, error }
     }
 
-    pub fn single_err(data: T, error: CompilerError<'src>) -> Self {
+    pub fn single_err(data: T, error: E) -> Self {
         CompilerResult::new(data, vec![error])
     }
 
-    pub fn map_inner<R, F>(self, f: F) -> CompilerResult<'src, R>
+    pub fn map_inner<R, F>(self, f: F) -> CompilerResult<R, E>
     where
         F: FnOnce(T) -> R,
     {
         let Self { data, error } = self;
         let res = f(data);
-        CompilerResult::<R>::new(res, error)
+        CompilerResult::<R, E>::new(res, error)
     }
 }
 
 #[derive(Debug)]
 pub enum CompilerError<'src> {
-    Unexpected {
-        expected: ExpectedTokens<'src>,
-        received: Spanned<Token<'src>>,
-        expected_name: Option<String>,
-    },
-    UnexpectedEOF {
-        expected: Option<ExpectedTokens<'src>>,
-        expected_name: Option<String>,
-    },
-    LexerError(Spanned<()>),
+    Unexpected(UnexpectedToken<'src>),
+    UnexpectedEOF(UnexpectedEOF<'src>),
+    LexerError(LexerError),
+}
+
+impl<'src> From<TokAdvanceError<'src>> for CompilerError<'src> {
+    fn from(value: TokAdvanceError<'src>) -> Self {
+        match value {
+            TokAdvanceError::UnexpectedEOF(inner) => CompilerError::UnexpectedEOF(inner),
+            TokAdvanceError::Lexer(inner) => CompilerError::LexerError(inner),
+        }
+    }
+}
+
+#[derive(Debug)]
+pub struct UnexpectedToken<'src> {
+    pub expected: ExpectedTokens<'src>,
+    pub received: Spanned<Token<'src>>,
+    pub expected_name: Option<String>,
+}
+
+impl<'src> UnexpectedToken<'src> {
+    pub fn new(expected: ExpectedTokens<'src>, received: Spanned<Token<'src>>, expected_name: Option<String>) -> Self { Self { expected, received, expected_name } }
+}
+
+#[derive(Debug)]
+pub struct UnexpectedEOF<'src> {
+    pub expected: Option<ExpectedTokens<'src>>,
+    pub expected_name: Option<String>,
+}
+
+impl<'src> UnexpectedEOF<'src> {
+    pub fn new(expected: Option<ExpectedTokens<'src>>, expected_name: Option<String>) -> Self { Self { expected, expected_name } }
+}
+
+#[derive(Debug)]
+pub struct LexerError {
+    pub token: Spanned<()>
+}
+
+impl LexerError {
+    pub fn new(token: Spanned<()>) -> Self { Self { token } }
 }
 
 #[derive(Debug, Clone)]
