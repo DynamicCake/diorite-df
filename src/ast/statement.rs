@@ -13,9 +13,9 @@ pub struct Selection<'src> {
     close: Spanned<()>,
 }
 
-impl<'src> AstNode<'src> for Selection<'src> {
-    fn to_tokens(self) -> Vec<Token<'src>> {
-        let out = Vec::new();
+impl<'src> NonTerminal<'src> for Selection<'src> {
+    fn collect_tokens(self) -> Vec<Spanned<Token<'src>>> {
+        let mut out = Vec::new();
         out.push(self.open.map_inner(|_| Token::OpenComp));
         if let Some(it) = self.selection {
             out.push(it.map_inner(|it| Token::Iden(it)))
@@ -25,14 +25,10 @@ impl<'src> AstNode<'src> for Selection<'src> {
     }
 }
 
-impl<'src> ToSpannedTokens<'src> for Selection<'src> {
-
-}
-
 #[derive(Debug)]
 pub struct Tags<'src> {
     open: Spanned<()>,
-    tags: Option<Spanned<Parameters<IdenPair<'src>>>>,
+    tags: Option<Spanned<Parameters<'src, IdenPair<'src>>>>,
     close: Spanned<()>,
 }
 
@@ -64,8 +60,8 @@ impl<'src> Statement<'src> {
     }
 }
 
-impl<'src> AstNode<'src> for Statement<'src> {
-    fn to_tokens(self) -> Vec<Token<'src>> {
+impl<'src> NonTerminal<'src> for Statement<'src> {
+    fn collect_tokens(self) -> Vec<Spanned<Token<'src>>> {
         match self {
             Statement::Simple(inner) => inner.to_tokens(),
             Statement::If(inner) => inner.to_tokens(),
@@ -80,11 +76,11 @@ pub struct SimpleStatement<'src> {
     pub action: Spanned<Iden<'src>>,
     pub selection: Option<Spanned<Selection<'src>>>,
     pub tags: Option<Spanned<Tags<'src>>>,
-    pub params: Spanned<Parameters<Expression<'src>>>,
+    pub params: Spanned<Parameters<'src, Expression<'src>>>,
 }
 
-impl<'src> AstNode<'src> for SimpleStatement<'src> {
-    fn to_tokens(self) -> Vec<Spanned<Token<'src>>> {
+impl<'src> NonTerminal<'src> for SimpleStatement<'src> {
+    fn collect_tokens(self) -> Vec<Spanned<Token<'src>>> {
         let mut out = vec![
             self.type_tok.map_inner(|it| it.into()),
             self.action.map_inner(|it| it.into()),
@@ -112,7 +108,7 @@ pub struct IfStatement<'src> {
     action: ActionType,
     selection: Option<Spanned<Selection<'src>>>,
     tags: Option<Spanned<Tags<'src>>>,
-    params: Spanned<Parameters<Expression<'src>>>,
+    params: Spanned<Parameters<'src, Expression<'src>>>,
 }
 
 impl<'src> IfStatement<'src> {
@@ -143,17 +139,17 @@ pub enum ActionType {
     Var,
 }
 
-impl<'src> AstNode<'src> for Token<'src> {
-    fn to_tokens(self) -> Vec<Token<'src>> {
+impl<'src> Terminal<'src> for ActionType {
+    fn to_token(self) -> Token<'src> {
         match self {
-            ActionType::PlayerAction => Self::PlayerAction,
-            ActionType::EntityAction => Self::EntityAction,
-            ActionType::GameAction => Self::GameAction,
-            ActionType::Control => Self::Control,
-            ActionType::CallFunction => Self::CallFunction,
-            ActionType::CallProcess => Self::CallProcess,
-            ActionType::Select => Self::Select,
-            ActionType::Var => Self::SetVar,
+            ActionType::PlayerAction => Token::PlayerAction,
+            ActionType::EntityAction => Token::EntityAction,
+            ActionType::GameAction => Token::GameAction,
+            ActionType::Control => Token::Control,
+            ActionType::CallFunction => Token::CallFunction,
+            ActionType::CallProcess => Token::CallProcess,
+            ActionType::Select => Token::Select,
+            ActionType::Var => Token::SetVar,
         }
     }
 }
@@ -187,16 +183,44 @@ pub enum Expression<'src> {
     Literal(ExprLiteral<'src>),
 }
 
+impl<'src> NonTerminal<'src> for Expression<'src> {
+    fn collect_tokens(self) -> Vec<Spanned<Token<'src>>> {
+        match self {
+            Expression::Static(it) => it,
+            Expression::Literal(it) => it,
+        }
+    }
+}
+
 #[derive(Debug)]
 pub struct ExprLiteral<'src> {
     pub literal_type: Spanned<ExprLitType>,
-    pub args: Spanned<Parameters<StaticLiteral<'src>>>,
+    pub args: Spanned<Parameters<'src, StaticLiteral<'src>>>,
 }
 
+impl<'src> NonTerminal<'src> for ExprLiteral<'src> {
+    fn collect_tokens(self) -> Vec<Spanned<Token<'src>>> {
+        let mut out = Vec::new();
+        out.push(self.literal_type.map_inner(|it| it.collect_tokens()));
+        out.append(&mut self.args.data.collect_tokens())
+    }
+
+}
 #[derive(Debug)]
 pub enum StaticLiteral<'src> {
     String(StringLiteral<'src>),
     Number(NumberLiteral<'src>),
+}
+
+/// Ok ok I get it, this isn't a terminal but deal with it.
+/// This was done because I am unable to provide the span for the token
+impl<'src> Terminal<'src> for StaticLiteral<'src> {
+    fn to_token(self) -> Token<'src> {
+        match self {
+            StaticLiteral::String(it) => Token::String(it),
+            StaticLiteral::Number(it) => Token::Number(it)
+        }
+    }
 }
 
 #[derive(Debug)]
@@ -210,6 +234,22 @@ pub enum ExprLitType {
     Sound,
     Particle,
     Potion,
-    GaveValue,
+    GameValue,
 }
 
+impl<'src> Terminal<'src> for ExprLitType {
+    fn to_token(self) -> Token<'src> {
+        match self {
+            ExprLitType::SaveVar => Token::SaveVar,
+            ExprLitType::GlobalVar => Token::GlobalVar,
+            ExprLitType::ThreadVar => Token::ThreadVar,
+            ExprLitType::LineVar => Token::LineVar,
+            ExprLitType::Location => Token::Location,
+            ExprLitType::Vector => Token::Vector,
+            ExprLitType::Sound => Token::Sound,
+            ExprLitType::Particle => Token::Particle,
+            ExprLitType::Potion => Token::Potion,
+            ExprLitType::GameValue => Token::GameValue,
+        }
+    }
+}

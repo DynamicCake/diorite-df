@@ -1,3 +1,5 @@
+use std::marker::PhantomData;
+
 use logos::Span;
 
 use crate::lexer::Token;
@@ -8,12 +10,14 @@ pub mod recovery;
 pub mod statement;
 pub mod top;
 
-pub trait AstNode<'src> {
-    fn to_tokens(self) -> Vec<Token<'src>>;
+pub trait AstNode<'src, T: NonTerminal<'src> + Terminal<'src>> {}
+
+pub trait NonTerminal<'src> {
+    fn collect_tokens(self) -> Vec<Spanned<Token<'src>>>;
 }
 
-pub trait ToSpannedTokens<'src> {
-    fn to_spanned_tokens(self) -> Vec<Spanned<Token<'src>>>;
+pub trait Terminal<'src> {
+    fn to_token(self) -> Token<'src>;
 }
 
 #[derive(Debug, Clone)]
@@ -53,48 +57,108 @@ impl<'src> Program<'src> {
     }
 }
 
+#[derive(Debug)]
+pub struct Parameters<'src, T>  {
+    pub items: Vec<Parameter<'src, T>>,
+}
+
+impl<'src, T> NonTerminal<'src> for Parameters<'src, T> where T: Terminal<'src> {
+
+}
+
+impl<'src, T> NonTerminal<'src> for Parameters<'src, T> where T: NonTerminal<'src> {
+    fn collect_tokens(self) -> Vec<Spanned<Token<'src>>> {
+        let mut out = Vec::new();
+        self.items.into_iter().for_each(|it| {
+            out.append(&mut it.collect_tokens());
+        });
+        out
+    }
+}
 
 #[derive(Debug)]
-pub struct Parameters<T> {
-    pub items: Vec<Parameter<T>>,
-}
-#[derive(Debug)]
-pub struct Parameter<T> {
-    pub comma: Spanned<()>,
+pub struct Parameter<'src, T>
+where
+    T: NonTerminal<'src> + Terminal<'src>,
+{
     pub data: T,
+    pub comma: Spanned<()>,
+    phantom: PhantomData<&'src T>,
 }
 
+impl<'src, T> NonTerminal<'src> for Parameter<'src, T>
+where
+    T: NonTerminal<'src> + Terminal<'src>,
+{
+    fn collect_tokens(self) -> Vec<Spanned<Token<'src>>> {
+        let out = Vec::new();
+    }
+}
+
+impl<'src, T> Parameter<'src, T>
+where
+    T: NonTerminal<'src> + Terminal<'src>,
+{
+    fn new(data: T, comma: Spanned<()>) -> Self {
+        Self {
+            data,
+            comma,
+            phantom: PhantomData,
+        }
+    }
+}
+
+struct Spooky<T> {
+    phantom: PhantomData<T>
+}
+
+struct SpookRef<'src, T> {
+    phantom_ref: &'src PhantomData<T>
+}
+
+
+// StringLiteral
 
 #[derive(Debug)]
 pub struct StringLiteral<'src> {
     inner: &'src str,
 }
 
-impl<'src> AstNode<'src> for StringLiteral<'src> {
-    fn to_tokens(self) -> Vec<Token<'src>> {
-        vec![Token::Iden(self.inner)]
+impl<'src> StringLiteral<'src> {
+    pub fn new(inner: &'src str) -> Self {
+        Self { inner }
     }
 }
+
+impl<'src> Terminal<'src> for StringLiteral<'src> {
+    fn to_token(self) -> Token<'src> {
+        Token::Iden(self.inner)
+    }
+}
+
+// NumberLiteral
 
 #[derive(Debug)]
 pub struct NumberLiteral<'src> {
     inner: &'src str,
 }
 
-impl<'src> AstNode<'src> for NumberLiteral<'src> {
-    fn to_tokens(self) -> Vec<Token<'src>> {
-        vec![Token::Iden(self.inner)]
+impl<'src> Terminal<'src> for NumberLiteral<'src> {
+    fn to_token(self) -> Token<'src> {
+        Token::Iden(self.inner)
     }
 }
+
+// Iden
 
 #[derive(Debug)]
 pub struct Iden<'src> {
     pub name: &'src str,
 }
 
-impl<'src> AstNode<'src> for Iden<'src> {
-    fn to_tokens(self) -> Vec<Token<'src>> {
-        vec![Token::Iden(self.name)]
+impl<'src> Terminal<'src> for Iden<'src> {
+    fn to_token(self) -> Token<'src> {
+        Token::Iden(self.name)
     }
 }
 
