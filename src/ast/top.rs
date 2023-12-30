@@ -15,7 +15,7 @@ pub enum TopLevel<'src> {
 pub struct FuncDef<'src> {
     pub type_tok: Spanned<()>,
     pub name: Spanned<Iden<'src>>,
-    pub params: Parameters<FuncParamDef<'src>>,
+    pub params: Parameters<'src, FuncParamDef<'src>>,
     pub end_tok: Spanned<()>,
 }
 

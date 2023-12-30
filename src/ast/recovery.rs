@@ -2,7 +2,7 @@ use logos::Span;
 
 use crate::lexer::Token;
 
-use super::Spanned;
+use super::{Spanned, statement::Statement};
 
 #[derive(Debug)]
 pub enum Recovery<'src> {
@@ -24,7 +24,7 @@ pub enum Recovery<'src> {
 /// ```diorite
 /// pevent Join var some more nonsense lalala end
 ///             |----------recovery---------|
-/// |-------------event-decleration-------------|
+/// |-------------event-declaration-------------|
 /// ```
 #[derive(Debug)]
 pub struct StatementRecovery<'src> {
@@ -59,16 +59,16 @@ impl<'src> StatementRecovery<'src> {
 
 /// Used when there is an error when parsing a top level statement,
 /// this is commonly used when a func has an error.
-/// It looks for top level declerations like `pevent`
+/// It looks for top level declarations like `pevent`
 ///
-/// This is a catch all before more specific error sytntaxes get created.
+/// This is a catch all before more specific error syntaxes get created.
 ///
-/// ```ts diorite
+/// ```diorite
 /// func (msg: text) paction Join end
 /// |---recovery---| |--event-decl--|
 /// ```
 /// This also works with random loose tokens
-/// ```lua diorite
+/// ```diorite
 /// // ...
 /// end
 /// 'Hello I am some random text' // Syntax error here and TopLevelRecovery
@@ -77,16 +77,19 @@ impl<'src> StatementRecovery<'src> {
 /// ```
 #[derive(Debug)]
 pub struct TopLevelRecovery<'src> {
-    pub tokens: Vec<Spanned<Token<'src>>>,
+    pub items: Vec<TopRecoveryType<'src>>,
 }
 
 impl<'src> TopLevelRecovery<'src> {
-    pub fn new(tokens: Vec<Spanned<Token<'src>>>) -> Self {
-        Self { tokens }
+    pub fn new(items: Vec<TopRecoveryType<'src>>) -> Self {
+        Self { items }
     }
-    pub fn empty() -> Self {
-        Self { tokens: Vec::new() }
-    }
+}
+
+#[derive(Debug)]
+pub enum TopRecoveryType<'src> {
+    Body(Vec<Spanned<Statement<'src>>>),
+    Unrecognizable(Vec<Spanned<Token<'src>>>)
 }
 
 /*

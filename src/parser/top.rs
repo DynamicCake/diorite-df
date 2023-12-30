@@ -1,7 +1,7 @@
 use logos::Span;
 
 use crate::ast::{
-    recovery::{Recovery, StatementRecovery, TopLevelRecovery},
+    recovery::{Recovery, StatementRecovery, TopLevelRecovery, TopRecoveryType},
     statement::{ActionType, IfStatement, SimpleStatement, Statement, Statements},
     top::{Event, EventType, FuncDef, ProcDef},
     Iden,
@@ -20,11 +20,16 @@ impl<'src> Parser<'src> {
         ) {
             Ok(it) => Spanned::new(it.data.to_owned(), it.span),
             Err(err) => {
-                let CompilerResult { data, mut error } = self.top_recovery(Vec::new());
+                let CompilerResult { data, error } = self.top_recovery();
                 let mut errors: Vec<CompilerError<'src>> =
                     error.into_iter().map(|it| it.into()).collect();
                 errors.push(err);
-                return CompilerResult::new(TopLevel::Recovery(data), errors);
+                return CompilerResult::new(
+                    TopLevel::Recovery(TopLevelRecovery::new(vec![
+                        TopRecoveryType::Unrecognizable(data),
+                    ])),
+                    errors,
+                );
             }
         };
 
@@ -46,9 +51,11 @@ impl<'src> Parser<'src> {
                 todo!()
             }
             it => {
-                let CompilerResult { data, error } = self.top_recovery(Vec::new());
+                let CompilerResult { data, error } = self.top_recovery();
                 let error = error.into_iter().map(|it| it.into()).collect();
-                let data = TopLevel::Recovery(data);
+                let data = TopLevel::Recovery(TopLevelRecovery::new(vec![
+                    TopRecoveryType::Unrecognizable(data),
+                ]));
 
                 CompilerResult::new(data, error)
             }
@@ -88,19 +95,15 @@ impl<'src> Parser<'src> {
         let name = match self.next_expect(&Token::Iden("").into(), Some("event name")) {
             Ok(it) => it,
             Err(err) => {
-                let CompilerResult { data, error } = self.top_recovery(vec![definition]);
+                let CompilerResult { data, error } = self.top_recovery();
+                let mut def =
+                    TopLevelRecovery::new(vec![TopRecoveryType::Unrecognizable(vec![definition])]);
+                def.items.push(TopRecoveryType::Unrecognizable(data));
                 let mut errors: Vec<CompilerError<'src>> =
                     error.into_iter().map(|it| it.into()).collect();
                 errors.push(err);
-                return CompilerResult::new(Err(data), errors);
+                return CompilerResult::new(Err(def), errors);
             }
-        };
-        let iden = {
-            let data = match name.data {
-                Token::Iden(it) => it,
-                it => panic!("Expected Iden received {:?}", it),
-            };
-            Spanned::new(Iden::new(data), name.span)
         };
 
         let CompilerResult {
@@ -114,29 +117,24 @@ impl<'src> Parser<'src> {
                 let mut toks = Vec::new();
                 toks.push(definition);
                 toks.push(name);
-                let stmt_toks = {
-                    stmts.into_iter().map(|it| {
-                        let res = match it.data {
-                            Statement::Simple(it) => it.collect_tokens(),
-                            Statement::If(it) => todo!(),
-                            Statement::Recovery(it) => todo!(),
-                        };
-                        res
-                    }).collect();
-                    todo!()
-                };
-                errors.push(err);
-                match err {
+                match &err {
                     CompilerError::Unexpected(it) => {
+                        let CompilerResult { data, error } = self.top_recovery();
+                        
+                        // vec![TopRecoveryType::Body(stmts)]);
                         todo!()
                     }
                     CompilerError::UnexpectedEOF(it) => {
-                        return CompilerResult::new(Err(TopLevelRecovery::new()), errors);
+                        return CompilerResult::new(
+                            Err(TopLevelRecovery::new(vec![TopRecoveryType::Body(stmts)])),
+                            errors,
+                        );
                     }
                     CompilerError::LexerError(it) => {
-                        todo!()
                     }
                 }
+                return CompilerResult::new(Result::Err(TopLevelRecovery::new(todo!())), errors);
+                errors.push(err);
                 // TODO HERE
             }
         };
@@ -150,14 +148,22 @@ impl<'src> Parser<'src> {
                 }
                 None => {
                     // Get a bit desperate here
-                    name.span.end..end.span.start
+                    name.span.start..end.span.end
                 }
             }
         };
 
+        let iden = {
+            let data = match name.data {
+                Token::Iden(it) => it,
+                it => panic!("Expected Iden received {:?}", it),
+            };
+            Spanned::new(Iden::new(data), name.span)
+        };
+
         let event = Event::new(
             Spanned::new(type_tok, definition.span),
-            name,
+            iden,
             Spanned::new(Statements::new(stmts), range),
             end,
         );
@@ -166,12 +172,10 @@ impl<'src> Parser<'src> {
     }
 
     /// Looks for event, proc, func tokens
-    /// This function will never error
-    fn top_recovery(
-        &mut self,
-        mut tokens: Vec<Spanned<Token<'src>>>,
-    ) -> CompilerResult<TopLevelRecovery<'src>, TokAdvanceError<'src>> {
+    /// This function will never syntax error
+    fn top_recovery(&mut self) -> CompilerResult<Vec<Spanned<Token<'src>>>, TokAdvanceError<'src>> {
         let mut errors = Vec::new();
+        let mut tokens = Vec::new();
         loop {
             match self.peek() {
                 Ok(tok) => match tok.data {
@@ -190,7 +194,7 @@ impl<'src> Parser<'src> {
                             expected: _,
                             expected_name: _,
                         }) => {
-                            return CompilerResult::single_err(TopLevelRecovery::new(tokens), err);
+                            return CompilerResult::single_err(tokens, err);
                         }
                         TokAdvanceError::Lexer(span) => {
                             tokens.push(Token::Invalid.spanned(span.token.span.clone()));
@@ -200,7 +204,6 @@ impl<'src> Parser<'src> {
                 }
             };
         }
-        CompilerResult::new(TopLevelRecovery::new(tokens), errors)
+        CompilerResult::new(tokens, errors)
     }
 }
-
