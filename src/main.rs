@@ -41,7 +41,7 @@ fn main() -> Result<(), Box<dyn Error + 'static>> {
     Ok(())
 }
 
-fn compile<'src>(src: &'src str) -> CompilerResult<Program<'src>, CompilerError<'src>> {
+fn compile<'src>(src: &'src str) -> CompilerResult<Program<'src>, Vec<CompilerError<'src>>> {
     let lexer = Token::lexer(src);
     let print_lexer: Vec<_> = lexer.clone().collect();
     println!("{:?}", print_lexer);

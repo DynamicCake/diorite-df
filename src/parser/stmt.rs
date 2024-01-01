@@ -22,7 +22,7 @@ use super::{error::CompilerResult, Parser};
 impl<'src> Parser<'src> {
     pub fn statements(
         &mut self,
-    ) -> CompilerResult<Vec<Spanned<Statement<'src>>>, CompilerError<'src>> {
+    ) -> CompilerResult<Vec<Spanned<Statement<'src>>>, Vec<CompilerError<'src>>> {
         let expected = {
             let mut expected = Token::STATEMENT.to_vec();
             expected.push(Token::End);
@@ -77,7 +77,7 @@ impl<'src> Parser<'src> {
     fn statement_recovery(
         &mut self,
         mut tokens: Vec<Spanned<Token<'src>>>,
-    ) -> CompilerResult<StatementRecovery<'src>, TokAdvanceError<'src>> {
+    ) -> CompilerResult<StatementRecovery<'src>, Vec<TokAdvanceError<'src>>> {
         let mut errors = Vec::new();
         loop {
             match self.peek() {
@@ -127,14 +127,14 @@ impl<'src> Parser<'src> {
         &mut self,
     ) -> CompilerResult<
         Result<Spanned<Statement<'src>>, StatementRecovery<'src>>,
-        CompilerError<'src>,
+        Vec<CompilerError<'src>>,
     > {
         let decl_token = match self.peek_expect(
             &ExpectedTokens::new(Token::STATEMENT.to_vec()),
             Some("statements"),
         ) {
             Ok(it) => it.data.to_owned().spanned(it.span),
-            Err(err) => return CompilerResult::single_err(Err(StatementRecovery::empty()), err),
+            Err(err) => return CompilerResult::new(Err(StatementRecovery::empty()), vec![err]),
         };
 
         // I am aware that this will become a nightmare when adding new tokens or features... Too bad!
@@ -174,7 +174,7 @@ impl<'src> Parser<'src> {
 
     fn regular_statement(
         &mut self,
-    ) -> CompilerResult<Result<SimpleStatement<'src>, StatementRecovery<'src>>, CompilerError<'src>>
+    ) -> CompilerResult<Result<SimpleStatement<'src>, StatementRecovery<'src>>, Vec<CompilerError<'src>>>
     {
         let type_tok =
             self.next_assert(&ExpectedTokens::new(Token::SIMPLE_STATEMENT.to_vec()), None);

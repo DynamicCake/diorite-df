@@ -14,6 +14,8 @@ pub mod stmt;
 pub mod top;
 
 pub struct Parser<'src> {
+    /// The main token iterator
+    /// It is not advised to use this in functions called by `parse(&mut self)`
     toks: Peekable<SpannedIter<'src, Token<'src>>>,
     source: &'src str,
 }
@@ -26,7 +28,7 @@ impl<'src> Parser<'src> {
         }
     }
 
-    pub fn parse(&mut self) -> CompilerResult<Program<'src>, CompilerError<'src>> {
+    pub fn parse(&mut self) -> CompilerResult<Program<'src>, Vec<CompilerError<'src>>> {
         let mut stmts = Vec::new();
         let mut errors = Vec::new();
         loop {
@@ -34,7 +36,6 @@ impl<'src> Parser<'src> {
                 match err {
                     TokAdvanceError::UnexpectedEOF(_err) => break,
                     TokAdvanceError::Lexer(_err) => break,
-                    it => panic!("self.peek cannot return error variant {:?}", it),
                 };
             };
             let CompilerResult { data, mut error } = self.top_level();
@@ -69,7 +70,9 @@ impl<'src> Parser<'src> {
                     }))
                 };
             } else {
-                Err(CompilerError::LexerError(LexerError::new(Spanned::<()>::empty(span))))
+                Err(CompilerError::LexerError(LexerError::new(
+                    Spanned::<()>::empty(span),
+                )))
             }
         } else {
             Err(CompilerError::UnexpectedEOF(UnexpectedEOF {
@@ -84,9 +87,9 @@ impl<'src> Parser<'src> {
         expected: &ExpectedTokens<'src>,
         msg: Option<&str>,
     ) -> Result<Spanned<&Token<'src>>, CompilerError<'src>> {
-        let token = if let Some(it) = self.toks.peek() {
-            let (token, span) = it;
+        if let Some((token, span)) = self.toks.peek() {
             if let Ok(token) = token {
+                // This is to bypass the unused warning
                 let _match_expected = &expected.expected;
                 return if matches!(&token, _match_expected) {
                     Ok(Spanned::new(token, span.clone()))
@@ -107,8 +110,7 @@ impl<'src> Parser<'src> {
                 expected: None,
                 expected_name: None,
             }))
-        };
-        token
+        }
     }
 
     pub fn peek(&mut self) -> Result<Spanned<&Token<'src>>, TokAdvanceError<'src>> {
@@ -130,22 +132,22 @@ impl<'src> Parser<'src> {
         }
     }
 
-    pub fn next(&mut self) -> Result<Spanned<Token<'src>>, CompilerError<'src>> {
+    /// Advances to the iterator to the next token
+    /// Great for use in recovery functions
+    /// Returns a `Some(Token::Invalid)` if there is a lexer error
+    pub fn next(&mut self) -> Result<Spanned<Token<'src>>, UnexpectedEOF<'src>> {
         if let Some(it) = self.toks.next() {
             let (token, span) = it;
-            if let Ok(token) = token {
-                let spanned = token.spanned(span);
-                Ok(spanned)
+            Ok(if let Ok(token) = token {
+                token.spanned(span)
             } else {
-                Err(CompilerError::LexerError(LexerError::new(
-                    Spanned::<()>::empty(span),
-                )))
-            }
+                Token::Invalid.spanned(span)
+            })
         } else {
-            Err(CompilerError::UnexpectedEOF(UnexpectedEOF {
+            Err(UnexpectedEOF {
                 expected: None,
                 expected_name: None,
-            }))
+            })
         }
     }
 
@@ -195,3 +197,17 @@ pub enum TokAdvanceError<'src> {
     Lexer(LexerError),
 }
 
+#[derive(Debug)]
+pub struct RecoveryError<'src> {
+    lexer_errors: Vec<LexerError>,
+    unexpected_eof: Option<UnexpectedEOF<'src>>,
+}
+
+impl<'src> RecoveryError<'src> {
+    pub fn new(lexer_errors: Vec<LexerError>, unexpected_eof: Option<UnexpectedEOF<'src>>) -> Self {
+        Self {
+            lexer_errors,
+            unexpected_eof,
+        }
+    }
+}
