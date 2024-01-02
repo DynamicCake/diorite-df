@@ -20,7 +20,7 @@ use ast::{top::TopLevel, Program};
 use clap::Parser;
 use lexer::Token;
 use logos::Logos;
-use parser::error::{CompilerResult, CompilerError};
+use parser::error::{CompilerResult, UnexpectedToken};
 
 fn main() -> Result<(), Box<dyn Error + 'static>> {
     let args = Arguments::parse();
@@ -33,7 +33,7 @@ fn main() -> Result<(), Box<dyn Error + 'static>> {
     }?;
     */
 
-    let src = "pevent Join";
+    let src = "pevent Join end";
     let res = compile(&src);
 
     println!("Somehow: {:#?}", res);
@@ -41,7 +41,7 @@ fn main() -> Result<(), Box<dyn Error + 'static>> {
     Ok(())
 }
 
-fn compile<'src>(src: &'src str) -> CompilerResult<Program<'src>, Vec<CompilerError<'src>>> {
+fn compile<'src>(src: &'src str) -> CompilerResult<'src, Program<'src>, Vec<UnexpectedToken<'src>>> {
     let lexer = Token::lexer(src);
     let print_lexer: Vec<_> = lexer.clone().collect();
     println!("{:?}", print_lexer);

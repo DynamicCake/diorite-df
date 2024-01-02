@@ -1,10 +1,13 @@
-use std::fmt::Display;
+use std::{fmt::Display, rc::Rc, sync::Arc};
 
 use logos::{Logos, Span};
 
-use crate::ast::{statement::ActionType, Spanned, Iden};
+use crate::{
+    ast::{statement::ActionType, Iden, Spanned},
+    parser::error::ExpectedTokens,
+};
 
-#[derive(Logos, Clone, PartialEq, Debug)]
+#[derive(Logos, Clone, Debug)]
 #[logos(skip r"[ \t\n\f]+")]
 pub enum Token<'src> {
     #[token("pevent")]
@@ -15,8 +18,10 @@ pub enum Token<'src> {
     ProcDef,
     #[token("func")]
     FuncDef,
+
     #[token("end")]
     End,
+
     #[token("not")]
     Not,
 
@@ -100,46 +105,10 @@ pub enum Token<'src> {
     Invalid,
 }
 
-impl<'src> Token<'src> {
-    pub const STATEMENT: [Token<'_>; 12] = [
-        Token::PlayerAction,
-        Token::EntityAction,
-        Token::GameAction,
-        Token::Control,
-        Token::CallFunction,
-        Token::CallProcess,
-        Token::Select,
-        Token::SetVar,
-        Token::IfPlayer,
-        Token::IfEntity,
-        Token::IfGame,
-        Token::IfVar,
-    ];
-
-    pub const IF_STATEMENT: [Token<'_>; 4] = [
-        Token::IfPlayer,
-        Token::IfEntity,
-        Token::IfGame,
-        Token::IfVar,
-    ];
-
-    pub const SIMPLE_STATEMENT: [Token<'_>; 8] = [
-        Token::PlayerAction,
-        Token::EntityAction,
-        Token::GameAction,
-        Token::Control,
-        Token::CallFunction,
-        Token::CallProcess,
-        Token::Select,
-        Token::SetVar,
-    ];
-
-    pub const TOP_LEVEL: [Token<'_>; 4] = [
-        Token::FuncDef,
-        Token::ProcDef,
-        Token::PlayerEvent,
-        Token::EntityEvent,
-    ];
+impl<'src> PartialEq for Token<'src> {
+    fn eq(&self, other: &Self) -> bool {
+        core::mem::discriminant(self) == core::mem::discriminant(other)
+    }
 }
 
 impl<'src> Token<'src> {
@@ -162,4 +131,62 @@ impl<'src> Token<'src> {
     }
 }
 
+impl<'src> Token<'src> {
+    pub const STATEMENT: [Token<'src>; 12] = [
+        Token::PlayerAction,
+        Token::EntityAction,
+        Token::GameAction,
+        Token::Control,
+        Token::CallFunction,
+        Token::CallProcess,
+        Token::Select,
+        Token::SetVar,
+        Token::IfPlayer,
+        Token::IfEntity,
+        Token::IfGame,
+        Token::IfVar,
+    ];
 
+    pub const STATEMENT_LOOP: [Token<'src>; 13] = [
+        Token::PlayerAction,
+        Token::EntityAction,
+        Token::GameAction,
+        Token::Control,
+        Token::CallFunction,
+        Token::CallProcess,
+        Token::Select,
+        Token::SetVar,
+        Token::IfPlayer,
+        Token::IfEntity,
+        Token::IfGame,
+        Token::IfVar,
+        Token::End,
+    ];
+
+    pub const IF_STATEMENT: [Token<'src>; 4] = [
+        Token::IfPlayer,
+        Token::IfEntity,
+        Token::IfGame,
+        Token::IfVar,
+    ];
+
+    pub const SIMPLE_STATEMENT: [Token<'src>; 8] = [
+        Token::PlayerAction,
+        Token::EntityAction,
+        Token::GameAction,
+        Token::Control,
+        Token::CallFunction,
+        Token::CallProcess,
+        Token::Select,
+        Token::SetVar,
+    ];
+
+    pub const TOP_LEVEL: [Token<'src>; 4] = [
+        Token::FuncDef,
+        Token::ProcDef,
+        Token::PlayerEvent,
+        Token::EntityEvent,
+    ];
+
+    pub const EVENT: [Token<'src>; 2] = [Token::PlayerEvent, Token::EntityEvent];
+}

@@ -18,6 +18,8 @@ pub struct Parser<'src> {
     /// It is not advised to use this in functions called by `parse(&mut self)`
     toks: Peekable<SpannedIter<'src, Token<'src>>>,
     source: &'src str,
+    /// Whenever an invalid token is replaced with `Token::Invalid`, a lexer error gets added
+    lex_errs: Vec<LexerError>,
 }
 
 impl<'src> Parser<'src> {
@@ -25,24 +27,69 @@ impl<'src> Parser<'src> {
         Self {
             source: lexer.source(),
             toks: lexer.spanned().peekable(),
+            lex_errs: Vec::new(),
         }
     }
 
-    pub fn parse(&mut self) -> CompilerResult<Program<'src>, Vec<CompilerError<'src>>> {
+    pub fn parse(&mut self) -> CompilerResult<'src, Program<'src>, Vec<UnexpectedToken<'src>>> {
         let mut stmts = Vec::new();
         let mut errors = Vec::new();
         loop {
             if let Err(err) = self.peek() {
-                match err {
-                    TokAdvanceError::UnexpectedEOF(_err) => break,
-                    TokAdvanceError::Lexer(_err) => break,
-                };
-            };
-            let CompilerResult { data, mut error } = self.top_level();
+                break;
+            }
+
+            let CompilerResult {
+                data,
+                mut error,
+                at_eof,
+            } = self.top_level();
             errors.append(&mut error);
             stmts.push(data);
+
+            if let Some(at_eof) = at_eof {
+                return CompilerResult::new_with_eof(Program::new(stmts), errors, Some(at_eof));
+            }
         }
         CompilerResult::new(Program::new(stmts), errors)
+    }
+
+    /// Only use if you are sure at compile time that this cannot fail
+    pub fn next_assert(
+        &mut self,
+        expected: &[Token<'src>],
+        expected_name: Option<&str>,
+    ) -> Spanned<Token<'src>> {
+        if let Some(it) = self.toks.next() {
+            let (token, span) = it;
+            if let Ok(token) = token {
+                return if expected.contains(&token) {
+                    token.spanned(span)
+                } else {
+                    panic!(
+                        "Unexpected Error: {:#?}",
+                        UnexpectedToken {
+                            expected: ExpectedTokens::new(expected.into()),
+                            received: token.spanned(span),
+                            expected_name: expected_name.map(|str| str.to_owned()),
+                        }
+                    )
+                };
+            } else {
+                panic!(
+                    "Unexpected Error: {:#?}",
+                    LexerError::new(Spanned::<()>::empty(span))
+                )
+            }
+        } else {
+            panic!(
+                "Unexpected Error: {:#?}",
+                UnexpectedEOF {
+                    expected: Some(ExpectedTokens::new(expected.into())),
+                    expected_name: None,
+                }
+            )
+        }
     }
 
     /// Used when you know what next token you expect
@@ -53,30 +100,29 @@ impl<'src> Parser<'src> {
     /// If you are 100% sure during compiler time use next_assert
     pub fn next_expect(
         &mut self,
-        expected: &ExpectedTokens<'src>,
+        expected: &[Token<'src>],
         expected_name: Option<&str>,
-    ) -> Result<Spanned<Token<'src>>, CompilerError<'src>> {
+    ) -> Result<Spanned<Token<'src>>, AdvanceUnexpected<'src>> {
         if let Some(it) = self.toks.next() {
             let (token, span) = it;
             if let Ok(token) = token {
-                let _match_expected = &expected.expected;
-                return if matches!(&token, _match_expected) {
+                return if expected.contains(&token) {
                     Ok(token.spanned(span))
                 } else {
-                    Err(CompilerError::Unexpected(UnexpectedToken {
-                        expected: expected.clone(),
+                    Err(AdvanceUnexpected::Token(UnexpectedToken {
+                        expected: ExpectedTokens::new(expected.into()),
                         received: token.spanned(span),
                         expected_name: expected_name.map(|str| str.to_owned()),
                     }))
                 };
             } else {
-                Err(CompilerError::LexerError(LexerError::new(
-                    Spanned::<()>::empty(span),
-                )))
+                self.lex_errs
+                    .push(LexerError::new(Spanned::<()>::empty(span.clone())));
+                Ok(Token::Invalid.spanned(span))
             }
         } else {
-            Err(CompilerError::UnexpectedEOF(UnexpectedEOF {
-                expected: Some(expected.clone()),
+            Err(AdvanceUnexpected::Eof(UnexpectedEOF {
+                expected: Some(ExpectedTokens::new(expected.into())),
                 expected_name: None,
             }))
         }
@@ -84,51 +130,52 @@ impl<'src> Parser<'src> {
 
     pub fn peek_expect(
         &mut self,
-        expected: &ExpectedTokens<'src>,
+        expected: &[Token<'src>],
         msg: Option<&str>,
-    ) -> Result<Spanned<&Token<'src>>, CompilerError<'src>> {
+    ) -> Result<Spanned<&Token<'src>>, AdvanceUnexpected<'src>> {
         if let Some((token, span)) = self.toks.peek() {
             if let Ok(token) = token {
-                // This is to bypass the unused warning
-                let _match_expected = &expected.expected;
-                return if matches!(&token, _match_expected) {
+                return if expected.contains(&token) {
                     Ok(Spanned::new(token, span.clone()))
                 } else {
-                    Err(CompilerError::Unexpected(UnexpectedToken {
-                        expected: expected.clone(),
+                    Err(AdvanceUnexpected::Token(UnexpectedToken {
+                        expected: ExpectedTokens::new(expected.into()),
                         received: token.clone().spanned(span.clone()),
                         expected_name: msg.map(|str| str.to_owned()),
                     }))
                 };
             } else {
-                Err(CompilerError::LexerError(LexerError::new(
-                    Spanned::<()>::empty(span.clone()),
-                )))
+                // This clone has minimal overhead as it is only cloning a Range<usize>
+                self.lex_errs
+                    .push(LexerError::new(Spanned::<()>::empty(span.clone())));
+                Ok(Spanned::new(&Token::Invalid, span.clone()))
             }
         } else {
-            Err(CompilerError::UnexpectedEOF(UnexpectedEOF {
-                expected: None,
-                expected_name: None,
+            Err(AdvanceUnexpected::Eof(UnexpectedEOF {
+                expected: Some(ExpectedTokens::new(expected.into())),
+                expected_name: msg.map(|it| it.to_string()),
             }))
         }
     }
 
-    pub fn peek(&mut self) -> Result<Spanned<&Token<'src>>, TokAdvanceError<'src>> {
+    /// Returns a reference to the next() Token without advancing the iterator.
+    /// On lexer error, it pushes it onto `self.lex_errs` and returns `Token::Invalid`
+    pub fn peek(&mut self) -> Result<Spanned<&Token<'src>>, UnexpectedEOF<'src>> {
         if let Some(it) = self.toks.peek() {
             let (token, span) = it;
             if let Ok(token) = token {
                 let spanned = Spanned::new(token, span.clone());
                 Ok(spanned)
             } else {
-                Err(TokAdvanceError::Lexer(LexerError::new(
-                    Spanned::<()>::empty(span.clone()),
-                )))
+                self.lex_errs
+                    .push(LexerError::new(Spanned::<()>::empty(span.clone())));
+                Ok(Spanned::new(&Token::Invalid, span.clone()))
             }
         } else {
-            Err(TokAdvanceError::UnexpectedEOF(UnexpectedEOF {
+            Err(UnexpectedEOF {
                 expected: None,
                 expected_name: None,
-            }))
+            })
         }
     }
 
@@ -150,64 +197,9 @@ impl<'src> Parser<'src> {
             })
         }
     }
-
-    /// Only use if you are sure at compile time that this cannot fail
-    pub fn next_assert(
-        &mut self,
-        expected: &ExpectedTokens<'src>,
-        expected_name: Option<&str>,
-    ) -> Spanned<Token<'src>> {
-        if let Some(it) = self.toks.next() {
-            let (token, span) = it;
-            if let Ok(token) = token {
-                let _match_expected = &expected.expected;
-                return if matches!(&token, _match_expected) {
-                    token.spanned(span)
-                } else {
-                    panic!(
-                        "{:?}",
-                        CompilerError::Unexpected(UnexpectedToken {
-                            expected: expected.clone(),
-                            received: token.spanned(span),
-                            expected_name: expected_name.map(|str| str.to_owned()),
-                        })
-                    )
-                };
-            } else {
-                panic!(
-                    "{:#?}",
-                    CompilerError::LexerError(LexerError::new(Spanned::<()>::empty(span)))
-                )
-            }
-        } else {
-            panic!(
-                "{:#?}",
-                CompilerError::UnexpectedEOF(UnexpectedEOF {
-                    expected: Some(expected.clone()),
-                    expected_name: None,
-                })
-            )
-        }
-    }
 }
 
-#[derive(Debug)]
-pub enum TokAdvanceError<'src> {
-    UnexpectedEOF(UnexpectedEOF<'src>),
-    Lexer(LexerError),
-}
-
-#[derive(Debug)]
-pub struct RecoveryError<'src> {
-    lexer_errors: Vec<LexerError>,
-    unexpected_eof: Option<UnexpectedEOF<'src>>,
-}
-
-impl<'src> RecoveryError<'src> {
-    pub fn new(lexer_errors: Vec<LexerError>, unexpected_eof: Option<UnexpectedEOF<'src>>) -> Self {
-        Self {
-            lexer_errors,
-            unexpected_eof,
-        }
-    }
+enum AdvanceUnexpected<'src> {
+    Token(UnexpectedToken<'src>),
+    Eof(UnexpectedEOF<'src>),
 }

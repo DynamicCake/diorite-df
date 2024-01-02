@@ -1,12 +1,10 @@
 use core::fmt;
-use std::{fmt::Display, marker::PhantomData};
+use std::{fmt::Display, marker::PhantomData, sync::Arc};
 
 use crate::{
     ast::{recovery::Recovery, Spanned},
     lexer::Token,
 };
-
-use super::TokAdvanceError;
 
 #[derive(Debug)]
 pub struct CompilerResult<'src, T, E> {
@@ -35,22 +33,6 @@ impl<'src, T, E> CompilerResult<'src, T, E> {
         let Self { data, error, at_eof } = self;
         let res = f(data);
         CompilerResult::<R, E>::new_with_eof(res, error, at_eof)
-    }
-}
-
-#[derive(Debug)]
-pub enum CompilerError<'src> {
-    Unexpected(UnexpectedToken<'src>),
-    UnexpectedEOF(UnexpectedEOF<'src>),
-    LexerError(LexerError),
-}
-
-impl<'src> From<TokAdvanceError<'src>> for CompilerError<'src> {
-    fn from(value: TokAdvanceError<'src>) -> Self {
-        match value {
-            TokAdvanceError::UnexpectedEOF(inner) => CompilerError::UnexpectedEOF(inner),
-            TokAdvanceError::Lexer(inner) => CompilerError::LexerError(inner),
-        }
     }
 }
 
@@ -103,17 +85,11 @@ impl LexerError {
 
 #[derive(Debug, Clone)]
 pub struct ExpectedTokens<'src> {
-    pub expected: Vec<Token<'src>>,
-}
-
-impl<'a> From<Token<'a>> for ExpectedTokens<'a> {
-    fn from(value: Token<'a>) -> Self {
-        Self::new(vec![value])
-    }
+    pub expected: Arc<[Token<'src>]>,
 }
 
 impl<'src> ExpectedTokens<'src> {
-    pub fn new(expected: Vec<Token<'src>>) -> Self {
+    pub fn new(expected: Arc<[Token<'src>]>) -> Self {
         Self { expected }
     }
 }

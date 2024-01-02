@@ -13,40 +13,40 @@ use super::*;
 
 impl<'src> Parser<'src> {
     /// It is guaranteed that the next token will be a top level declaration token
-    pub(super) fn top_level(&mut self) -> CompilerResult<TopLevel<'src>, Vec<CompilerError<'src>>> {
-        let token = match self.peek_expect(
-            &ExpectedTokens::new(Token::TOP_LEVEL.to_vec()),
-            Some("top level decleration token"),
-        ) {
+    pub(super) fn top_level(
+        &mut self,
+    ) -> CompilerResult<'src, TopLevel<'src>, Vec<UnexpectedToken<'src>>> {
+        // Find first token
+        let token = match self.peek_expect(&Token::TOP_LEVEL, Some("top level decleration token")) {
             Ok(it) => Spanned::new(it.data.to_owned(), it.span),
             Err(err) => {
-                let CompilerResult { data, error } = self.top_recovery();
-                let RecoveryError {
-                    lexer_errors,
-                    unexpected_eof,
-                } = error;
-                let mut errors: Vec<CompilerError<'src>> = lexer_errors
-                    .into_iter()
-                    .map(CompilerError::LexerError)
-                    .collect();
-                errors.push(err);
-                return CompilerResult::new(
+                let CompilerResult {
+                    data,
+                    error,
+                    at_eof,
+                } = self.top_recovery();
+                return CompilerResult::new_with_eof(
                     TopLevel::Recovery(TopLevelRecovery::new(vec![
                         TopRecoveryType::Unrecognizable(data),
                     ])),
-                    errors,
+                    Vec::new(),
+                    at_eof,
                 );
             }
         };
 
         let top = match &token.data {
             Token::PlayerEvent | Token::EntityEvent => {
-                let CompilerResult { data, error } = self.event();
+                let CompilerResult {
+                    data,
+                    error,
+                    at_eof,
+                } = self.event();
                 let data = match data {
                     Ok(it) => TopLevel::Event(it),
                     Err(err) => TopLevel::Recovery(err),
                 };
-                CompilerResult::new(data, error)
+                CompilerResult::new_with_eof(data, error, at_eof)
             }
             Token::ProcDef => {
                 let def = self.process();
@@ -58,28 +58,27 @@ impl<'src> Parser<'src> {
             }
             it => {
                 // Recover
-                let CompilerResult { data, error } = self.top_recovery();
-                let RecoveryError { lexer_errors, unexpected_eof } = error;
-                if let Some(err) = unexpected_eof {
-                    
-                };
-                let error = error.into_iter().map(|it| it.into()).collect();
+                let CompilerResult {
+                    data,
+                    error,
+                    at_eof,
+                } = self.top_recovery();
                 let data = TopLevel::Recovery(TopLevelRecovery::new(vec![
                     TopRecoveryType::Unrecognizable(data),
                 ]));
 
-                CompilerResult::new(data, error)
+                CompilerResult::new_with_eof(data, Vec::new(), at_eof)
             }
         };
 
         top
     }
 
-    fn process(&mut self) -> CompilerResult<ProcDef<'src>, CompilerError<'src>> {
+    fn process(&mut self) -> CompilerResult<'src, ProcDef<'src>, UnexpectedToken<'src>> {
         todo!()
     }
 
-    fn function(&mut self) -> CompilerResult<FuncDef<'src>, CompilerError<'src>> {
+    fn function(&mut self) -> CompilerResult<'src, FuncDef<'src>, UnexpectedToken<'src>> {
         todo!()
     }
 
@@ -88,11 +87,9 @@ impl<'src> Parser<'src> {
     /// If the compiler result data is None, then it can be treated as malformed
     fn event(
         &mut self,
-    ) -> CompilerResult<Result<Event<'src>, TopLevelRecovery<'src>>, Vec<CompilerError<'src>>> {
-        let definition = self.next_assert(
-            &ExpectedTokens::new(vec![Token::PlayerEvent, Token::PlayerEvent]),
-            Some("event token"),
-        );
+    ) -> CompilerResult<'src, Result<Event<'src>, TopLevelRecovery<'src>>, Vec<UnexpectedToken<'src>>>
+    {
+        let definition = self.next_assert(&Token::EVENT, Some("event token"));
 
         let type_tok = match definition.data {
             Token::PlayerEvent => EventType::Player,
@@ -103,49 +100,54 @@ impl<'src> Parser<'src> {
             ),
         };
 
-        let name = match self.next_expect(&Token::Iden("").into(), Some("event name")) {
+        let name = match self.next_expect(&[Token::Iden("")], Some("event name")) {
             Ok(it) => it,
             Err(err) => {
-                let CompilerResult { data, error } = self.top_recovery();
+                let CompilerResult {
+                    data,
+                    error,
+                    at_eof,
+                } = self.top_recovery();
                 let mut def =
                     TopLevelRecovery::new(vec![TopRecoveryType::Unrecognizable(vec![definition])]);
                 def.items.push(TopRecoveryType::Unrecognizable(data));
-                let mut errors: Vec<CompilerError<'src>> =
-                    error.into_iter().map(|it| it.into()).collect();
-                errors.push(err);
-                return CompilerResult::new(Err(def), errors);
+                return CompilerResult::new_with_eof(Err(def), Vec::new(), at_eof);
             }
         };
 
         let CompilerResult {
             data: stmts,
             error: mut errors,
+            at_eof,
         } = self.statements();
 
-        let end = match self.next_expect(&Token::End.into(), None) {
+        let end = match self.next_expect(&[Token::End], None) {
             Ok(it) => it.to_empty(),
             Err(err) => {
+                // Recovery tokens
                 let mut toks = Vec::new();
                 toks.push(definition);
                 toks.push(name);
-                match &err {
-                    CompilerError::Unexpected(it) => {
-                        let CompilerResult { data, error } = self.top_recovery();
+                return match err {
+                    AdvanceUnexpected::Token(err) => {
+                        let CompilerResult {
+                            mut data,
+                            error,
+                            at_eof,
+                        } = self.top_recovery();
+                        toks.append(&mut data);
 
-                        // vec![TopRecoveryType::Body(stmts)]);
-                        todo!()
+                        errors.push(err);
+                        let recovery =
+                            TopLevelRecovery::new(vec![TopRecoveryType::Unrecognizable(toks)]);
+                        CompilerResult::new_with_eof(Err(recovery), errors, at_eof)
                     }
-                    CompilerError::UnexpectedEOF(it) => {
-                        return CompilerResult::new(
-                            Err(TopLevelRecovery::new(vec![TopRecoveryType::Body(stmts)])),
-                            errors,
-                        );
-                    }
-                    CompilerError::LexerError(it) => {}
-                }
-                return CompilerResult::new(Result::Err(TopLevelRecovery::new(todo!())), errors);
-                errors.push(err);
-                // TODO HERE
+                    AdvanceUnexpected::Eof(err) => CompilerResult::new_with_eof(
+                        Err(TopLevelRecovery::new(vec![TopRecoveryType::Body(stmts)])),
+                        errors,
+                        Some(Box::new(err))
+                    ),
+                };
             }
         };
 
@@ -183,8 +185,7 @@ impl<'src> Parser<'src> {
 
     /// Looks for event, proc, func tokens
     /// This function will never syntax error
-    fn top_recovery(&mut self) -> CompilerResult<Vec<Spanned<Token<'src>>>, UnexpectedEofable<'src>> {
-        let mut errors = Vec::new();
+    fn top_recovery(&mut self) -> CompilerResult<'src, Vec<Spanned<Token<'src>>>, ()> {
         let mut tokens = Vec::new();
         loop {
             match self.peek() {
@@ -200,17 +201,11 @@ impl<'src> Parser<'src> {
                         }
                     },
                 },
-                Err(err) => match err {
-                    TokAdvanceError::UnexpectedEOF(err) => {
-                        return CompilerResult::new(tokens, RecoveryError::new(errors, Some(err)));
-                    }
-                    TokAdvanceError::Lexer(err) => {
-                        tokens.push(Token::Invalid.spanned(err.token.span.clone()));
-                        errors.push(err);
-                    }
-                },
+                Err(err) => {
+                    return CompilerResult::new_with_eof(tokens, (), Some(Box::new(err)));
+                }
             };
         }
-        CompilerResult::new(tokens, RecoveryError::new(errors, None))
+        CompilerResult::new(tokens, ())
     }
 }
