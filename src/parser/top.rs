@@ -20,18 +20,27 @@ impl<'src> Parser<'src> {
         let token = match self.peek_expect(&Token::TOP_LEVEL, Some("top level decleration token")) {
             Ok(it) => Spanned::new(it.data.to_owned(), it.span),
             Err(err) => {
-                let CompilerResult {
-                    data,
-                    error,
-                    at_eof,
-                } = self.top_recovery();
-                return CompilerResult::new_with_eof(
-                    TopLevel::Recovery(TopLevelRecovery::new(vec![
-                        TopRecoveryType::Unrecognizable(data),
-                    ])),
-                    Vec::new(),
-                    at_eof,
-                );
+                return match err {
+                    AdvanceUnexpected::Token(err) => {
+                        let CompilerResult {
+                            data,
+                            error: _,
+                            at_eof,
+                        } = self.top_recovery();
+                        CompilerResult::new_with_eof(
+                            TopLevel::Recovery(TopLevelRecovery::new(vec![
+                                TopRecoveryType::Unrecognizable(data),
+                            ])),
+                            vec![err],
+                            at_eof,
+                        )
+                    }
+                    AdvanceUnexpected::Eof(err) => CompilerResult::new_with_eof(
+                        TopLevel::Recovery(TopLevelRecovery::new(Vec::new())),
+                        Vec::new(),
+                        Some(Box::new(err)),
+                    ),
+                }
             }
         };
 
@@ -57,17 +66,11 @@ impl<'src> Parser<'src> {
                 todo!()
             }
             it => {
-                // Recover
-                let CompilerResult {
-                    data,
-                    error,
-                    at_eof,
-                } = self.top_recovery();
-                let data = TopLevel::Recovery(TopLevelRecovery::new(vec![
-                    TopRecoveryType::Unrecognizable(data),
-                ]));
-
-                CompilerResult::new_with_eof(data, Vec::new(), at_eof)
+                panic!(
+                    "Somehow: filter {:#?} did not include {:#?}",
+                    Token::TOP_LEVEL,
+                    it
+                );
             }
         };
 
@@ -103,15 +106,26 @@ impl<'src> Parser<'src> {
         let name = match self.next_expect(&[Token::Iden("")], Some("event name")) {
             Ok(it) => it,
             Err(err) => {
-                let CompilerResult {
-                    data,
-                    error,
-                    at_eof,
-                } = self.top_recovery();
-                let mut def =
-                    TopLevelRecovery::new(vec![TopRecoveryType::Unrecognizable(vec![definition])]);
-                def.items.push(TopRecoveryType::Unrecognizable(data));
-                return CompilerResult::new_with_eof(Err(def), Vec::new(), at_eof);
+                return match err {
+                    AdvanceUnexpected::Token(err) => {
+                        let CompilerResult {
+                            data,
+                            error: _,
+                            at_eof,
+                        } = self.top_recovery();
+                        let recovery = TopLevelRecovery::new(vec![
+                            TopRecoveryType::Unrecognizable(vec![definition]),
+                            TopRecoveryType::Unrecognizable(data),
+                        ]);
+                        CompilerResult::new_with_eof(Err(recovery), vec![err], at_eof)
+                    }
+                    AdvanceUnexpected::Eof(err) => {
+                        let recovery = TopLevelRecovery::new(vec![
+                            TopRecoveryType::Unrecognizable(vec![definition]),
+                        ]);
+                        CompilerResult::new_with_eof(Err(recovery), Vec::new(), Some(Box::new(err)))
+                    }
+                }
             }
         };
 
@@ -121,31 +135,39 @@ impl<'src> Parser<'src> {
             at_eof,
         } = self.statements();
 
+        if let Some(at_eof) = at_eof {
+            return CompilerResult::new_with_eof(
+                Err(TopLevelRecovery::new(vec![TopRecoveryType::Body(stmts)])),
+                errors,
+                Some(at_eof),
+            );
+        }
+
         let end = match self.next_expect(&[Token::End], None) {
             Ok(it) => it.to_empty(),
             Err(err) => {
                 // Recovery tokens
-                let mut toks = Vec::new();
-                toks.push(definition);
-                toks.push(name);
+                let toks = TopRecoveryType::Unrecognizable(vec![definition, name]);
+                let body = TopRecoveryType::Body(stmts);
                 return match err {
                     AdvanceUnexpected::Token(err) => {
                         let CompilerResult {
-                            mut data,
-                            error,
+                            data,
+                            error: _,
                             at_eof,
                         } = self.top_recovery();
-                        toks.append(&mut data);
-
                         errors.push(err);
-                        let recovery =
-                            TopLevelRecovery::new(vec![TopRecoveryType::Unrecognizable(toks)]);
+                        let recovery = TopLevelRecovery::new(vec![
+                            toks,
+                            body,
+                            TopRecoveryType::Unrecognizable(data),
+                        ]);
                         CompilerResult::new_with_eof(Err(recovery), errors, at_eof)
                     }
                     AdvanceUnexpected::Eof(err) => CompilerResult::new_with_eof(
-                        Err(TopLevelRecovery::new(vec![TopRecoveryType::Body(stmts)])),
+                        Err(TopLevelRecovery::new(vec![toks, body])),
                         errors,
-                        Some(Box::new(err))
+                        Some(Box::new(err)),
                     ),
                 };
             }
@@ -156,7 +178,7 @@ impl<'src> Parser<'src> {
                 Some(first) => {
                     let last = stmts.last().expect("If the first exists, the last exists");
 
-                    last.span.start..last.span.end
+                    first.span.start..last.span.end
                 }
                 None => {
                     // Get a bit desperate here
@@ -194,9 +216,9 @@ impl<'src> Parser<'src> {
                         break;
                     }
 
-                    _ => match self.next() {
+                    _ => match self.advance() {
                         Ok(it) => tokens.push(it),
-                        Err(err) => {
+                        Err(_err) => {
                             panic!("Unexpected EOF should have been caught before");
                         }
                     },

@@ -35,7 +35,8 @@ impl<'src> Parser<'src> {
         let mut stmts = Vec::new();
         let mut errors = Vec::new();
         loop {
-            if let Err(err) = self.peek() {
+            // err is intentionally ignored to allow an empty file
+            if let Err(_err) = self.peek() {
                 break;
             }
 
@@ -135,7 +136,7 @@ impl<'src> Parser<'src> {
     ) -> Result<Spanned<&Token<'src>>, AdvanceUnexpected<'src>> {
         if let Some((token, span)) = self.toks.peek() {
             if let Ok(token) = token {
-                return if expected.contains(&token) {
+                return if expected.contains(token) {
                     Ok(Spanned::new(token, span.clone()))
                 } else {
                     Err(AdvanceUnexpected::Token(UnexpectedToken {
@@ -182,7 +183,7 @@ impl<'src> Parser<'src> {
     /// Advances to the iterator to the next token
     /// Great for use in recovery functions
     /// Returns a `Some(Token::Invalid)` if there is a lexer error
-    pub fn next(&mut self) -> Result<Spanned<Token<'src>>, UnexpectedEOF<'src>> {
+    pub fn advance(&mut self) -> Result<Spanned<Token<'src>>, UnexpectedEOF<'src>> {
         if let Some(it) = self.toks.next() {
             let (token, span) = it;
             Ok(if let Ok(token) = token {
@@ -199,7 +200,7 @@ impl<'src> Parser<'src> {
     }
 }
 
-enum AdvanceUnexpected<'src> {
+pub enum AdvanceUnexpected<'src> {
     Token(UnexpectedToken<'src>),
     Eof(UnexpectedEOF<'src>),
 }

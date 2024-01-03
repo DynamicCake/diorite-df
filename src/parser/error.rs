@@ -11,26 +11,38 @@ pub struct CompilerResult<'src, T, E> {
     pub data: T,
     pub error: E,
     /// Show if EOF has been reached
-    /// Is `Some` when an unexpected EOF has been reached 
+    /// Is `Some` when an unexpected EOF has been reached
     /// and `None` when everything is going good
     /// Premature optimization go brrrr
-    pub at_eof: Option<Box<UnexpectedEOF<'src>>>
+    pub at_eof: Option<Box<UnexpectedEOF<'src>>>,
 }
 
 impl<'src, T, E> CompilerResult<'src, T, E> {
     pub fn new(data: T, error: E) -> Self {
-        Self { data, error, at_eof: None }
+        Self {
+            data,
+            error,
+            at_eof: None,
+        }
     }
 
     pub fn new_with_eof(data: T, error: E, at_eof: Option<Box<UnexpectedEOF<'src>>>) -> Self {
-        Self { data, error, at_eof }
+        Self {
+            data,
+            error,
+            at_eof,
+        }
     }
 
     pub fn map_inner<R, F>(self, f: F) -> CompilerResult<'src, R, E>
     where
         F: FnOnce(T) -> R,
     {
-        let Self { data, error, at_eof } = self;
+        let Self {
+            data,
+            error,
+            at_eof,
+        } = self;
         let res = f(data);
         CompilerResult::<R, E>::new_with_eof(res, error, at_eof)
     }
@@ -104,7 +116,9 @@ impl Display for ExpectedTokens<'_> {
             write!(f, "[]").unwrap();
             return Ok(());
         };
-        let later: String = iter.map(|tok| format!(", {:?}", tok)).collect();
+        let later: String = iter
+            .map(|tok| ", ".to_string() + &format!("{:#?}", tok))
+            .collect();
         write!(f, "[{}{}]", first, later).unwrap();
 
         Ok(())

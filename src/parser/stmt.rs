@@ -23,8 +23,8 @@ impl<'src> Parser<'src> {
     pub fn statements(
         &mut self,
     ) -> CompilerResult<'src, Vec<Spanned<Statement<'src>>>, Vec<UnexpectedToken<'src>>> {
-        let mut statements: Vec<Spanned<Statement<'src>>> = Vec::new();
-        let mut errors: Vec<UnexpectedToken<'src>> = Vec::new();
+        let mut statements = Vec::new();
+        let mut errors = Vec::new();
 
         loop {
             match self.peek_expect(&Token::STATEMENT_LOOP, Some("statement declaration or end")) {
@@ -50,7 +50,10 @@ impl<'src> Parser<'src> {
                                 statements.push(Spanned::new(Statement::Recovery(err), span))
                             }
                         };
-                        if let Some(at_eof) = at_eof {}
+                        // Because it is in a loop, a break will happen if at_eof is some
+                        if let Some(at_eof) = at_eof {
+                            return CompilerResult::new_with_eof(statements, errors, Some(at_eof));
+                        }
                     }
                 }
                 Err(err) => {
@@ -68,7 +71,7 @@ impl<'src> Parser<'src> {
                     }
                     let CompilerResult {
                         data,
-                        mut error,
+                        error: _,
                         at_eof,
                     } = self.statement_recovery(Vec::new());
 
@@ -114,7 +117,7 @@ impl<'src> Parser<'src> {
                     }
 
                     _ => {
-                        let a = self.next().expect("Peek succeeded before");
+                        let a = self.advance().expect("Peek succeeded before");
                         tokens.push(Spanned::new(a.data, a.span));
                     }
                 },
@@ -137,8 +140,7 @@ impl<'src> Parser<'src> {
         Result<Spanned<Statement<'src>>, StatementRecovery<'src>>,
         Vec<UnexpectedToken<'src>>,
     > {
-        let decl_token = match self.peek_expect(&Token::STATEMENT, Some("statements"))
-        {
+        let decl_token = match self.peek_expect(&Token::STATEMENT, Some("statements")) {
             Ok(it) => it.data.to_owned().spanned(it.span),
             Err(err) => match err {
                 AdvanceUnexpected::Token(err) => {
@@ -155,6 +157,7 @@ impl<'src> Parser<'src> {
         };
 
         // I am aware that this will become a nightmare when adding new tokens or features... Too bad!
+        // TODO create statement functions
         match decl_token.data {
             Token::PlayerAction
             | Token::EntityAction
@@ -173,7 +176,7 @@ impl<'src> Parser<'src> {
             _ => {
                 let CompilerResult {
                     data,
-                    error,
+                    error: _,
                     at_eof,
                 } = self.statement_recovery(Vec::new());
                 return CompilerResult::new_with_eof(Err(data), Vec::new(), at_eof);
@@ -198,17 +201,20 @@ impl<'src> Parser<'src> {
                 Token::Iden(data) => Iden::new(data),
                 it => panic!("{:?} must be an Iden", it),
             }),
-            Err(err) => {
-                let CompilerResult {
-                    data,
-                    mut error,
-                    at_eof,
-                } = self.statement_recovery(vec![type_tok]);
-                return CompilerResult::new_with_eof(Err(data), Vec::new(), at_eof);
-            }
+            Err(err) => return match err {
+                AdvanceUnexpected::Token(err) => {
+                    let CompilerResult {
+                        data,
+                        error: _,
+                        at_eof,
+                    } = self.statement_recovery(vec![type_tok]);
+                    CompilerResult::new_with_eof(Err(data), vec![err], at_eof)
+                }
+                AdvanceUnexpected::Eof(err) => {
+                    CompilerResult::new_with_eof(Err(StatementRecovery::new(vec![type_tok])), Vec::new(), Some(Box::new(err)))
+                }
+            },
         };
-
-        let mut errors = Vec::new();
 
         let type_tok = type_tok.map_inner(|inner| {
             ActionType::from_token(inner).expect("A non action token managed to sneak in")
@@ -222,7 +228,7 @@ impl<'src> Parser<'src> {
                 tags: None,
                 params: Spanned::new(Parameters { items: Vec::new() }, Range { start: 0, end: 0 }),
             }),
-            errors,
+            Vec::new(),
         )
     }
 

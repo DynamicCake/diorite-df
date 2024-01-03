@@ -1,6 +1,9 @@
-#![deny(elided_lifetimes_in_paths)]
-// Remove this once it is in a runnable state
-#![allow(unused_imports, unused_import_braces)] 
+#![deny(
+    // This compiler uses a lot of lifetimes so this is really important
+    elided_lifetimes_in_paths
+)]
+// This is in place until the program is somewhat stable
+#![allow(unused_imports, unused_import_braces, dead_code)]
 
 mod args;
 pub mod ast;
@@ -11,7 +14,7 @@ pub mod test;
 use std::{
     error::Error,
     fs::File,
-    io::{self, stdin, BufRead, BufReader, Read, stdout, Write},
+    io::{self, stdin, stdout, BufRead, BufReader, Read, Write},
     path::PathBuf,
 };
 
@@ -23,7 +26,7 @@ use logos::Logos;
 use parser::error::{CompilerResult, UnexpectedToken};
 
 fn main() -> Result<(), Box<dyn Error + 'static>> {
-    let args = Arguments::parse();
+    let _args = Arguments::parse();
 
     /*
     let src = if let Some(path) = args.file {
@@ -34,14 +37,18 @@ fn main() -> Result<(), Box<dyn Error + 'static>> {
     */
 
     let src = "pevent Join end";
-    let res = compile(&src);
+    let res = compile(src);
+
+    
 
     println!("Somehow: {:#?}", res);
 
     Ok(())
 }
 
-fn compile<'src>(src: &'src str) -> CompilerResult<'src, Program<'src>, Vec<UnexpectedToken<'src>>> {
+fn compile(
+    src: &str,
+) -> CompilerResult<'_, Program<'_>, Vec<UnexpectedToken<'_>>> {
     let lexer = Token::lexer(src);
     let print_lexer: Vec<_> = lexer.clone().collect();
     println!("{:?}", print_lexer);
@@ -79,4 +86,3 @@ fn compile_prompt() -> Result<String, io::Error> {
     }
     Ok(src.join("\n"))
 }
-
