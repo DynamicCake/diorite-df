@@ -196,9 +196,9 @@ impl<'src> Parser<'src> {
     > {
         let type_tok = self.next_assert(&Token::SIMPLE_STATEMENT, Some("simple statement"));
 
-        let action = match self.next_expect(&[Token::Iden("")], None) {
+        let action = match self.next_expect(&[Token::Iden(None)], None) {
             Ok(it) => it.map_inner(|i| match i {
-                Token::Iden(data) => Iden::new(data),
+                Token::Iden(data) => Iden::new(data.expect("Iterator never produces None")),
                 it => panic!("{:?} must be an Iden", it),
             }),
             Err(err) => return match err {

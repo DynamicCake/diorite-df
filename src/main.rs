@@ -36,10 +36,11 @@ fn main() -> Result<(), Box<dyn Error + 'static>> {
     }?;
     */
 
-    let src = "pevent Join end";
+    let src = "
+    pevent Join 
+        
+        end";
     let res = compile(src);
-
-    
 
     println!("Somehow: {:#?}", res);
 

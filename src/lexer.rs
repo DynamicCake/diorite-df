@@ -47,12 +47,12 @@ pub enum Token<'src> {
     #[token(">")]
     CloseComp,
 
-    #[regex(r#"([a-zA-Z_][a-zA-Z0-9_]*)|('([^'\\]*(?:\\.[^'\\]*)*)')"#, |lexer| lexer.slice() )]
-    Iden(&'src str),
-    #[regex(r"\d+(\.\d+)?", |lexer| lexer.slice() )]
-    Number(&'src str),
-    #[regex(r#""([^"\\]*(?:\\.[^"\\]*)*)""#, |lexer| lexer.slice())]
-    String(&'src str),
+    #[regex(r#"([a-zA-Z_][a-zA-Z0-9_]*)|('([^'\\]*(?:\\.[^'\\]*)*)')"#, |lexer| Some(lexer.slice()) )]
+    Iden(Option<&'src str>),
+    #[regex(r"\d+(\.\d+)?", |lexer| Some(lexer.slice()) )]
+    Number(Option<&'src str>),
+    #[regex(r#""([^"\\]*(?:\\.[^"\\]*)*)""#, |lexer| Some(lexer.slice()))]
+    String(Option<&'src str>),
 
     #[token("svar")]
     SaveVar,

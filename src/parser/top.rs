@@ -103,7 +103,9 @@ impl<'src> Parser<'src> {
             ),
         };
 
-        let name = match self.next_expect(&[Token::Iden("")], Some("event name")) {
+        let a = Some("");
+
+        let name = match self.next_expect(&[Token::Iden(None)], Some("event name")) {
             Ok(it) => it,
             Err(err) => {
                 return match err {
@@ -192,7 +194,7 @@ impl<'src> Parser<'src> {
                 Token::Iden(it) => it,
                 it => panic!("Expected Iden received {:?}", it),
             };
-            Spanned::new(Iden::new(data), name.span)
+            Spanned::new(Iden::new(data.expect("Iden should only be None when finding")), name.span)
         };
 
         let event = Event::new(
