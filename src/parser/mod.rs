@@ -12,6 +12,7 @@ use self::top::*;
 pub mod error;
 pub mod stmt;
 pub mod top;
+pub mod helper;
 
 pub struct Parser<'src> {
     /// The main token iterator
@@ -49,10 +50,10 @@ impl<'src> Parser<'src> {
             stmts.push(data);
 
             if let Some(at_eof) = at_eof {
-                return CompilerResult::new_with_eof(Program::new(stmts), errors, Some(at_eof));
+                return CompilerResult::new(Program::new(stmts), errors, Some(at_eof));
             }
         }
-        CompilerResult::new(Program::new(stmts), errors)
+        CompilerResult::new(Program::new(stmts), errors, None)
     }
 
     /// Only use if you are sure at compile time that this cannot fail

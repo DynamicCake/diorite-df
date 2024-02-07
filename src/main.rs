@@ -38,11 +38,12 @@ fn main() -> Result<(), Box<dyn Error + 'static>> {
 
     let src = "
     pevent Join 
-        
-        end";
+        paction SendMessage
+        paction Celebrate
+    end";
     let res = compile(src);
 
-    println!("Somehow: {:#?}", res);
+    println!("Somehow: {:#?}, \nSuccessfully parsed {}", res, src);
 
     Ok(())
 }

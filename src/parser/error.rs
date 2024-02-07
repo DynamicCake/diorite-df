@@ -18,15 +18,7 @@ pub struct CompilerResult<'src, T, E> {
 }
 
 impl<'src, T, E> CompilerResult<'src, T, E> {
-    pub fn new(data: T, error: E) -> Self {
-        Self {
-            data,
-            error,
-            at_eof: None,
-        }
-    }
-
-    pub fn new_with_eof(data: T, error: E, at_eof: Option<Box<UnexpectedEOF<'src>>>) -> Self {
+    pub fn new(data: T, error: E, at_eof: Option<Box<UnexpectedEOF<'src>>>) -> Self {
         Self {
             data,
             error,
@@ -44,7 +36,7 @@ impl<'src, T, E> CompilerResult<'src, T, E> {
             at_eof,
         } = self;
         let res = f(data);
-        CompilerResult::<R, E>::new_with_eof(res, error, at_eof)
+        CompilerResult::<R, E>::new(res, error, at_eof)
     }
 }
 

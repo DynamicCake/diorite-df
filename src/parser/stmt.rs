@@ -52,7 +52,7 @@ impl<'src> Parser<'src> {
                         };
                         // Because it is in a loop, a break will happen if at_eof is some
                         if let Some(at_eof) = at_eof {
-                            return CompilerResult::new_with_eof(statements, errors, Some(at_eof));
+                            return CompilerResult::new(statements, errors, Some(at_eof));
                         }
                     }
                 }
@@ -62,11 +62,7 @@ impl<'src> Parser<'src> {
                             errors.push(err);
                         }
                         AdvanceUnexpected::Eof(err) => {
-                            return CompilerResult::new_with_eof(
-                                statements,
-                                errors,
-                                Some(Box::new(err)),
-                            )
+                            return CompilerResult::new(statements, errors, Some(Box::new(err)))
                         }
                     }
                     let CompilerResult {
@@ -84,13 +80,13 @@ impl<'src> Parser<'src> {
                         statements.push(Spanned::new(Statement::Recovery(data), span));
                     }
                     if let Some(at_eof) = at_eof {
-                        return CompilerResult::new_with_eof(statements, errors, Some(at_eof));
+                        return CompilerResult::new(statements, errors, Some(at_eof));
                     }
                 }
             }
         }
 
-        CompilerResult::new(statements, errors)
+        CompilerResult::new(statements, errors, None)
     }
 
     fn statement_recovery(
@@ -122,7 +118,7 @@ impl<'src> Parser<'src> {
                     }
                 },
                 Err(err) => {
-                    return CompilerResult::new_with_eof(
+                    return CompilerResult::new(
                         StatementRecovery::new(tokens),
                         (),
                         Some(Box::new(err)),
@@ -130,7 +126,7 @@ impl<'src> Parser<'src> {
                 }
             };
         }
-        CompilerResult::new(StatementRecovery::new(tokens), ())
+        CompilerResult::new(StatementRecovery::new(tokens), (), None)
     }
 
     fn statement(
@@ -144,10 +140,10 @@ impl<'src> Parser<'src> {
             Ok(it) => it.data.to_owned().spanned(it.span),
             Err(err) => match err {
                 AdvanceUnexpected::Token(err) => {
-                    return CompilerResult::new(Err(StatementRecovery::empty()), vec![err])
+                    return CompilerResult::new(Err(StatementRecovery::empty()), vec![err], None)
                 }
                 AdvanceUnexpected::Eof(err) => {
-                    return CompilerResult::new_with_eof(
+                    return CompilerResult::new(
                         Err(StatementRecovery::empty()),
                         Vec::new(),
                         Some(Box::new(err)),
@@ -167,7 +163,19 @@ impl<'src> Parser<'src> {
             | Token::CallProcess
             | Token::Select
             | Token::SetVar => {
-                let res = self.regular_statement();
+                let CompilerResult {
+                    data,
+                    error,
+                    at_eof,
+                } = self.regular_statement();
+
+                match data {
+                    Ok(it) => {
+                        let span = it.calc_span();
+                        CompilerResult::new(Ok(Spanned::new(Statement::Simple(it), span)), error, at_eof)
+                    }
+                    Err(err) => CompilerResult::new(Err(err), error, at_eof),
+                }
             }
             Token::IfPlayer | Token::IfEntity | Token::IfGame | Token::IfVar => {
                 self.if_statement();
@@ -179,12 +187,12 @@ impl<'src> Parser<'src> {
                     error: _,
                     at_eof,
                 } = self.statement_recovery(Vec::new());
-                return CompilerResult::new_with_eof(Err(data), Vec::new(), at_eof);
+                return CompilerResult::new(Err(data), Vec::new(), at_eof);
             }
-        };
+        }
 
         // self.consume(expected, None);
-        todo!()
+        // CompilerResult::new(Ok(Spanned::new(, 1..2)), Vec::new(), None)
     }
 
     fn regular_statement(
@@ -201,19 +209,23 @@ impl<'src> Parser<'src> {
                 Token::Iden(data) => Iden::new(data.expect("Iterator never produces None")),
                 it => panic!("{:?} must be an Iden", it),
             }),
-            Err(err) => return match err {
-                AdvanceUnexpected::Token(err) => {
-                    let CompilerResult {
-                        data,
-                        error: _,
-                        at_eof,
-                    } = self.statement_recovery(vec![type_tok]);
-                    CompilerResult::new_with_eof(Err(data), vec![err], at_eof)
+            Err(err) => {
+                return match err {
+                    AdvanceUnexpected::Token(err) => {
+                        let CompilerResult {
+                            data,
+                            error: _,
+                            at_eof,
+                        } = self.statement_recovery(vec![type_tok]);
+                        CompilerResult::new(Err(data), vec![err], at_eof)
+                    }
+                    AdvanceUnexpected::Eof(err) => CompilerResult::new(
+                        Err(StatementRecovery::new(vec![type_tok])),
+                        Vec::new(),
+                        Some(Box::new(err)),
+                    ),
                 }
-                AdvanceUnexpected::Eof(err) => {
-                    CompilerResult::new_with_eof(Err(StatementRecovery::new(vec![type_tok])), Vec::new(), Some(Box::new(err)))
-                }
-            },
+            }
         };
 
         let type_tok = type_tok.map_inner(|inner| {
@@ -229,6 +241,7 @@ impl<'src> Parser<'src> {
                 params: Spanned::new(Parameters { items: Vec::new() }, Range { start: 0, end: 0 }),
             }),
             Vec::new(),
+            None,
         )
     }
 

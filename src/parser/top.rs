@@ -11,6 +11,9 @@ use super::error::*;
 use super::stmt::*;
 use super::*;
 
+fn isolated() {
+}
+
 impl<'src> Parser<'src> {
     /// It is guaranteed that the next token will be a top level declaration token
     pub(super) fn top_level(
@@ -27,7 +30,7 @@ impl<'src> Parser<'src> {
                             error: _,
                             at_eof,
                         } = self.top_recovery();
-                        CompilerResult::new_with_eof(
+                        CompilerResult::new(
                             TopLevel::Recovery(TopLevelRecovery::new(vec![
                                 TopRecoveryType::Unrecognizable(data),
                             ])),
@@ -35,7 +38,7 @@ impl<'src> Parser<'src> {
                             at_eof,
                         )
                     }
-                    AdvanceUnexpected::Eof(err) => CompilerResult::new_with_eof(
+                    AdvanceUnexpected::Eof(err) => CompilerResult::new(
                         TopLevel::Recovery(TopLevelRecovery::new(Vec::new())),
                         Vec::new(),
                         Some(Box::new(err)),
@@ -55,7 +58,7 @@ impl<'src> Parser<'src> {
                     Ok(it) => TopLevel::Event(it),
                     Err(err) => TopLevel::Recovery(err),
                 };
-                CompilerResult::new_with_eof(data, error, at_eof)
+                CompilerResult::new(data, error, at_eof)
             }
             Token::ProcDef => {
                 let def = self.process();
@@ -103,8 +106,6 @@ impl<'src> Parser<'src> {
             ),
         };
 
-        let a = Some("");
-
         let name = match self.next_expect(&[Token::Iden(None)], Some("event name")) {
             Ok(it) => it,
             Err(err) => {
@@ -119,13 +120,13 @@ impl<'src> Parser<'src> {
                             TopRecoveryType::Unrecognizable(vec![definition]),
                             TopRecoveryType::Unrecognizable(data),
                         ]);
-                        CompilerResult::new_with_eof(Err(recovery), vec![err], at_eof)
+                        CompilerResult::new(Err(recovery), vec![err], at_eof)
                     }
                     AdvanceUnexpected::Eof(err) => {
                         let recovery = TopLevelRecovery::new(vec![
                             TopRecoveryType::Unrecognizable(vec![definition]),
                         ]);
-                        CompilerResult::new_with_eof(Err(recovery), Vec::new(), Some(Box::new(err)))
+                        CompilerResult::new(Err(recovery), Vec::new(), Some(Box::new(err)))
                     }
                 }
             }
@@ -138,7 +139,7 @@ impl<'src> Parser<'src> {
         } = self.statements();
 
         if let Some(at_eof) = at_eof {
-            return CompilerResult::new_with_eof(
+            return CompilerResult::new(
                 Err(TopLevelRecovery::new(vec![TopRecoveryType::Body(stmts)])),
                 errors,
                 Some(at_eof),
@@ -164,9 +165,9 @@ impl<'src> Parser<'src> {
                             body,
                             TopRecoveryType::Unrecognizable(data),
                         ]);
-                        CompilerResult::new_with_eof(Err(recovery), errors, at_eof)
+                        CompilerResult::new(Err(recovery), errors, at_eof)
                     }
-                    AdvanceUnexpected::Eof(err) => CompilerResult::new_with_eof(
+                    AdvanceUnexpected::Eof(err) => CompilerResult::new(
                         Err(TopLevelRecovery::new(vec![toks, body])),
                         errors,
                         Some(Box::new(err)),
@@ -194,7 +195,10 @@ impl<'src> Parser<'src> {
                 Token::Iden(it) => it,
                 it => panic!("Expected Iden received {:?}", it),
             };
-            Spanned::new(Iden::new(data.expect("Iden should only be None when finding")), name.span)
+            Spanned::new(
+                Iden::new(data.expect("Iden should only be None when finding")),
+                name.span,
+            )
         };
 
         let event = Event::new(
@@ -204,7 +208,7 @@ impl<'src> Parser<'src> {
             end,
         );
 
-        CompilerResult::new(Ok(event), errors)
+        CompilerResult::new(Ok(event), errors, None)
     }
 
     /// Looks for event, proc, func tokens
@@ -226,10 +230,10 @@ impl<'src> Parser<'src> {
                     },
                 },
                 Err(err) => {
-                    return CompilerResult::new_with_eof(tokens, (), Some(Box::new(err)));
+                    return CompilerResult::new(tokens, (), Some(Box::new(err)));
                 }
             };
         }
-        CompilerResult::new(tokens, ())
+        CompilerResult::new(tokens, (), None)
     }
 }
