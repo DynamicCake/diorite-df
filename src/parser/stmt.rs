@@ -7,7 +7,10 @@ use super::*;
 use crate::ast::recovery::Recovery;
 use crate::ast::recovery::StatementRecovery;
 use crate::ast::recovery::TopLevelRecovery;
+use crate::ast::statement::Expression;
 use crate::ast::statement::Selection;
+use crate::ast::CalcSpan;
+use crate::ast::Flatten;
 use crate::ast::Iden;
 use crate::ast::Parameters;
 use crate::{
@@ -215,29 +218,27 @@ impl<'src> Parser<'src> {
             Err(err) => return helper::recover_statement(self, err, vec![type_tok]),
         };
 
-
         let CompilerResult {
             data,
             error,
             at_eof,
         } = self.selector();
-        let selection = match data {
+        let selector = match data {
             Ok(it) => {
                 if at_eof.is_some() {
-                    return CompilerResult::new(
-                        // Ok time to make flatten
-                        // Err(StatementRecovery::new(vec![type_tok, action, it])),
-                        todo!(),
-                        error,
-                        at_eof,
-                    );
+                    let mut tokens = vec![type_tok, action];
+                    tokens.append(&mut it.flatten());
+                    return CompilerResult::new(Err(StatementRecovery::new(tokens)), error, at_eof);
                 }
+                it
             }
             Err(err) => {
                 return CompilerResult::new(Err(err), error, at_eof);
             }
         };
+        let selector_span = selector.calculate_span();
 
+        let params = todo!();1;
         let type_tok = type_tok.map_inner(|inner| {
             ActionType::from_token(inner).expect("A non action token managed to sneak in")
         });
@@ -246,7 +247,7 @@ impl<'src> Parser<'src> {
             Ok(SimpleStatement {
                 type_tok,
                 action: action.map_inner(|i| Iden::new(i.get_iden())),
-                selection: None,
+                selection: Some(Spanned::new(selector, selector_span)),
                 tags: None,
                 params: Spanned::new(Parameters { items: Vec::new() }, Range { start: 0, end: 0 }),
             }),

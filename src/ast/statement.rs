@@ -13,6 +13,25 @@ pub struct Selection<'src> {
     pub close: Spanned<()>,
 }
 
+impl<'src> Flatten<'src> for Selection<'src> {
+    fn flatten(self) -> Vec<Spanned<Token<'src>>> {
+        let mut out = Vec::with_capacity(3);
+        out.push(self.open.map_inner(|_| Token::OpenComp));
+        if let Some(it) = self.selection {
+            out.push(it.map_inner(|it| Token::Iden(Some(it))))
+        }
+        out.push(self.close.map_inner(|_| Token::CloseComp));
+
+        out
+    }
+}
+
+impl<'src> CalcSpan for Selection<'src> {
+    fn calculate_span(&self) -> super::Span {
+        self.open.span.start..self.close.span.end
+    }
+}
+
 #[derive(Debug)]
 pub struct Tags<'src> {
     open: Spanned<()>,

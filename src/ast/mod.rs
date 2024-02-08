@@ -36,7 +36,12 @@ impl<T> Spanned<T> {
     }
 }
 
-
+pub trait Flatten<'src> {
+    fn flatten(self) -> Vec<Spanned<Token<'src>>>;
+}
+pub trait CalcSpan {
+    fn calculate_span(&self) -> Span;
+}
 
 #[derive(Debug)]
 pub struct Program<'src> {
