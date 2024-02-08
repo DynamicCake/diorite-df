@@ -1,3 +1,4 @@
+use std::char::ParseCharError;
 use std::ops::Range;
 
 use super::error::*;
@@ -6,6 +7,7 @@ use super::*;
 use crate::ast::recovery::Recovery;
 use crate::ast::recovery::StatementRecovery;
 use crate::ast::recovery::TopLevelRecovery;
+use crate::ast::statement::Selection;
 use crate::ast::Iden;
 use crate::ast::Parameters;
 use crate::{
@@ -89,7 +91,7 @@ impl<'src> Parser<'src> {
         CompilerResult::new(statements, errors, None)
     }
 
-    fn statement_recovery(
+    pub fn statement_recovery(
         &mut self,
         mut tokens: Vec<Spanned<Token<'src>>>,
     ) -> CompilerResult<'src, StatementRecovery<'src>, ()> {
@@ -172,7 +174,11 @@ impl<'src> Parser<'src> {
                 match data {
                     Ok(it) => {
                         let span = it.calc_span();
-                        CompilerResult::new(Ok(Spanned::new(Statement::Simple(it), span)), error, at_eof)
+                        CompilerResult::new(
+                            Ok(Spanned::new(Statement::Simple(it), span)),
+                            error,
+                            at_eof,
+                        )
                     }
                     Err(err) => CompilerResult::new(Err(err), error, at_eof),
                 }
@@ -205,26 +211,30 @@ impl<'src> Parser<'src> {
         let type_tok = self.next_assert(&Token::SIMPLE_STATEMENT, Some("simple statement"));
 
         let action = match self.next_expect(&[Token::Iden(None)], None) {
-            Ok(it) => it.map_inner(|i| match i {
-                Token::Iden(data) => Iden::new(data.expect("Iterator never produces None")),
-                it => panic!("{:?} must be an Iden", it),
-            }),
-            Err(err) => {
-                return match err {
-                    AdvanceUnexpected::Token(err) => {
-                        let CompilerResult {
-                            data,
-                            error: _,
-                            at_eof,
-                        } = self.statement_recovery(vec![type_tok]);
-                        CompilerResult::new(Err(data), vec![err], at_eof)
-                    }
-                    AdvanceUnexpected::Eof(err) => CompilerResult::new(
-                        Err(StatementRecovery::new(vec![type_tok])),
-                        Vec::new(),
-                        Some(Box::new(err)),
-                    ),
+            Ok(it) => it,
+            Err(err) => return helper::recover_statement(self, err, vec![type_tok]),
+        };
+
+
+        let CompilerResult {
+            data,
+            error,
+            at_eof,
+        } = self.selector();
+        let selection = match data {
+            Ok(it) => {
+                if at_eof.is_some() {
+                    return CompilerResult::new(
+                        // Ok time to make flatten
+                        // Err(StatementRecovery::new(vec![type_tok, action, it])),
+                        todo!(),
+                        error,
+                        at_eof,
+                    );
                 }
+            }
+            Err(err) => {
+                return CompilerResult::new(Err(err), error, at_eof);
             }
         };
 
@@ -235,7 +245,7 @@ impl<'src> Parser<'src> {
         CompilerResult::new(
             Ok(SimpleStatement {
                 type_tok,
-                action,
+                action: action.map_inner(|i| Iden::new(i.get_iden())),
                 selection: None,
                 tags: None,
                 params: Spanned::new(Parameters { items: Vec::new() }, Range { start: 0, end: 0 }),
@@ -245,7 +255,7 @@ impl<'src> Parser<'src> {
         )
     }
 
-    fn if_statement(&mut self) -> CompilerResult<'src, IfStatement<'src>, UnexpectedToken<'src>> {
+    fn if_statement(&mut self) -> CompilerResult<'src, IfStatement<'src>> {
         const EXPECTED: [Token<'_>; 4] = [
             Token::IfPlayer,
             Token::IfEntity,
@@ -253,5 +263,61 @@ impl<'src> Parser<'src> {
             Token::IfVar,
         ];
         todo!()
+    }
+
+    fn selector(
+        &mut self,
+    ) -> CompilerResult<'src, Result<Selection<'src>, StatementRecovery<'src>>> {
+        let open = self.next_assert(&[Token::OpenComp], None);
+
+        let selection = match self.next_expect(&[Token::Iden(None)], None) {
+            Ok(it) => it,
+            Err(err) => {
+                return match err {
+                    AdvanceUnexpected::Token(it) => {
+                        match it.received.data {
+                            // This allows <>
+                            Token::CloseComp => CompilerResult::new(
+                                Ok(Selection {
+                                    open: open.to_empty(),
+                                    selection: None,
+                                    close: Spanned::<()>::empty(it.received.span),
+                                }),
+                                Vec::new(),
+                                None,
+                            ),
+                            _ => {
+                                let CompilerResult {
+                                    data,
+                                    error: _,
+                                    at_eof,
+                                } = self.statement_recovery(vec![open]);
+                                CompilerResult::new(Err(data), Vec::new(), at_eof)
+                            }
+                        }
+                    }
+                    AdvanceUnexpected::Eof(err) => CompilerResult::new(
+                        Err(StatementRecovery::new(vec![open])),
+                        Vec::new(),
+                        Some(Box::new(err)),
+                    ),
+                };
+            }
+        };
+
+        let close = match self.next_expect(&[Token::CloseComp], None) {
+            Ok(it) => it,
+            Err(err) => return helper::recover_statement(self, err, vec![open, selection]),
+        };
+
+        CompilerResult::new(
+            Ok(Selection {
+                open: open.to_empty(),
+                selection: Some(selection.map_inner(|it| it.get_iden())),
+                close: close.to_empty(),
+            }),
+            Vec::new(),
+            None,
+        )
     }
 }

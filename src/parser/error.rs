@@ -7,7 +7,7 @@ use crate::{
 };
 
 #[derive(Debug)]
-pub struct CompilerResult<'src, T, E> {
+pub struct CompilerResult<'src, T, E = Vec<UnexpectedToken<'src>>> {
     pub data: T,
     pub error: E,
     /// Show if EOF has been reached

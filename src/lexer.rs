@@ -129,6 +129,14 @@ impl<'src> Token<'src> {
             }
         }
     }
+
+    /// Gets the iden, if the varient isn't a Iden, this function panics
+    pub fn get_iden(&self) -> &'src str {
+        match self {
+            Self::Iden(it) => return it.unwrap(),
+            it => panic!("Expected Iden recieved {:#?}", it)
+        }
+    }
 }
 
 impl<'src> Token<'src> {

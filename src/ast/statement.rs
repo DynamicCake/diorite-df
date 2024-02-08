@@ -8,9 +8,9 @@ use super::*;
 
 #[derive(Debug)]
 pub struct Selection<'src> {
-    open: Spanned<()>,
-    selection: Option<Spanned<&'src str>>,
-    close: Spanned<()>,
+    pub open: Spanned<()>,
+    pub selection: Option<Spanned<&'src str>>,
+    pub close: Spanned<()>,
 }
 
 #[derive(Debug)]
