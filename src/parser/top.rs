@@ -9,18 +9,18 @@ use super::*;
 
 impl<'src> Parser<'src> {
     /// It is guaranteed that the next token will be a top level declaration token
-    pub(super) fn top_level(&mut self) -> CompilerResult<'src, TopLevel<'src>> {
+    pub(super) fn top_level(&mut self) -> ParseResult<'src, TopLevel<'src>> {
         // Find first token
         let token = match self.peek_expect(&Token::TOP_LEVEL, Some("top level decleration token")) {
             Ok(it) => it,
             Err(err) => {
                 return match err {
-                    AdvanceUnexpected::Token(err) => CompilerResult::new(
+                    AdvanceUnexpected::Token(err) => ParseResult::new(
                         TopLevel::Recovery(TopLevelRecovery),
                         vec![err],
                         self.top_recovery(),
                     ),
-                    AdvanceUnexpected::Eof(err) => CompilerResult::new(
+                    AdvanceUnexpected::Eof(err) => ParseResult::new(
                         TopLevel::Recovery(TopLevelRecovery),
                         Vec::new(),
                         Some(Box::new(err)),
@@ -31,7 +31,7 @@ impl<'src> Parser<'src> {
 
         let top = match &token.data {
             Token::PlayerEvent | Token::EntityEvent => {
-                let CompilerResult {
+                let ParseResult {
                     data,
                     error,
                     at_eof,
@@ -40,7 +40,7 @@ impl<'src> Parser<'src> {
                     Ok(it) => TopLevel::Event(it),
                     Err(err) => TopLevel::Recovery(err),
                 };
-                CompilerResult::new(data, error, at_eof)
+                ParseResult::new(data, error, at_eof)
             }
             Token::ProcDef => {
                 let _def = self.process();
@@ -62,11 +62,11 @@ impl<'src> Parser<'src> {
         top
     }
 
-    fn process(&mut self) -> CompilerResult<'src, ProcDef<'src>, UnexpectedToken<'src>> {
+    fn process(&mut self) -> ParseResult<'src, ProcDef<'src>, UnexpectedToken<'src>> {
         todo!()
     }
 
-    fn function(&mut self) -> CompilerResult<'src, FuncDef<'src>, UnexpectedToken<'src>> {
+    fn function(&mut self) -> ParseResult<'src, FuncDef<'src>, UnexpectedToken<'src>> {
         todo!()
     }
 
@@ -75,7 +75,7 @@ impl<'src> Parser<'src> {
     /// If the compiler result data is None, then it can be treated as malformed
     fn event(
         &mut self,
-    ) -> CompilerResult<'src, Result<Event<'src>, TopLevelRecovery>, Vec<UnexpectedToken<'src>>>
+    ) -> ParseResult<'src, Result<Event<'src>, TopLevelRecovery>, Vec<UnexpectedToken<'src>>>
     {
         let definition = self.next_assert(&Token::EVENT, Some("event token"));
 
@@ -93,23 +93,23 @@ impl<'src> Parser<'src> {
             Err(err) => {
                 return match err {
                     AdvanceUnexpected::Token(err) => {
-                        CompilerResult::new(Err(TopLevelRecovery), vec![err], self.top_recovery())
+                        ParseResult::new(Err(TopLevelRecovery), vec![err], self.top_recovery())
                     }
                     AdvanceUnexpected::Eof(err) => {
-                        CompilerResult::new(Err(TopLevelRecovery), Vec::new(), Some(Box::new(err)))
+                        ParseResult::new(Err(TopLevelRecovery), Vec::new(), Some(Box::new(err)))
                     }
                 }
             }
         };
 
-        let CompilerResult {
+        let ParseResult {
             data: stmts,
             error: errors,
             at_eof,
         } = self.statements();
 
         if let Some(at_eof) = at_eof {
-            return CompilerResult::new(Err(TopLevelRecovery), errors, Some(at_eof));
+            return ParseResult::new(Err(TopLevelRecovery), errors, Some(at_eof));
         }
 
         let end = match self.next_expect(&[Token::End], None) {
@@ -117,10 +117,10 @@ impl<'src> Parser<'src> {
             Err(err) => {
                 return match err {
                     AdvanceUnexpected::Token(err) => {
-                        CompilerResult::new(Err(TopLevelRecovery), vec![err], self.top_recovery())
+                        ParseResult::new(Err(TopLevelRecovery), vec![err], self.top_recovery())
                     }
                     AdvanceUnexpected::Eof(err) => {
-                        CompilerResult::new(Err(TopLevelRecovery), errors, Some(Box::new(err)))
+                        ParseResult::new(Err(TopLevelRecovery), errors, Some(Box::new(err)))
                     }
                 };
             }
@@ -133,7 +133,7 @@ impl<'src> Parser<'src> {
             end,
         );
 
-        CompilerResult::new(Ok(event), errors, None)
+        ParseResult::new(Ok(event), errors, None)
     }
 
     /// Looks for event, proc, func tokens

@@ -15,7 +15,7 @@ use crate::{
 impl<'src> Parser<'src> {
     pub fn regular_statement(
         &mut self,
-    ) -> CompilerResult<
+    ) -> ParseResult<
         'src,
         Result<SimpleStatement<'src>, StatementRecovery>,
         Vec<UnexpectedToken<'src>>,
@@ -33,13 +33,13 @@ impl<'src> Parser<'src> {
         let selector_start = match self.peek() {
             Ok(it) => it.data,
             Err(err) => {
-                return CompilerResult::new(Err(StatementRecovery), Vec::new(), Some(Box::new(err)))
+                return ParseResult::new(Err(StatementRecovery), Vec::new(), Some(Box::new(err)))
             }
         };
 
         let selection = match selector_start {
             Token::OpenComp => {
-                let CompilerResult {
+                let ParseResult {
                     data,
                     error,
                     at_eof,
@@ -47,12 +47,12 @@ impl<'src> Parser<'src> {
                 let selector = match data {
                     Ok(it) => {
                         if at_eof.is_some() {
-                            return CompilerResult::new(Err(StatementRecovery), error, at_eof);
+                            return ParseResult::new(Err(StatementRecovery), error, at_eof);
                         }
                         it
                     }
                     Err(err) => {
-                        return CompilerResult::new(Err(err), error, at_eof);
+                        return ParseResult::new(Err(err), error, at_eof);
                     }
                 };
                 Some(selector)
@@ -64,7 +64,7 @@ impl<'src> Parser<'src> {
         let selector_start = match self.peek() {
             Ok(it) => it.data,
             Err(err) => {
-                return CompilerResult::new(
+                return ParseResult::new(
                     Err(StatementRecovery),
                     Vec::new(),
                     Some(Box::new(err)),
@@ -74,7 +74,7 @@ impl<'src> Parser<'src> {
 
         let tags = match selector_start {
             Token::OpenBracket => {
-                let CompilerResult {
+                let ParseResult {
                     data,
                     error,
                     at_eof,
@@ -82,12 +82,12 @@ impl<'src> Parser<'src> {
                 let tags = match data {
                     Ok(it) => {
                         if at_eof.is_some() {
-                            return CompilerResult::new(Err(StatementRecovery), error, at_eof);
+                            return ParseResult::new(Err(StatementRecovery), error, at_eof);
                         }
                         it
                     }
                     Err(err) => {
-                        return CompilerResult::new(Err(err), error, at_eof);
+                        return ParseResult::new(Err(err), error, at_eof);
                     }
                 };
                 Some(tags)
@@ -109,7 +109,7 @@ impl<'src> Parser<'src> {
             Spanned::new(it, span)
         });
 
-        CompilerResult::ok(
+        ParseResult::ok(
             Ok(SimpleStatement {
                 type_tok,
                 action: action.map_inner(|i| Iden::new(i.get_iden_inner())),
@@ -120,7 +120,7 @@ impl<'src> Parser<'src> {
         )
     }
 
-    pub fn if_statement(&mut self) -> CompilerResult<'src, IfStatement<'src>> {
+    pub fn if_statement(&mut self) -> ParseResult<'src, IfStatement<'src>> {
         todo!()
     }
 }

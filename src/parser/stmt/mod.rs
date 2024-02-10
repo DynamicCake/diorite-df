@@ -11,12 +11,12 @@ use crate::{
 pub mod common;
 pub mod kind;
 
-use super::{error::CompilerResult, Parser};
+use super::{error::ParseResult, Parser};
 
 impl<'src> Parser<'src> {
     pub fn statements(
         &mut self,
-    ) -> CompilerResult<'src, Vec<Statement<'src>>, Vec<UnexpectedToken<'src>>> {
+    ) -> ParseResult<'src, Vec<Statement<'src>>, Vec<UnexpectedToken<'src>>> {
         let mut statements: Vec<Statement<'src>> = Vec::new();
         let mut errors = Vec::new();
 
@@ -27,7 +27,7 @@ impl<'src> Parser<'src> {
                     if let Token::End = it.data {
                         break;
                     } else {
-                        let CompilerResult {
+                        let ParseResult {
                             data,
                             mut error,
                             at_eof,
@@ -41,7 +41,7 @@ impl<'src> Parser<'src> {
                         };
                         // Because it is in a loop, a break will happen if at_eof is some
                         if let Some(at_eof) = at_eof {
-                            return CompilerResult::new(statements, errors, Some(at_eof));
+                            return ParseResult::new(statements, errors, Some(at_eof));
                         }
                     }
                 }
@@ -51,33 +51,33 @@ impl<'src> Parser<'src> {
                             errors.push(err);
                         }
                         AdvanceUnexpected::Eof(err) => {
-                            return CompilerResult::new(statements, errors, Some(Box::new(err)))
+                            return ParseResult::new(statements, errors, Some(Box::new(err)))
                         }
                     }
 
                     statements.push(Statement::Recovery);
                     if let Some(at_eof) = self.statement_recovery() {
-                        return CompilerResult::new(statements, errors, Some(at_eof));
+                        return ParseResult::new(statements, errors, Some(at_eof));
                     }
                 }
             }
         }
 
-        CompilerResult::new(statements, errors, None)
+        ParseResult::new(statements, errors, None)
     }
 
     fn statement(
         &mut self,
-    ) -> CompilerResult<'src, Result<Statement<'src>, StatementRecovery>, Vec<UnexpectedToken<'src>>>
+    ) -> ParseResult<'src, Result<Statement<'src>, StatementRecovery>, Vec<UnexpectedToken<'src>>>
     {
         let decl_token = match self.peek_expect(&Token::STATEMENT, Some("statements")) {
             Ok(it) => it.data.to_owned().spanned(it.span),
             Err(err) => match err {
                 AdvanceUnexpected::Token(err) => {
-                    return CompilerResult::new(Err(StatementRecovery), vec![err], None)
+                    return ParseResult::new(Err(StatementRecovery), vec![err], None)
                 }
                 AdvanceUnexpected::Eof(err) => {
-                    return CompilerResult::new(
+                    return ParseResult::new(
                         Err(StatementRecovery),
                         Vec::new(),
                         Some(Box::new(err)),
@@ -97,7 +97,7 @@ impl<'src> Parser<'src> {
             | Token::CallProcess
             | Token::Select
             | Token::SetVar => {
-                let CompilerResult {
+                let ParseResult {
                     data,
                     error,
                     at_eof,
@@ -106,13 +106,13 @@ impl<'src> Parser<'src> {
                 match data {
                     Ok(it) => {
                         let span = it.calc_span();
-                        CompilerResult::new(
+                        ParseResult::new(
                             Ok(Statement::Simple(Spanned::new(it, span))),
                             error,
                             at_eof,
                         )
                     }
-                    Err(err) => CompilerResult::new(Err(err), error, at_eof),
+                    Err(err) => ParseResult::new(Err(err), error, at_eof),
                 }
             }
             Token::IfPlayer | Token::IfEntity | Token::IfGame | Token::IfVar => {
@@ -121,7 +121,7 @@ impl<'src> Parser<'src> {
             }
             _ => {
                 let at_eof = self.statement_recovery();
-                return CompilerResult::new(Err(StatementRecovery), Vec::new(), at_eof);
+                return ParseResult::new(Err(StatementRecovery), Vec::new(), at_eof);
             }
         }
 

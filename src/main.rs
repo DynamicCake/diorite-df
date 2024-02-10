@@ -22,7 +22,7 @@ use ast::Program;
 use clap::Parser;
 use lexer::Token;
 use logos::Logos;
-use parser::error::{CompilerResult, UnexpectedToken};
+use parser::error::{ParseResult, UnexpectedToken};
 
 fn main() -> Result<(), Box<dyn Error + 'static>> {
     let _args = Arguments::parse();
@@ -52,7 +52,7 @@ fn main() -> Result<(), Box<dyn Error + 'static>> {
     Ok(())
 }
 
-fn compile(src: &str) -> CompilerResult<'_, Program<'_>, Vec<UnexpectedToken<'_>>> {
+fn compile(src: &str) -> ParseResult<'_, Program<'_>, Vec<UnexpectedToken<'_>>> {
     let lexer = Token::lexer(src);
     let print_lexer: Vec<_> = lexer.clone().collect();
     println!("{:?}", print_lexer);

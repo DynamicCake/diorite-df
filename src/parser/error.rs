@@ -3,7 +3,7 @@ use std::{fmt::Display, sync::Arc};
 use crate::{ast::Spanned, lexer::Token};
 
 #[derive(Debug)]
-pub struct CompilerResult<'src, T, E = Vec<UnexpectedToken<'src>>> {
+pub struct ParseResult<'src, T, E = Vec<UnexpectedToken<'src>>> {
     pub data: T,
     pub error: E,
     /// Show if EOF has been reached
@@ -13,7 +13,7 @@ pub struct CompilerResult<'src, T, E = Vec<UnexpectedToken<'src>>> {
     pub at_eof: Option<Box<UnexpectedEOF<'src>>>,
 }
 
-impl<'src, T, E> CompilerResult<'src, T, E> {
+impl<'src, T, E> ParseResult<'src, T, E> {
     pub fn new(data: T, error: E, at_eof: Option<Box<UnexpectedEOF<'src>>>) -> Self {
         Self {
             data,
@@ -22,7 +22,7 @@ impl<'src, T, E> CompilerResult<'src, T, E> {
         }
     }
 
-    pub fn map_inner<R, F>(self, f: F) -> CompilerResult<'src, R, E>
+    pub fn map_inner<R, F>(self, f: F) -> ParseResult<'src, R, E>
     where
         F: FnOnce(T) -> R,
     {
@@ -32,11 +32,11 @@ impl<'src, T, E> CompilerResult<'src, T, E> {
             at_eof,
         } = self;
         let res = f(data);
-        CompilerResult::<R, E>::new(res, error, at_eof)
+        ParseResult::<R, E>::new(res, error, at_eof)
     }
 }
 
-impl<'src, T> CompilerResult<'src, T> {
+impl<'src, T> ParseResult<'src, T> {
     pub fn ok(data: T) -> Self {
         let error = Default::default();
         Self {

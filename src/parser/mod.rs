@@ -30,7 +30,7 @@ impl<'src> Parser<'src> {
         }
     }
 
-    pub fn parse(&mut self) -> CompilerResult<'src, Program<'src>, Vec<UnexpectedToken<'src>>> {
+    pub fn parse(&mut self) -> ParseResult<'src, Program<'src>, Vec<UnexpectedToken<'src>>> {
         let mut stmts = Vec::new();
         let mut errors = Vec::new();
         loop {
@@ -39,7 +39,7 @@ impl<'src> Parser<'src> {
                 break;
             }
 
-            let CompilerResult {
+            let ParseResult {
                 data,
                 mut error,
                 at_eof,
@@ -48,10 +48,10 @@ impl<'src> Parser<'src> {
             stmts.push(data);
 
             if let Some(at_eof) = at_eof {
-                return CompilerResult::new(Program::new(stmts), errors, Some(at_eof));
+                return ParseResult::new(Program::new(stmts), errors, Some(at_eof));
             }
         }
-        CompilerResult::new(Program::new(stmts), errors, None)
+        ParseResult::new(Program::new(stmts), errors, None)
     }
 
     /// Only use if you are sure at compile time that this cannot fail
