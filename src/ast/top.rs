@@ -7,7 +7,7 @@ pub enum TopLevel<'src> {
     Event(Event<'src>),
     FuncDef(FuncDef<'src>),
     ProcDef(ProcDef<'src>),
-    Recovery(TopLevelRecovery<'src>),
+    Recovery(TopLevelRecovery),
 }
 
 // Function
@@ -40,7 +40,7 @@ pub struct ProcDef<'src> {
 pub struct Event<'src> {
     pub type_tok: Spanned<EventType>,
     pub name: Spanned<Iden<'src>>,
-    pub statements: Spanned<Statements<'src>>,
+    pub statements: Statements<'src>,
     pub end_tok: Spanned<()>,
 }
 
@@ -48,7 +48,7 @@ impl<'src> Event<'src> {
     pub fn new(
         type_tok: Spanned<EventType>,
         name: Spanned<Iden<'src>>,
-        statements: Spanned<Statements<'src>>,
+        statements: Statements<'src>,
         end_tok: Spanned<()>,
     ) -> Self {
         Self {

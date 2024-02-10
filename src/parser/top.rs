@@ -1,18 +1,17 @@
 use logos::Span;
 
 use crate::ast::{
-    recovery::{Recovery, StatementRecovery, TopLevelRecovery, TopRecoveryType},
+    recovery::{StatementRecovery, TopLevelRecovery},
     statement::{ActionType, IfStatement, SimpleStatement, Statement, Statements},
     top::{Event, EventType, FuncDef, ProcDef},
-    Iden,
+    Iden, MaybeSpan, TryCalcSpan,
 };
 
 use super::error::*;
 use super::stmt::*;
 use super::*;
 
-fn isolated() {
-}
+fn isolated() {}
 
 impl<'src> Parser<'src> {
     /// It is guaranteed that the next token will be a top level declaration token
@@ -30,16 +29,10 @@ impl<'src> Parser<'src> {
                             error: _,
                             at_eof,
                         } = self.top_recovery();
-                        CompilerResult::new(
-                            TopLevel::Recovery(TopLevelRecovery::new(vec![
-                                TopRecoveryType::Unrecognizable(data),
-                            ])),
-                            vec![err],
-                            at_eof,
-                        )
+                        CompilerResult::new(TopLevel::Recovery(TopLevelRecovery), vec![err], at_eof)
                     }
                     AdvanceUnexpected::Eof(err) => CompilerResult::new(
-                        TopLevel::Recovery(TopLevelRecovery::new(Vec::new())),
+                        TopLevel::Recovery(TopLevelRecovery),
                         Vec::new(),
                         Some(Box::new(err)),
                     ),
@@ -93,7 +86,7 @@ impl<'src> Parser<'src> {
     /// If the compiler result data is None, then it can be treated as malformed
     fn event(
         &mut self,
-    ) -> CompilerResult<'src, Result<Event<'src>, TopLevelRecovery<'src>>, Vec<UnexpectedToken<'src>>>
+    ) -> CompilerResult<'src, Result<Event<'src>, TopLevelRecovery>, Vec<UnexpectedToken<'src>>>
     {
         let definition = self.next_assert(&Token::EVENT, Some("event token"));
 
@@ -116,16 +109,11 @@ impl<'src> Parser<'src> {
                             error: _,
                             at_eof,
                         } = self.top_recovery();
-                        let recovery = TopLevelRecovery::new(vec![
-                            TopRecoveryType::Unrecognizable(vec![definition]),
-                            TopRecoveryType::Unrecognizable(data),
-                        ]);
+                        let recovery = TopLevelRecovery;
                         CompilerResult::new(Err(recovery), vec![err], at_eof)
                     }
                     AdvanceUnexpected::Eof(err) => {
-                        let recovery = TopLevelRecovery::new(vec![
-                            TopRecoveryType::Unrecognizable(vec![definition]),
-                        ]);
+                        let recovery = TopLevelRecovery;
                         CompilerResult::new(Err(recovery), Vec::new(), Some(Box::new(err)))
                     }
                 }
@@ -140,7 +128,7 @@ impl<'src> Parser<'src> {
 
         if let Some(at_eof) = at_eof {
             return CompilerResult::new(
-                Err(TopLevelRecovery::new(vec![TopRecoveryType::Body(stmts)])),
+                Err(TopLevelRecovery),
                 errors,
                 Some(at_eof),
             );
@@ -150,8 +138,6 @@ impl<'src> Parser<'src> {
             Ok(it) => it.to_empty(),
             Err(err) => {
                 // Recovery tokens
-                let toks = TopRecoveryType::Unrecognizable(vec![definition, name]);
-                let body = TopRecoveryType::Body(stmts);
                 return match err {
                     AdvanceUnexpected::Token(err) => {
                         let CompilerResult {
@@ -160,33 +146,15 @@ impl<'src> Parser<'src> {
                             at_eof,
                         } = self.top_recovery();
                         errors.push(err);
-                        let recovery = TopLevelRecovery::new(vec![
-                            toks,
-                            body,
-                            TopRecoveryType::Unrecognizable(data),
-                        ]);
+                        let recovery = TopLevelRecovery;
                         CompilerResult::new(Err(recovery), errors, at_eof)
                     }
                     AdvanceUnexpected::Eof(err) => CompilerResult::new(
-                        Err(TopLevelRecovery::new(vec![toks, body])),
+                        Err(TopLevelRecovery),
                         errors,
                         Some(Box::new(err)),
                     ),
                 };
-            }
-        };
-
-        let range = {
-            match stmts.first() {
-                Some(first) => {
-                    let last = stmts.last().expect("If the first exists, the last exists");
-
-                    first.span.start..last.span.end
-                }
-                None => {
-                    // Get a bit desperate here
-                    name.span.start..end.span.end
-                }
             }
         };
 
@@ -200,11 +168,12 @@ impl<'src> Parser<'src> {
                 name.span,
             )
         };
+        let stmts = Statements::new(stmts);
 
         let event = Event::new(
             Spanned::new(type_tok, definition.span),
             iden,
-            Spanned::new(Statements::new(stmts), range),
+            stmts,
             end,
         );
 

@@ -1,10 +1,7 @@
 use core::fmt;
 use std::{fmt::Display, marker::PhantomData, sync::Arc};
 
-use crate::{
-    ast::{recovery::Recovery, Spanned},
-    lexer::Token,
-};
+use crate::{ast::Spanned, lexer::Token};
 
 #[derive(Debug)]
 pub struct CompilerResult<'src, T, E = Vec<UnexpectedToken<'src>>> {
@@ -37,6 +34,17 @@ impl<'src, T, E> CompilerResult<'src, T, E> {
         } = self;
         let res = f(data);
         CompilerResult::<R, E>::new(res, error, at_eof)
+    }
+}
+
+impl<'src, T> CompilerResult<'src, T> {
+    pub fn ok(data: T) -> Self {
+        let error = Default::default();
+        Self {
+            data,
+            error,
+            at_eof: None,
+        }
     }
 }
 

@@ -4,7 +4,6 @@ use std::ops::Range;
 use super::error::*;
 use super::top::*;
 use super::*;
-use crate::ast::recovery::Recovery;
 use crate::ast::recovery::StatementRecovery;
 use crate::ast::recovery::TopLevelRecovery;
 use crate::ast::statement::Expression;
@@ -31,8 +30,8 @@ use super::{error::CompilerResult, Parser};
 impl<'src> Parser<'src> {
     pub fn statements(
         &mut self,
-    ) -> CompilerResult<'src, Vec<Spanned<Statement<'src>>>, Vec<UnexpectedToken<'src>>> {
-        let mut statements = Vec::new();
+    ) -> CompilerResult<'src, Vec<Statement<'src>>, Vec<UnexpectedToken<'src>>> {
+        let mut statements: Vec<Statement<'src>> = Vec::new();
         let mut errors = Vec::new();
 
         loop {
@@ -53,10 +52,7 @@ impl<'src> Parser<'src> {
                                 statements.push(it);
                             }
                             Err(err) => {
-                                let span = err
-                                    .calc_span()
-                                    .expect("statement recovery shouldn't be empty");
-                                statements.push(Spanned::new(Statement::Recovery(err), span))
+                                statements.push(Statement::Recovery(err))
                             }
                         };
                         // Because it is in a loop, a break will happen if at_eof is some
@@ -82,12 +78,7 @@ impl<'src> Parser<'src> {
 
                     // If the tokens are empty, there is no reason to push them to the output as no
                     // processing is going to be done on them
-                    if data.tokens.is_empty() {
-                        break;
-                    } else {
-                        let span = data.calc_span().expect("data is non empty");
-                        statements.push(Spanned::new(Statement::Recovery(data), span));
-                    }
+                    statements.push(Statement::Recovery(data));
                     if let Some(at_eof) = at_eof {
                         return CompilerResult::new(statements, errors, Some(at_eof));
                     }
@@ -101,7 +92,7 @@ impl<'src> Parser<'src> {
     pub fn statement_recovery(
         &mut self,
         mut tokens: Vec<Spanned<Token<'src>>>,
-    ) -> CompilerResult<'src, StatementRecovery<'src>, ()> {
+    ) -> CompilerResult<'src, StatementRecovery, ()> {
         loop {
             match self.peek() {
                 Ok(tok) => match tok.data {
@@ -128,32 +119,32 @@ impl<'src> Parser<'src> {
                 },
                 Err(err) => {
                     return CompilerResult::new(
-                        StatementRecovery::new(tokens),
+                        StatementRecovery,
                         (),
                         Some(Box::new(err)),
                     );
                 }
             };
         }
-        CompilerResult::new(StatementRecovery::new(tokens), (), None)
+        CompilerResult::new(StatementRecovery, (), None)
     }
 
     fn statement(
         &mut self,
     ) -> CompilerResult<
         'src,
-        Result<Spanned<Statement<'src>>, StatementRecovery<'src>>,
+        Result<Statement<'src>, StatementRecovery>,
         Vec<UnexpectedToken<'src>>,
     > {
         let decl_token = match self.peek_expect(&Token::STATEMENT, Some("statements")) {
             Ok(it) => it.data.to_owned().spanned(it.span),
             Err(err) => match err {
                 AdvanceUnexpected::Token(err) => {
-                    return CompilerResult::new(Err(StatementRecovery::empty()), vec![err], None)
+                    return CompilerResult::new(Err(StatementRecovery), vec![err], None)
                 }
                 AdvanceUnexpected::Eof(err) => {
                     return CompilerResult::new(
-                        Err(StatementRecovery::empty()),
+                        Err(StatementRecovery),
                         Vec::new(),
                         Some(Box::new(err)),
                     )
@@ -182,7 +173,7 @@ impl<'src> Parser<'src> {
                     Ok(it) => {
                         let span = it.calc_span();
                         CompilerResult::new(
-                            Ok(Spanned::new(Statement::Simple(it), span)),
+                            Ok(Statement::Simple(Spanned::new(it, span))),
                             error,
                             at_eof,
                         )
@@ -212,7 +203,7 @@ impl<'src> Parser<'src> {
         &mut self,
     ) -> CompilerResult<
         'src,
-        Result<SimpleStatement<'src>, StatementRecovery<'src>>,
+        Result<SimpleStatement<'src>, StatementRecovery>,
         Vec<UnexpectedToken<'src>>,
     > {
         // paction
@@ -229,7 +220,7 @@ impl<'src> Parser<'src> {
             Ok(it) => it.data,
             Err(err) => {
                 return CompilerResult::new(
-                    Err(StatementRecovery::new(vec![type_tok, action])),
+                    Err(StatementRecovery),
                     Vec::new(),
                     Some(Box::new(err)),
                 )
@@ -249,7 +240,7 @@ impl<'src> Parser<'src> {
                             let mut tokens = vec![type_tok, action];
                             tokens.append(&mut it.flatten());
                             return CompilerResult::new(
-                                Err(StatementRecovery::new(tokens)),
+                                Err(StatementRecovery),
                                 error,
                                 at_eof,
                             );
@@ -272,7 +263,7 @@ impl<'src> Parser<'src> {
                 let mut toks = vec![type_tok, action];
                 selection.map(|it| toks.append(&mut it.flatten()));
                 return CompilerResult::new(
-                    Err(StatementRecovery::new(toks)),
+                    Err(StatementRecovery),
                     Vec::new(),
                     Some(Box::new(err)),
                 );
@@ -294,7 +285,7 @@ impl<'src> Parser<'src> {
                             tokens.append(&mut it.flatten());
 
                             return CompilerResult::new(
-                                Err(StatementRecovery::new(tokens)),
+                                Err(StatementRecovery),
                                 error,
                                 at_eof,
                             );
@@ -348,7 +339,7 @@ impl<'src> Parser<'src> {
     }
 
     /// Must start with a `[`
-    fn tags(&mut self) -> CompilerResult<'src, Result<Tags<'src>, StatementRecovery<'src>>> {
+    fn tags(&mut self) -> CompilerResult<'src, Result<Tags<'src>, StatementRecovery>> {
         let open = self.next_assert(&[Token::OpenBracket], None);
 
         let CompilerResult {
@@ -361,7 +352,7 @@ impl<'src> Parser<'src> {
                 if at_eof.is_some() {
                     let mut tokens = vec![open];
                     tokens.append(&mut it.flatten());
-                    return CompilerResult::new(Err(StatementRecovery::new(tokens)), error, at_eof);
+                    return CompilerResult::new(Err(StatementRecovery), error, at_eof);
                 }
                 it
             }
@@ -393,7 +384,7 @@ impl<'src> Parser<'src> {
 
     fn pair_list(
         &mut self,
-    ) -> CompilerResult<'src, Result<Parameters<IdenPair<'src>>, StatementRecovery<'src>>> {
+    ) -> CompilerResult<'src, Result<Parameters<IdenPair<'src>>, StatementRecovery>> {
         let mut pairs = Vec::new();
 
         let next = match self.peek_expect(&[Token::CloseBracket, Token::Iden(None)], None) {
@@ -419,9 +410,8 @@ impl<'src> Parser<'src> {
             let pair = match data {
                 Ok(it) => {
                     if at_eof.is_some() {
-                        let tokens = Vec::new();
                         return CompilerResult::new(
-                            Err(StatementRecovery::new(tokens)),
+                            Err(StatementRecovery),
                             error,
                             at_eof,
                         );
@@ -472,7 +462,7 @@ impl<'src> Parser<'src> {
     /// Must start with an iden
     fn iden_pair(
         &mut self,
-    ) -> CompilerResult<'src, Result<IdenPair<'src>, StatementRecovery<'src>>> {
+    ) -> CompilerResult<'src, Result<IdenPair<'src>, StatementRecovery>> {
         let key = self
             .next_assert(&[Token::Iden(None)], None)
             .map_inner(|it| it.get_iden_inner());
@@ -493,7 +483,7 @@ impl<'src> Parser<'src> {
     /// Must start with a `<`
     fn selector(
         &mut self,
-    ) -> CompilerResult<'src, Result<Selection<'src>, StatementRecovery<'src>>> {
+    ) -> CompilerResult<'src, Result<Selection<'src>, StatementRecovery>> {
         let open = self.next_assert(&[Token::OpenComp], None);
 
         let selection = match self.next_expect(&[Token::Iden(None)], None) {
@@ -523,7 +513,7 @@ impl<'src> Parser<'src> {
                         }
                     }
                     AdvanceUnexpected::Eof(err) => CompilerResult::new(
-                        Err(StatementRecovery::new(vec![open])),
+                        Err(StatementRecovery),
                         Vec::new(),
                         Some(Box::new(err)),
                     ),

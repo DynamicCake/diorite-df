@@ -9,7 +9,7 @@ pub fn recover_statement<'src, T>(
     parser: &mut Parser<'src>,
     err: AdvanceUnexpected<'src>,
     tokens: Vec<Spanned<Token<'src>>>,
-) -> CompilerResult<'src, Result<T, StatementRecovery<'src>>, Vec<UnexpectedToken<'src>>> {
+) -> CompilerResult<'src, Result<T, StatementRecovery>, Vec<UnexpectedToken<'src>>> {
     match err {
         AdvanceUnexpected::Token(err) => {
             let CompilerResult {
@@ -20,7 +20,7 @@ pub fn recover_statement<'src, T>(
             CompilerResult::new(Err(data), vec![err], at_eof)
         }
         AdvanceUnexpected::Eof(err) => CompilerResult::new(
-            Err(StatementRecovery::new(tokens)),
+            Err(StatementRecovery),
             Vec::new(),
             Some(Box::new(err)),
         ),
@@ -33,8 +33,8 @@ pub fn handle_result_statement<'src, T, E>(
         data,
         error,
         at_eof,
-    }: CompilerResult<'src, Result<T, StatementRecovery<'src>>>,
-) -> Result<T, CompilerResult<'src, Result<E, StatementRecovery<'src>>, Vec<UnexpectedToken<'src>>>>
+    }: CompilerResult<'src, Result<T, StatementRecovery>>,
+) -> Result<T, CompilerResult<'src, Result<E, StatementRecovery>, Vec<UnexpectedToken<'src>>>>
 where
     T: Flatten<'src>,
 {
@@ -43,7 +43,7 @@ where
             if at_eof.is_some() {
                 tokens.append(&mut it.flatten());
                 return Err(CompilerResult::new(
-                    Err(StatementRecovery::new(tokens)),
+                    Err(StatementRecovery),
                     error,
                     at_eof,
                 ));

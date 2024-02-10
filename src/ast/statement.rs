@@ -60,30 +60,61 @@ impl<'src> CalcSpan for Tags<'src> {
 
 #[derive(Debug)]
 pub struct Statements<'src> {
-    pub items: Vec<Spanned<Statement<'src>>>,
+    pub items: Vec<Statement<'src>>,
 }
 
 impl<'src> Statements<'src> {
-    pub fn new(items: Vec<Spanned<Statement<'src>>>) -> Self {
+    pub fn new(items: Vec<Statement<'src>>) -> Self {
         Self { items }
+    }
+}
+
+impl<'src> TryCalcSpan for Statements<'src> {
+    // TODO test this function
+    fn try_calculate_span(&self) -> Option<Span> {
+        let mut iter = self.items.iter().peekable();
+
+        let start = loop {
+            let stmt = iter.peek();
+            if let Some(stmt) = stmt {
+                match stmt {
+                    Statement::Simple(it) => break it.span.start,
+                    Statement::If(it) => break it.span.start,
+                    Statement::Recovery(_) => {
+                        iter.next()
+                    }
+                }
+            } else {
+                return None;
+            };
+        };
+
+        let mut iter = iter.rev().peekable();
+        let end = loop {
+            let stmt = iter.peek();
+            if let Some(stmt) = stmt {
+                match stmt {
+                    Statement::Simple(it) => break it.span.end,
+                    Statement::If(it) => break it.span.end,
+                    Statement::Recovery(_) => {
+                        iter.next()
+                    }
+                }
+            } else {
+                return None;
+            };
+
+        };
+
+        Some(start..end)
     }
 }
 
 #[derive(Debug)]
 pub enum Statement<'src> {
-    Simple(SimpleStatement<'src>),
-    If(IfStatement<'src>),
-    Recovery(StatementRecovery<'src>),
-}
-
-impl<'src> Statement<'src> {
-    pub fn calc_span(&self) -> Option<Span> {
-        match self {
-            Statement::Simple(stmt) => Some(stmt.calc_span()),
-            Statement::If(stmt) => Some(stmt.calc_span()),
-            Statement::Recovery(stmt) => stmt.calc_span(),
-        }
-    }
+    Simple(Spanned<SimpleStatement<'src>>),
+    If(Spanned<IfStatement<'src>>),
+    Recovery(StatementRecovery),
 }
 
 #[derive(Debug)]
@@ -173,7 +204,7 @@ impl<'src> CalcSpan for IdenPair<'src> {
 impl<'src> Flatten<'src> for IdenPair<'src> {
     fn flatten(self) -> Vec<Spanned<Token<'src>>> {
         let mut out = Vec::with_capacity(3);
-        out.push(self.key.map_inner(|it|Token::Iden(Some(it))));
+        out.push(self.key.map_inner(|it| Token::Iden(Some(it))));
         out.push(self.colon.map_inner(|_| Token::Colon));
         out.push(self.value.map_inner(|it| Token::Iden(Some(it))));
         out
