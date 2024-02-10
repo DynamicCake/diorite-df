@@ -24,11 +24,7 @@ impl<'src> Parser<'src> {
             Err(err) => {
                 return match err {
                     AdvanceUnexpected::Token(err) => {
-                        let CompilerResult {
-                            data,
-                            error: _,
-                            at_eof,
-                        } = self.top_recovery();
+                        let at_eof = self.top_recovery();
                         CompilerResult::new(TopLevel::Recovery(TopLevelRecovery), vec![err], at_eof)
                     }
                     AdvanceUnexpected::Eof(err) => CompilerResult::new(
@@ -104,11 +100,7 @@ impl<'src> Parser<'src> {
             Err(err) => {
                 return match err {
                     AdvanceUnexpected::Token(err) => {
-                        let CompilerResult {
-                            data,
-                            error: _,
-                            at_eof,
-                        } = self.top_recovery();
+                        let at_eof = self.top_recovery();
                         let recovery = TopLevelRecovery;
                         CompilerResult::new(Err(recovery), vec![err], at_eof)
                     }
@@ -140,11 +132,7 @@ impl<'src> Parser<'src> {
                 // Recovery tokens
                 return match err {
                     AdvanceUnexpected::Token(err) => {
-                        let CompilerResult {
-                            data,
-                            error: _,
-                            at_eof,
-                        } = self.top_recovery();
+                        let at_eof = self.top_recovery();
                         errors.push(err);
                         let recovery = TopLevelRecovery;
                         CompilerResult::new(Err(recovery), errors, at_eof)
@@ -182,8 +170,7 @@ impl<'src> Parser<'src> {
 
     /// Looks for event, proc, func tokens
     /// This function will never syntax error
-    fn top_recovery(&mut self) -> CompilerResult<'src, Vec<Spanned<Token<'src>>>, ()> {
-        let mut tokens = Vec::new();
+    fn top_recovery(&mut self) -> Option<Box<UnexpectedEOF<'src>>> {
         loop {
             match self.peek() {
                 Ok(tok) => match tok.data {
@@ -192,17 +179,17 @@ impl<'src> Parser<'src> {
                     }
 
                     _ => match self.advance() {
-                        Ok(it) => tokens.push(it),
+                        Ok(_it) => {}
                         Err(_err) => {
                             panic!("Unexpected EOF should have been caught before");
                         }
                     },
                 },
                 Err(err) => {
-                    return CompilerResult::new(tokens, (), Some(Box::new(err)));
+                    return Some(Box::new(err));
                 }
             };
         }
-        CompilerResult::new(tokens, (), None)
+        None
     }
 }

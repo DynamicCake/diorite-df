@@ -62,10 +62,6 @@ impl<T> MaybeSpan<T> {
     }
 }
 
-pub trait Flatten<'src> {
-    fn flatten(self) -> Vec<Spanned<Token<'src>>>;
-}
-
 pub trait CalcSpan {
     fn calculate_span(&self) -> Span;
 }
@@ -103,20 +99,6 @@ where
             }
             None => None
         }
-    }
-}
-
-impl<'src, T> Flatten<'src> for Parameters<T>
-where
-    T: Flatten<'src>,
-{
-    fn flatten(self) -> Vec<Spanned<Token<'src>>> {
-        let mut out = Vec::new();
-        self.items
-            .into_iter()
-            .for_each(|it| out.append(&mut it.data.flatten()));
-
-        out
     }
 }
 
