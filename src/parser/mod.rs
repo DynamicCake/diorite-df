@@ -1,5 +1,4 @@
-use std::iter::{Enumerate, Peekable};
-use std::rc::Rc;
+use std::iter::Peekable;
 
 use logos::{Lexer, SpannedIter};
 
@@ -7,18 +6,17 @@ use crate::ast::{Program, Spanned};
 use crate::{ast::top::TopLevel, lexer::Token};
 
 use self::error::*;
-use self::top::*;
 
 pub mod error;
+pub mod helper;
 pub mod stmt;
 pub mod top;
-pub mod helper;
 
 pub struct Parser<'src> {
     /// The main token iterator
     /// It is not advised to use this in functions called by `parse(&mut self)`
     toks: Peekable<SpannedIter<'src, Token<'src>>>,
-    source: &'src str,
+    // source: &'src str,
     /// Whenever an invalid token is replaced with `Token::Invalid`, a lexer error gets added
     lex_errs: Vec<LexerError>,
 }
@@ -26,7 +24,7 @@ pub struct Parser<'src> {
 impl<'src> Parser<'src> {
     pub fn new(lexer: Lexer<'src, Token<'src>>) -> Self {
         Self {
-            source: lexer.source(),
+            // source: lexer.source(),
             toks: lexer.spanned().peekable(),
             lex_errs: Vec::new(),
         }

@@ -1,9 +1,8 @@
 use crate::{
-    ast::{recovery::StatementRecovery, Spanned},
-    lexer::Token,
+    ast::{recovery::StatementRecovery},
 };
 
-use super::{AdvanceUnexpected, CompilerResult, Parser, UnexpectedToken};
+use super::{AdvanceUnexpected, CompilerResult, Parser};
 
 pub fn recover_statement<'src, T>(
     parser: &mut Parser<'src>,

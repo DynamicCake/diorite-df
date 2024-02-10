@@ -2,8 +2,6 @@
     // This compiler uses a lot of lifetimes so this is really important
     elided_lifetimes_in_paths
 )]
-// This is in place until the program is somewhat stable
-#![allow(unused_imports, unused_import_braces, dead_code)]
 
 mod args;
 pub mod ast;
@@ -16,7 +14,7 @@ use std::{
 };
 
 use args::Arguments;
-use ast::{top::TopLevel, Program};
+use ast::Program;
 use clap::Parser;
 use lexer::Token;
 use logos::Logos;

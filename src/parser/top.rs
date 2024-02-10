@@ -1,17 +1,11 @@
-use logos::Span;
-
 use crate::ast::{
-    recovery::{StatementRecovery, TopLevelRecovery},
-    statement::{ActionType, IfStatement, SimpleStatement, Statement, Statements},
+    recovery::TopLevelRecovery,
+    statement::Statements,
     top::{Event, EventType, FuncDef, ProcDef},
-    Iden, MaybeSpan, TryCalcSpan,
+    Iden,
 };
 
-use super::error::*;
-use super::stmt::*;
 use super::*;
-
-fn isolated() {}
 
 impl<'src> Parser<'src> {
     /// It is guaranteed that the next token will be a top level declaration token
@@ -50,11 +44,11 @@ impl<'src> Parser<'src> {
                 CompilerResult::new(data, error, at_eof)
             }
             Token::ProcDef => {
-                let def = self.process();
+                let _def = self.process();
                 todo!()
             }
             Token::FuncDef => {
-                let def = self.function();
+                let _def = self.function();
                 todo!()
             }
             it => {
@@ -119,11 +113,7 @@ impl<'src> Parser<'src> {
         } = self.statements();
 
         if let Some(at_eof) = at_eof {
-            return CompilerResult::new(
-                Err(TopLevelRecovery),
-                errors,
-                Some(at_eof),
-            );
+            return CompilerResult::new(Err(TopLevelRecovery), errors, Some(at_eof));
         }
 
         let end = match self.next_expect(&[Token::End], None) {
@@ -137,11 +127,9 @@ impl<'src> Parser<'src> {
                         let recovery = TopLevelRecovery;
                         CompilerResult::new(Err(recovery), errors, at_eof)
                     }
-                    AdvanceUnexpected::Eof(err) => CompilerResult::new(
-                        Err(TopLevelRecovery),
-                        errors,
-                        Some(Box::new(err)),
-                    ),
+                    AdvanceUnexpected::Eof(err) => {
+                        CompilerResult::new(Err(TopLevelRecovery), errors, Some(Box::new(err)))
+                    }
                 };
             }
         };
@@ -158,12 +146,7 @@ impl<'src> Parser<'src> {
         };
         let stmts = Statements::new(stmts);
 
-        let event = Event::new(
-            Spanned::new(type_tok, definition.span),
-            iden,
-            stmts,
-            end,
-        );
+        let event = Event::new(Spanned::new(type_tok, definition.span), iden, stmts, end);
 
         CompilerResult::new(Ok(event), errors, None)
     }

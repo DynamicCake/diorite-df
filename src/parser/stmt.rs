@@ -1,12 +1,12 @@
-use std::char::ParseCharError;
+
 use std::ops::Range;
 
-use super::error::*;
-use super::top::*;
+
+
 use super::*;
 use crate::ast::recovery::StatementRecovery;
-use crate::ast::recovery::TopLevelRecovery;
-use crate::ast::statement::Expression;
+
+
 use crate::ast::statement::IdenPair;
 use crate::ast::statement::Selection;
 use crate::ast::statement::Tags;
@@ -17,11 +17,10 @@ use crate::ast::Parameters;
 use crate::ast::TryCalcSpan;
 use crate::{
     ast::{
-        statement::{ActionType, IfStatement, SimpleStatement, Statement, Statements},
+        statement::{ActionType, IfStatement, SimpleStatement, Statement},
         Spanned,
     },
     lexer::Token,
-    parser::error::ExpectedTokens,
 };
 
 use super::{error::CompilerResult, Parser};
@@ -289,12 +288,6 @@ impl<'src> Parser<'src> {
     }
 
     fn if_statement(&mut self) -> CompilerResult<'src, IfStatement<'src>> {
-        const EXPECTED: [Token<'_>; 4] = [
-            Token::IfPlayer,
-            Token::IfEntity,
-            Token::IfGame,
-            Token::IfVar,
-        ];
         todo!()
     }
 
