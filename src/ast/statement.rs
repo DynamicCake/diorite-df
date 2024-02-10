@@ -35,7 +35,7 @@ impl<'src> CalcSpan for Selection<'src> {
 #[derive(Debug)]
 pub struct Tags<'src> {
     pub open: Spanned<()>,
-    pub tags: Option<Spanned<Parameters<'src, IdenPair<'src>>>>,
+    pub tags: Option<Spanned<Parameters<IdenPair<'src>>>>,
     pub close: Spanned<()>,
 }
 
@@ -73,7 +73,7 @@ pub struct SimpleStatement<'src> {
     pub action: Spanned<Iden<'src>>,
     pub selection: Option<Spanned<Selection<'src>>>,
     pub tags: Option<Spanned<Tags<'src>>>,
-    pub params: Spanned<Parameters<'src, Expression<'src>>>,
+    pub params: Spanned<Parameters<Expression<'src>>>,
 }
 
 impl<'src> SimpleStatement<'src> {
@@ -91,7 +91,7 @@ pub struct IfStatement<'src> {
     action: ActionType,
     selection: Option<Spanned<Selection<'src>>>,
     tags: Option<Spanned<Tags<'src>>>,
-    params: Spanned<Parameters<'src, Expression<'src>>>,
+    params: Spanned<Parameters<Expression<'src>>>,
 }
 
 impl<'src> IfStatement<'src> {
@@ -154,7 +154,7 @@ pub enum Expression<'src> {
 #[derive(Debug)]
 pub struct ExprLiteral<'src> {
     pub literal_type: Spanned<ExprLitType>,
-    pub args: Spanned<Parameters<'src, StaticLiteral<'src>>>,
+    pub args: Spanned<Parameters<StaticLiteral<'src>>>,
 }
 
 #[derive(Debug)]

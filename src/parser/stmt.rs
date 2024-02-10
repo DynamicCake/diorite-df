@@ -286,7 +286,7 @@ impl<'src> Parser<'src> {
         )
     }
 
-    fn pair_list(&mut self) -> CompilerResult<'src, Parameters<'src, IdenPair<'src>>> {
+    fn pair_list(&mut self) -> CompilerResult<'src, Parameters<IdenPair<'src>>> {
         let pairs = Vec::new();
 
         loop {

@@ -55,30 +55,16 @@ impl<'src> Program<'src> {
 }
 
 #[derive(Debug)]
-pub struct Parameters<'src, T> {
-    pub items: Vec<Parameter<'src, T>>,
+pub struct Parameters<T> {
+    pub items: Vec<Spanned<T>>,
 }
 
-impl<'src, T> Parameters<'src, T> {
-    pub fn new(items: Vec<Parameter<'src, T>>) -> Self { Self { items } }
-}
-
-#[derive(Debug)]
-pub struct Parameter<'src, T> {
-    pub data: T,
-    pub comma: Option<Spanned<()>>,
-    phantom: PhantomData<&'src T>,
-}
-
-impl<'src, T> Parameter<'src, T> {
-    fn new(data: T, comma: Option<Spanned<()>>) -> Self {
-        Self {
-            data,
-            comma,
-            phantom: PhantomData,
-        }
+impl<T> Parameters<T> {
+    pub fn new(items: Vec<Spanned<T>>) -> Self {
+        Self { items }
     }
 }
+
 
 // StringLiteral
 
