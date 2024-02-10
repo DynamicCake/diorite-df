@@ -1,6 +1,4 @@
-use crate::{
-    ast::{recovery::StatementRecovery},
-};
+use crate::ast::recovery::StatementRecovery;
 
 use super::{AdvanceUnexpected, CompilerResult, Parser};
 

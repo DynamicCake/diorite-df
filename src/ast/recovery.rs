@@ -1,9 +1,3 @@
-
-
-
-
-
-
 /// Used when a statement is malformed and continues until
 /// it finds another statement decleration like `paction` or `end`
 ///

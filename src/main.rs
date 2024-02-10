@@ -10,7 +10,11 @@ pub mod parser;
 pub mod test;
 
 use std::{
-    env::set_var, error::Error, fs::File, io::{self, stdin, stdout, BufRead, BufReader, Read, Write}, path::PathBuf
+    env::set_var,
+    error::Error,
+    fs::File,
+    io::{self, stdin, stdout, BufRead, BufReader, Read, Write},
+    path::PathBuf,
 };
 
 use args::Arguments;
@@ -48,9 +52,7 @@ fn main() -> Result<(), Box<dyn Error + 'static>> {
     Ok(())
 }
 
-fn compile(
-    src: &str,
-) -> CompilerResult<'_, Program<'_>, Vec<UnexpectedToken<'_>>> {
+fn compile(src: &str) -> CompilerResult<'_, Program<'_>, Vec<UnexpectedToken<'_>>> {
     let lexer = Token::lexer(src);
     let print_lexer: Vec<_> = lexer.clone().collect();
     println!("{:?}", print_lexer);

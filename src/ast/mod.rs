@@ -1,7 +1,3 @@
-
-
-
-
 use self::top::TopLevel;
 
 pub mod recovery;
@@ -97,7 +93,7 @@ where
                 let last = self.items.last().expect("If first exists, last exists");
                 Some(first.span.start..last.span.end)
             }
-            None => None
+            None => None,
         }
     }
 }

@@ -1,10 +1,6 @@
-
-
 use logos::{Lexer, Logos, Span};
 
-use crate::{
-    ast::{Spanned},
-};
+use crate::ast::Spanned;
 
 #[derive(Logos, Clone, Debug)]
 #[logos(skip r"[ \t\n\f]+")]
@@ -46,7 +42,10 @@ pub enum Token<'src> {
     #[token(">")]
     CloseComp,
 
-    #[regex(r#"([a-zA-Z_][a-zA-Z0-9_]*)|('([^'\\]*(?:\\.[^'\\]*)*)')"#, process_iden)]
+    #[regex(
+        r#"([a-zA-Z_][a-zA-Z0-9_]*)|('([^'\\]*(?:\\.[^'\\]*)*)')"#,
+        process_iden
+    )]
     Iden(Option<&'src str>),
     #[regex(r"\d+(\.\d+)?", |lexer| Some(lexer.slice()) )]
     Number(Option<&'src str>),
@@ -182,11 +181,9 @@ impl<'src> Token<'src> {
     pub fn get_iden_inner(&self) -> &'src str {
         match self {
             Self::Iden(it) => return it.unwrap(),
-            it => panic!("Expected Iden recieved {:#?}", it)
+            it => panic!("Expected Iden recieved {:#?}", it),
         }
     }
-
-
 }
 
 impl<'src> Token<'src> {

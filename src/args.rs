@@ -6,5 +6,5 @@ use clap::Parser;
 #[command(author, version, about, long_about = None)]
 pub(crate) struct Arguments {
     #[arg(short, long)]
-    pub file: Option<PathBuf>
+    pub file: Option<PathBuf>,
 }

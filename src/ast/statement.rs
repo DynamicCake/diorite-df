@@ -2,8 +2,6 @@ use logos::Span;
 
 use crate::lexer::Token;
 
-
-
 use super::*;
 
 #[derive(Debug)]
@@ -54,9 +52,7 @@ impl<'src> TryCalcSpan for Statements<'src> {
                 match stmt {
                     Statement::Simple(it) => break it.span.start,
                     Statement::If(it) => break it.span.start,
-                    Statement::Recovery => {
-                        iter.next()
-                    }
+                    Statement::Recovery => iter.next(),
                 }
             } else {
                 return None;
@@ -70,14 +66,11 @@ impl<'src> TryCalcSpan for Statements<'src> {
                 match stmt {
                     Statement::Simple(it) => break it.span.end,
                     Statement::If(it) => break it.span.end,
-                    Statement::Recovery => {
-                        iter.next()
-                    }
+                    Statement::Recovery => iter.next(),
                 }
             } else {
                 return None;
             };
-
         };
 
         Some(start..end)

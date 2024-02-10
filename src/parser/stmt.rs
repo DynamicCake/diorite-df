@@ -1,11 +1,7 @@
-
 use std::ops::Range;
-
-
 
 use super::*;
 use crate::ast::recovery::StatementRecovery;
-
 
 use crate::ast::statement::IdenPair;
 use crate::ast::statement::Selection;
@@ -81,9 +77,7 @@ impl<'src> Parser<'src> {
         CompilerResult::new(statements, errors, None)
     }
 
-    pub fn statement_recovery(
-        &mut self,
-    ) -> Option<Box<UnexpectedEOF<'src>>> {
+    pub fn statement_recovery(&mut self) -> Option<Box<UnexpectedEOF<'src>>> {
         loop {
             match self.peek() {
                 Ok(tok) => match tok.data {
