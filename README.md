@@ -1,9 +1,11 @@
 # Diorite DF
-A sh** practice language that transpiles to DiamondFire code blocks.
+A sh** toy language that transpiles to Diamond Fire code blocks.
 The syntax can be summed up as
 ```
-pevent Join
-   paction SendMessage <default> ['Alignment Mode': 'Centered']
+pevent BreakBlock
+    set = (var(player), "%default")
+    set = (var(location), tag<default>(' '))
+    paction SendMessage <default> ['Alignment Mode': 'Centered'] ($"<gold>Player", var(player), "broke a block while standing at", location)
 ```
 
 This language does NOT have:

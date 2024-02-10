@@ -34,9 +34,9 @@ impl<'src> CalcSpan for Selection<'src> {
 
 #[derive(Debug)]
 pub struct Tags<'src> {
-    open: Spanned<()>,
-    tags: Option<Spanned<Parameters<'src, IdenPair<'src>>>>,
-    close: Spanned<()>,
+    pub open: Spanned<()>,
+    pub tags: Option<Spanned<Parameters<'src, IdenPair<'src>>>>,
+    pub close: Spanned<()>,
 }
 
 #[derive(Debug)]

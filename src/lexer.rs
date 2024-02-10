@@ -53,6 +53,8 @@ pub enum Token<'src> {
     Number(Option<&'src str>),
     #[regex(r#""([^"\\]*(?:\\.[^"\\]*)*)""#, |lexer| Some(lexer.slice()))]
     String(Option<&'src str>),
+    #[regex(r#"\$"([^"\\]*(?:\\.[^"\\]*)*)""#, |lexer| Some(lexer.slice()))]
+    StyledText(Option<&'src str>),
 
     #[token("svar")]
     SaveVar,

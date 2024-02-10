@@ -8,7 +8,9 @@ use crate::ast::recovery::Recovery;
 use crate::ast::recovery::StatementRecovery;
 use crate::ast::recovery::TopLevelRecovery;
 use crate::ast::statement::Expression;
+use crate::ast::statement::IdenPair;
 use crate::ast::statement::Selection;
+use crate::ast::statement::Tags;
 use crate::ast::CalcSpan;
 use crate::ast::Flatten;
 use crate::ast::Iden;
@@ -211,13 +213,16 @@ impl<'src> Parser<'src> {
         Result<SimpleStatement<'src>, StatementRecovery<'src>>,
         Vec<UnexpectedToken<'src>>,
     > {
+        // paction
         let type_tok = self.next_assert(&Token::SIMPLE_STATEMENT, Some("simple statement"));
 
+        // SendMessage
         let action = match self.next_expect(&[Token::Iden(None)], None) {
             Ok(it) => it,
             Err(err) => return helper::recover_statement(self, err, vec![type_tok]),
         };
 
+        // <selection>
         let CompilerResult {
             data,
             error,
@@ -236,9 +241,8 @@ impl<'src> Parser<'src> {
                 return CompilerResult::new(Err(err), error, at_eof);
             }
         };
-        let selector_span = selector.calculate_span();
 
-        let params = todo!();1;
+        let selector_span = selector.calculate_span();
         let type_tok = type_tok.map_inner(|inner| {
             ActionType::from_token(inner).expect("A non action token managed to sneak in")
         });
@@ -248,6 +252,7 @@ impl<'src> Parser<'src> {
                 type_tok,
                 action: action.map_inner(|i| Iden::new(i.get_iden())),
                 selection: Some(Spanned::new(selector, selector_span)),
+                // TODO parse tags
                 tags: None,
                 params: Spanned::new(Parameters { items: Vec::new() }, Range { start: 0, end: 0 }),
             }),
@@ -266,6 +271,32 @@ impl<'src> Parser<'src> {
         todo!()
     }
 
+    /// Must start with a `[`
+    fn tags(&mut self) -> CompilerResult<'src, Tags<'src>> {
+        let open = self.next_assert(&[Token::OpenBracket], None);
+
+        CompilerResult::new(
+            Tags {
+                open: open.to_empty(),
+                tags: todo!(),
+                close: todo!(),
+            },
+            Vec::new(),
+            None,
+        )
+    }
+
+    fn pair_list(&mut self) -> CompilerResult<'src, Parameters<'src, IdenPair<'src>>> {
+        let pairs = Vec::new();
+
+        loop {
+            break;
+        }
+        
+        CompilerResult::new(Parameters::new(pairs), Vec::new(), None)
+    }
+
+    /// Must start with a `<`
     fn selector(
         &mut self,
     ) -> CompilerResult<'src, Result<Selection<'src>, StatementRecovery<'src>>> {

@@ -59,15 +59,19 @@ pub struct Parameters<'src, T> {
     pub items: Vec<Parameter<'src, T>>,
 }
 
+impl<'src, T> Parameters<'src, T> {
+    pub fn new(items: Vec<Parameter<'src, T>>) -> Self { Self { items } }
+}
+
 #[derive(Debug)]
 pub struct Parameter<'src, T> {
     pub data: T,
-    pub comma: Spanned<()>,
+    pub comma: Option<Spanned<()>>,
     phantom: PhantomData<&'src T>,
 }
 
 impl<'src, T> Parameter<'src, T> {
-    fn new(data: T, comma: Spanned<()>) -> Self {
+    fn new(data: T, comma: Option<Spanned<()>>) -> Self {
         Self {
             data,
             comma,
