@@ -12,10 +12,7 @@ pub mod parser;
 pub mod test;
 
 use std::{
-    error::Error,
-    fs::File,
-    io::{self, stdin, stdout, BufRead, BufReader, Read, Write},
-    path::PathBuf,
+    env::set_var, error::Error, fs::File, io::{self, stdin, stdout, BufRead, BufReader, Read, Write}, path::PathBuf
 };
 
 use args::Arguments;
@@ -27,6 +24,7 @@ use parser::error::{CompilerResult, UnexpectedToken};
 
 fn main() -> Result<(), Box<dyn Error + 'static>> {
     let _args = Arguments::parse();
+    set_var("RUST_BACKTRACE", "1");
 
     /*
     let src = if let Some(path) = args.file {
@@ -38,11 +36,11 @@ fn main() -> Result<(), Box<dyn Error + 'static>> {
 
     let src = "
     pevent Join 
-        paction SendMessage <hello>
+        paction SendMessage [hello: 'chat!',]
     end
 
     pevent Join 
-        paction SendMessage <hello>
+        paction SendMessage <'coming soon'> [paramaters: 'and such', 'this will': 'be a pain', because: 'I store the recovery tokens', for: 'some reason']
     end
     ";
     let res = compile(src);

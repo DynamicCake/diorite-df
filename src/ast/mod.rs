@@ -36,11 +36,42 @@ impl<T> Spanned<T> {
     }
 }
 
+#[derive(Debug)]
+pub struct MaybeSpan<T> {
+    pub data: T,
+    pub span: Option<Span>,
+}
+
+impl<T> MaybeSpan<T> {
+    pub fn new(data: T, span: Option<Span>) -> Self {
+        Self { data, span }
+    }
+    pub fn empty(span: Option<Span>) -> MaybeSpan<()> {
+        MaybeSpan { data: (), span }
+    }
+    pub fn to_empty(self) -> MaybeSpan<()> {
+        Self::empty(self.span)
+    }
+    pub fn map_inner<R, F>(self, f: F) -> MaybeSpan<R>
+    where
+        F: FnOnce(T) -> R,
+    {
+        let Self { data, span } = self;
+        let res = f(data);
+        MaybeSpan::<R>::new(res, span)
+    }
+}
+
 pub trait Flatten<'src> {
     fn flatten(self) -> Vec<Spanned<Token<'src>>>;
 }
+
 pub trait CalcSpan {
     fn calculate_span(&self) -> Span;
+}
+
+pub trait TryCalcSpan {
+    fn try_calculate_span(&self) -> Option<Span>;
 }
 
 #[derive(Debug)]
@@ -59,12 +90,41 @@ pub struct Parameters<T> {
     pub items: Vec<Spanned<T>>,
 }
 
+// I do not give a shit that
+impl<T> TryCalcSpan for Parameters<T>
+where
+    T: CalcSpan,
+{
+    fn try_calculate_span(&self) -> Option<Span> {
+        match self.items.first() {
+            Some(first) => {
+                let last = self.items.last().expect("If first exists, last exists");
+                Some(first.span.start..last.span.end)
+            }
+            None => None
+        }
+    }
+}
+
+impl<'src, T> Flatten<'src> for Parameters<T>
+where
+    T: Flatten<'src>,
+{
+    fn flatten(self) -> Vec<Spanned<Token<'src>>> {
+        let mut out = Vec::new();
+        self.items
+            .into_iter()
+            .for_each(|it| out.append(&mut it.data.flatten()));
+
+        out
+    }
+}
+
 impl<T> Parameters<T> {
     pub fn new(items: Vec<Spanned<T>>) -> Self {
         Self { items }
     }
 }
-
 
 // StringLiteral
 

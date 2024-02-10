@@ -35,8 +35,27 @@ impl<'src> CalcSpan for Selection<'src> {
 #[derive(Debug)]
 pub struct Tags<'src> {
     pub open: Spanned<()>,
-    pub tags: Option<Spanned<Parameters<IdenPair<'src>>>>,
+    pub tags: Option<MaybeSpan<Parameters<IdenPair<'src>>>>,
     pub close: Spanned<()>,
+}
+
+impl<'src> Flatten<'src> for Tags<'src> {
+    fn flatten(self) -> Vec<Spanned<Token<'src>>> {
+        let mut out = Vec::new();
+        out.push(self.open.map_inner(|it| Token::OpenBracket));
+        if let Some(it) = self.tags {
+            out.append(&mut it.data.flatten());
+        }
+        out.push(self.close.map_inner(|it| Token::CloseBracket));
+
+        out
+    }
+}
+
+impl<'src> CalcSpan for Tags<'src> {
+    fn calculate_span(&self) -> super::Span {
+        self.open.span.start..self.close.span.end
+    }
 }
 
 #[derive(Debug)]
@@ -143,6 +162,22 @@ pub struct IdenPair<'src> {
     pub key: Spanned<&'src str>,
     pub colon: Spanned<()>,
     pub value: Spanned<&'src str>,
+}
+
+impl<'src> CalcSpan for IdenPair<'src> {
+    fn calculate_span(&self) -> Span {
+        self.key.span.start..self.value.span.end
+    }
+}
+
+impl<'src> Flatten<'src> for IdenPair<'src> {
+    fn flatten(self) -> Vec<Spanned<Token<'src>>> {
+        let mut out = Vec::with_capacity(3);
+        out.push(self.key.map_inner(|it|Token::Iden(Some(it))));
+        out.push(self.colon.map_inner(|_| Token::Colon));
+        out.push(self.value.map_inner(|it| Token::Iden(Some(it))));
+        out
+    }
 }
 
 #[derive(Debug)]

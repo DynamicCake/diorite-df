@@ -1,6 +1,6 @@
 use std::{fmt::Display, rc::Rc, sync::Arc};
 
-use logos::{Logos, Span};
+use logos::{Lexer, Logos, Span};
 
 use crate::{
     ast::{statement::ActionType, Iden, Spanned},
@@ -47,7 +47,7 @@ pub enum Token<'src> {
     #[token(">")]
     CloseComp,
 
-    #[regex(r#"([a-zA-Z_][a-zA-Z0-9_]*)|('([^'\\]*(?:\\.[^'\\]*)*)')"#, |lexer| Some(lexer.slice()) )]
+    #[regex(r#"([a-zA-Z_][a-zA-Z0-9_]*)|('([^'\\]*(?:\\.[^'\\]*)*)')"#, process_iden)]
     Iden(Option<&'src str>),
     #[regex(r"\d+(\.\d+)?", |lexer| Some(lexer.slice()) )]
     Number(Option<&'src str>),
@@ -103,8 +103,55 @@ pub enum Token<'src> {
     #[token("ifvar")]
     IfVar,
 
+    #[token(r"//[^\n]*")]
+    Comment,
+    #[token("/*", callback = comment)]
+    MultilineComment,
+
     /// Represents a lexer error
     Invalid,
+}
+
+fn process_iden<'src>(lex: &mut Lexer<'src, Token<'src>>) -> Option<&'src str> {
+    let text = lex.slice();
+    let res = if text.len() >= 2 && text.starts_with("'") && text.ends_with("'") {
+        &text[1..text.len() - 1]
+    } else {
+        text
+    };
+
+    Some(res)
+}
+
+//by default the logos error type is (). You may want to replace it with a better one.
+fn comment<'src>(lexer: &mut Lexer<'src, Token<'src>>) -> Result<(), ()> {
+    println!("Comment triggered!");
+    #[derive(Logos, Debug)]
+    enum CommentHelper {
+        #[token(r"\*")]
+        Open,
+        #[token(r"*\")]
+        Close,
+        #[regex(".")]
+        AnythingElse,
+    }
+    let comment_start = lexer.remainder();
+    let mut comment_lexer = CommentHelper::lexer(comment_start);
+    let mut depth = 1; //we're already inside a comment, so we start from 1
+    while depth != 0 {
+        match comment_lexer.next() {
+            Some(Ok(CommentHelper::Open)) => depth += 1,
+            Some(Ok(CommentHelper::Close)) => depth -= 1,
+            Some(Ok(CommentHelper::AnythingElse)) => {}
+            Some(Err(_)) => return Ok(()),
+            None => return Err(()), //unclosed comment
+        }
+    }
+    let comment_end = comment_lexer.remainder();
+    let comment_length = comment_end as *const str as *const () as usize
+        - comment_start as *const str as *const () as usize;
+    lexer.bump(comment_length);
+    Ok(())
 }
 
 impl<'src> PartialEq for Token<'src> {
@@ -133,12 +180,14 @@ impl<'src> Token<'src> {
     }
 
     /// Gets the iden, if the varient isn't a Iden, this function panics
-    pub fn get_iden(&self) -> &'src str {
+    pub fn get_iden_inner(&self) -> &'src str {
         match self {
             Self::Iden(it) => return it.unwrap(),
             it => panic!("Expected Iden recieved {:#?}", it)
         }
     }
+
+
 }
 
 impl<'src> Token<'src> {

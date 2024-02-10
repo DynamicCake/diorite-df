@@ -14,7 +14,9 @@ use crate::ast::statement::Tags;
 use crate::ast::CalcSpan;
 use crate::ast::Flatten;
 use crate::ast::Iden;
+use crate::ast::MaybeSpan;
 use crate::ast::Parameters;
+use crate::ast::TryCalcSpan;
 use crate::{
     ast::{
         statement::{ActionType, IfStatement, SimpleStatement, Statement, Statements},
@@ -223,37 +225,111 @@ impl<'src> Parser<'src> {
         };
 
         // <selection>
-        let CompilerResult {
-            data,
-            error,
-            at_eof,
-        } = self.selector();
-        let selector = match data {
-            Ok(it) => {
-                if at_eof.is_some() {
-                    let mut tokens = vec![type_tok, action];
-                    tokens.append(&mut it.flatten());
-                    return CompilerResult::new(Err(StatementRecovery::new(tokens)), error, at_eof);
-                }
-                it
-            }
+        let selector_start = match self.peek() {
+            Ok(it) => it.data,
             Err(err) => {
-                return CompilerResult::new(Err(err), error, at_eof);
+                return CompilerResult::new(
+                    Err(StatementRecovery::new(vec![type_tok, action])),
+                    Vec::new(),
+                    Some(Box::new(err)),
+                )
             }
         };
 
-        let selector_span = selector.calculate_span();
+        let selection = match selector_start {
+            Token::OpenComp => {
+                let CompilerResult {
+                    data,
+                    error,
+                    at_eof,
+                } = self.selector();
+                let selector = match data {
+                    Ok(it) => {
+                        if at_eof.is_some() {
+                            let mut tokens = vec![type_tok, action];
+                            tokens.append(&mut it.flatten());
+                            return CompilerResult::new(
+                                Err(StatementRecovery::new(tokens)),
+                                error,
+                                at_eof,
+                            );
+                        }
+                        it
+                    }
+                    Err(err) => {
+                        return CompilerResult::new(Err(err), error, at_eof);
+                    }
+                };
+                Some(selector)
+            }
+            _ => None,
+        };
+
+        // [key: 'and value', pairs: here,]
+        let selector_start = match self.peek() {
+            Ok(it) => it.data,
+            Err(err) => {
+                let mut toks = vec![type_tok, action];
+                selection.map(|it| toks.append(&mut it.flatten()));
+                return CompilerResult::new(
+                    Err(StatementRecovery::new(toks)),
+                    Vec::new(),
+                    Some(Box::new(err)),
+                );
+            }
+        };
+
+        let tags = match selector_start {
+            Token::OpenBracket => {
+                let CompilerResult {
+                    data,
+                    error,
+                    at_eof,
+                } = self.tags();
+                let tags = match data {
+                    Ok(it) => {
+                        if at_eof.is_some() {
+                            let mut tokens = vec![type_tok, action];
+                            selection.map(|it| tokens.append(&mut it.flatten()));
+                            tokens.append(&mut it.flatten());
+
+                            return CompilerResult::new(
+                                Err(StatementRecovery::new(tokens)),
+                                error,
+                                at_eof,
+                            );
+                        }
+                        it
+                    }
+                    Err(err) => {
+                        return CompilerResult::new(Err(err), error, at_eof);
+                    }
+                };
+                Some(tags)
+            }
+            _ => None,
+        };
+
+        let selection = selection.map(|sel| {
+            let span = sel.calculate_span();
+            Spanned::new(sel, span)
+        });
+
         let type_tok = type_tok.map_inner(|inner| {
             ActionType::from_token(inner).expect("A non action token managed to sneak in")
+        });
+
+        let tags = tags.map(|it| {
+            let span = it.calculate_span();
+            Spanned::new(it, span)
         });
 
         CompilerResult::new(
             Ok(SimpleStatement {
                 type_tok,
-                action: action.map_inner(|i| Iden::new(i.get_iden())),
-                selection: Some(Spanned::new(selector, selector_span)),
-                // TODO parse tags
-                tags: None,
+                action: action.map_inner(|i| Iden::new(i.get_iden_inner())),
+                selection,
+                tags,
                 params: Spanned::new(Parameters { items: Vec::new() }, Range { start: 0, end: 0 }),
             }),
             Vec::new(),
@@ -272,28 +348,146 @@ impl<'src> Parser<'src> {
     }
 
     /// Must start with a `[`
-    fn tags(&mut self) -> CompilerResult<'src, Tags<'src>> {
+    fn tags(&mut self) -> CompilerResult<'src, Result<Tags<'src>, StatementRecovery<'src>>> {
         let open = self.next_assert(&[Token::OpenBracket], None);
 
+        let CompilerResult {
+            data,
+            error,
+            at_eof,
+        } = self.pair_list();
+        let params = match data {
+            Ok(it) => {
+                if at_eof.is_some() {
+                    let mut tokens = vec![open];
+                    tokens.append(&mut it.flatten());
+                    return CompilerResult::new(Err(StatementRecovery::new(tokens)), error, at_eof);
+                }
+                it
+            }
+            Err(err) => {
+                return CompilerResult::new(Err(err), error, at_eof);
+            }
+        };
+
+        let close = match self.next_expect(&[Token::CloseBracket], None) {
+            Ok(it) => it,
+            Err(err) => {
+                let mut out = params.flatten();
+                out.push(open);
+                return helper::recover_statement(self, err, out);
+            }
+        };
+
+        let tag_span = params.try_calculate_span();
         CompilerResult::new(
-            Tags {
+            Ok(Tags {
                 open: open.to_empty(),
-                tags: todo!(),
-                close: todo!(),
-            },
+                tags: Some(MaybeSpan::new(params, tag_span)),
+                close: close.to_empty(),
+            }),
             Vec::new(),
             None,
         )
     }
 
-    fn pair_list(&mut self) -> CompilerResult<'src, Parameters<IdenPair<'src>>> {
-        let pairs = Vec::new();
+    fn pair_list(
+        &mut self,
+    ) -> CompilerResult<'src, Result<Parameters<IdenPair<'src>>, StatementRecovery<'src>>> {
+        let mut pairs = Vec::new();
+
+        let next = match self.peek_expect(&[Token::CloseBracket, Token::Iden(None)], None) {
+            Ok(it) => it,
+            // TODO pass in correct token list
+            Err(err) => return helper::recover_statement(self, err, Vec::new()),
+        };
+
+        match next.data {
+            Token::CloseBracket => {
+                return CompilerResult::new(Ok(Parameters::new(pairs)), Vec::new(), None)
+            }
+            Token::Iden(_) => {}
+            _ => panic!("Should have been caught by peek_expect"),
+        }
 
         loop {
-            break;
+            let CompilerResult {
+                data,
+                error,
+                at_eof,
+            } = self.iden_pair();
+            let pair = match data {
+                Ok(it) => {
+                    if at_eof.is_some() {
+                        let tokens = Vec::new();
+                        return CompilerResult::new(
+                            Err(StatementRecovery::new(tokens)),
+                            error,
+                            at_eof,
+                        );
+                    }
+                    it
+                }
+                Err(err) => {
+                    return CompilerResult::new(Err(err), error, at_eof);
+                }
+            };
+
+            let span = pair.calculate_span();
+            pairs.push(Spanned::new(pair, span));
+
+            let tok = match self.peek_expect(&[Token::CloseBracket, Token::Comma], None) {
+                Ok(it) => it,
+                // TODO I had it with recovery tokens
+                Err(err) => return helper::recover_statement(self, err, Vec::new()),
+            };
+
+            match tok.data {
+                Token::CloseBracket => break,
+                Token::Comma => {
+                    self.next_assert(&[Token::Comma], None);
+
+                    let tok =
+                        match self.peek_expect(&[Token::CloseBracket, Token::Iden(None)], None) {
+                            Ok(it) => it,
+                            // TODO I had it with recovery tokens
+                            Err(err) => return helper::recover_statement(self, err, Vec::new()),
+                        };
+
+                    match tok.data {
+                        Token::CloseBracket => {
+                            break;
+                        },
+                        Token::Iden(_) => {}
+                        _ => panic!("Should be covered by next expect"),
+                    }
+                }
+                _ => panic!("Should be covered by next expect"),
+            };
         }
-        
-        CompilerResult::new(Parameters::new(pairs), Vec::new(), None)
+
+        CompilerResult::new(Ok(Parameters::new(pairs)), Vec::new(), None)
+    }
+
+    /// Must start with an iden
+    fn iden_pair(
+        &mut self,
+    ) -> CompilerResult<'src, Result<IdenPair<'src>, StatementRecovery<'src>>> {
+        let key = self
+            .next_assert(&[Token::Iden(None)], None)
+            .map_inner(|it| it.get_iden_inner());
+
+        let colon = match self.next_expect(&[Token::Colon], None) {
+            Ok(it) => it.to_empty(),
+            Err(err) => return helper::recover_statement(self, err, Vec::new()),
+        };
+
+        let value = match self.next_expect(&[Token::Iden(None)], None) {
+            Ok(it) => it.map_inner(|it| it.get_iden_inner()),
+            Err(err) => return helper::recover_statement(self, err, Vec::new()),
+        };
+
+        CompilerResult::new(Ok(IdenPair { key, colon, value }), Vec::new(), None)
     }
 
     /// Must start with a `<`
@@ -345,7 +539,7 @@ impl<'src> Parser<'src> {
         CompilerResult::new(
             Ok(Selection {
                 open: open.to_empty(),
-                selection: Some(selection.map_inner(|it| it.get_iden())),
+                selection: Some(selection.map_inner(|it| it.get_iden_inner())),
                 close: close.to_empty(),
             }),
             Vec::new(),
