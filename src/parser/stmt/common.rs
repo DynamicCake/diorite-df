@@ -21,21 +21,9 @@ impl<'src> Parser<'src> {
     pub fn tags(&mut self) -> ParseResult<'src, Result<Tags<'src>, StatementRecovery>> {
         let open = self.next_assert(&[Token::OpenBracket]);
 
-        let ParseResult {
-            data,
-            error,
-            at_eof,
-        } = self.pair_list();
-        let params = match data {
-            Ok(it) => {
-                if at_eof.is_some() {
-                    return ParseResult::new(Err(StatementRecovery), error, at_eof);
-                }
-                it
-            }
-            Err(err) => {
-                return ParseResult::new(Err(err), error, at_eof);
-            }
+        let params = match helper::should_return(self.pair_list()) {
+            Ok(it) => it,
+            Err(err) => return err
         };
 
         let close = match self.next_expect(&[Token::CloseBracket], None) {
@@ -73,21 +61,9 @@ impl<'src> Parser<'src> {
         }
 
         loop {
-            let ParseResult {
-                data,
-                error,
-                at_eof,
-            } = self.iden_pair();
-            let pair = match data {
-                Ok(it) => {
-                    if at_eof.is_some() {
-                        return ParseResult::new(Err(StatementRecovery), error, at_eof);
-                    }
-                    it
-                }
-                Err(err) => {
-                    return ParseResult::new(Err(err), error, at_eof);
-                }
+            let pair = match helper::should_return(self.iden_pair()) {
+                Ok(it) => it,
+                Err(err) => return err,
             };
 
             let span = pair.calculate_span();
@@ -189,23 +165,13 @@ impl<'src> Parser<'src> {
     pub fn call_params(&mut self) -> ParseResult<'src, Result<CallArgs<'src>, StatementRecovery>> {
         let open = self.next_assert(&[Token::OpenParen]);
 
-        let ParseResult {
-            data,
-            error,
-            at_eof,
-        } = self.args_params_list();
-        let params = match data {
-            Ok(it) => {
-                if at_eof.is_some() {
-                    return ParseResult::new(Err(StatementRecovery), error, at_eof);
-                }
-                let span = it.try_calculate_span();
-                MaybeSpan::new(it, span)
-            }
-            Err(err) => {
-                return ParseResult::new(Err(err), error, at_eof);
-            }
+        let params = match helper::should_return(self.args_params_list()) {
+            Ok(it) => it,
+            Err(err) => return err,
         };
+
+        let span = params.try_calculate_span();
+        let params = MaybeSpan::new(params, span);
 
         let close = match self.next_expect(&[Token::CloseParen], None) {
             Ok(it) => it,
@@ -247,40 +213,16 @@ impl<'src> Parser<'src> {
 
             let item = match next.data {
                 Token::String(_) | Token::Number(_) => {
-                    let ParseResult {
-                        data,
-                        error,
-                        at_eof,
-                    } = self.literal();
-                    let lit = match data {
-                        Ok(it) => {
-                            if at_eof.is_some() {
-                                return ParseResult::new(Err(StatementRecovery), error, at_eof);
-                            }
-                            it
-                        }
-                        Err(err) => {
-                            return ParseResult::new(Err(err), error, at_eof);
-                        }
+                    let lit = match helper::should_return(self.literal()) {
+                        Ok(it) => it,
+                        Err(err) => return err,
                     };
                     Expression::Static(lit)
                 }
                 Token::Iden(_) => {
-                    let ParseResult {
-                        data,
-                        error,
-                        at_eof,
-                    } = self.expression();
-                    let lit = match data {
-                        Ok(it) => {
-                            if at_eof.is_some() {
-                                return ParseResult::new(Err(StatementRecovery), error, at_eof);
-                            }
-                            it
-                        }
-                        Err(err) => {
-                            return ParseResult::new(Err(err), error, at_eof);
-                        }
+                    let lit = match helper::should_return(self.expression()) {
+                        Ok(it) => it,
+                        Err(err) => return err, 
                     };
                     Expression::Literal(lit)
                 }

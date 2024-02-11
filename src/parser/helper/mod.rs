@@ -36,3 +36,26 @@ pub fn handle_result_statement<'src, T, E>(
         }
     }
 }
+
+pub fn should_return<'src, T, R>(
+    result: ParseResult<'src, Result<T, StatementRecovery>>,
+) -> Result<T, ParseResult<'src, Result<R, StatementRecovery>>> {
+    let ParseResult {
+        data,
+        error,
+        at_eof,
+    } = result;
+    let lit = match data {
+        Ok(it) => {
+            if at_eof.is_some() {
+                return Err(ParseResult::new(Err(StatementRecovery), error, at_eof));
+            }
+            it
+        }
+        Err(err) => {
+            return Err(ParseResult::new(Err(err), error, at_eof));
+        }
+    };
+
+    Ok(lit)
+}
