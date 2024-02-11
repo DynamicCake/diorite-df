@@ -77,7 +77,7 @@ impl<'src> Parser<'src> {
         &mut self,
     ) -> ParseResult<'src, Result<Event<'src>, TopLevelRecovery>, Vec<UnexpectedToken<'src>>>
     {
-        let definition = self.next_assert(&Token::EVENT, Some("event token"));
+        let definition = self.next_assert(&Token::EVENT);
 
         let type_tok = match definition.data {
             Token::PlayerEvent => EventType::Player,

@@ -58,7 +58,6 @@ impl<'src> Parser<'src> {
     pub fn next_assert(
         &mut self,
         expected: &[Token<'src>],
-        expected_name: Option<&str>,
     ) -> Spanned<Token<'src>> {
         if let Some(it) = self.toks.next() {
             let (token, span) = it;
@@ -71,7 +70,7 @@ impl<'src> Parser<'src> {
                         UnexpectedToken {
                             expected: ExpectedTokens::new(expected.into()),
                             received: token.spanned(span),
-                            expected_name: expected_name.map(|str| str.to_owned()),
+                            expected_name: None
                         }
                     )
                 };

@@ -21,7 +21,7 @@ impl<'src> Parser<'src> {
         Vec<UnexpectedToken<'src>>,
     > {
         // paction
-        let type_tok = self.next_assert(&Token::SIMPLE_STATEMENT, Some("simple statement"));
+        let type_tok = self.next_assert(&Token::SIMPLE_STATEMENT);
 
         // SendMessage
         let action = match self.next_expect(&[Token::Iden(None)], None) {
@@ -64,11 +64,7 @@ impl<'src> Parser<'src> {
         let selector_start = match self.peek() {
             Ok(it) => it.data,
             Err(err) => {
-                return ParseResult::new(
-                    Err(StatementRecovery),
-                    Vec::new(),
-                    Some(Box::new(err)),
-                );
+                return ParseResult::new(Err(StatementRecovery), Vec::new(), Some(Box::new(err)));
             }
         };
 
@@ -95,6 +91,27 @@ impl<'src> Parser<'src> {
             _ => None,
         };
 
+        let params = match self.peek_expect(&[Token::OpenParen], None) {
+            Ok(_) => {
+                let ParseResult {
+                    data,
+                    error,
+                    at_eof,
+                } = self.call_params();
+                match data {
+                    Ok(it) => {
+                        if at_eof.is_some() {
+                            return ParseResult::new(Err(StatementRecovery), error, at_eof);
+                        }
+                        let span = it.calculate_span();
+                        Spanned::new(it, span)
+                    }
+                    Err(err) => return ParseResult::new(Err(err), error, at_eof)
+                }
+            }
+            Err(err) => return helper::recover_statement(self, err),
+        };
+
         let selection = selection.map(|sel| {
             let span = sel.calculate_span();
             Spanned::new(sel, span)
@@ -109,15 +126,13 @@ impl<'src> Parser<'src> {
             Spanned::new(it, span)
         });
 
-        ParseResult::ok(
-            Ok(SimpleStatement {
-                type_tok,
-                action: action.map_inner(|i| Iden::new(i.get_iden_inner())),
-                selection,
-                tags,
-                params: Spanned::new(Parameters { items: Vec::new() }, 0..0),
-            }),
-        )
+        ParseResult::ok(Ok(SimpleStatement {
+            type_tok,
+            action: action.map_inner(|i| Iden::new(i.get_iden_inner())),
+            selection,
+            tags,
+            params
+        }))
     }
 
     pub fn if_statement(&mut self) -> ParseResult<'src, IfStatement<'src>> {

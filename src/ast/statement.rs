@@ -20,11 +20,33 @@ impl<'src> CalcSpan for Selection<'src> {
 #[derive(Debug)]
 pub struct Tags<'src> {
     pub open: Spanned<()>,
-    pub tags: Option<MaybeSpan<Parameters<IdenPair<'src>>>>,
+    pub tags: MaybeSpan<Parameters<IdenPair<'src>>>,
     pub close: Spanned<()>,
 }
 
 impl<'src> CalcSpan for Tags<'src> {
+    fn calculate_span(&self) -> super::Span {
+        self.open.span.start..self.close.span.end
+    }
+}
+
+#[derive(Debug)]
+pub struct CallArgs<'src> {
+    pub open: Spanned<()>,
+    pub tags: MaybeSpan<Parameters<Expression<'src>>>,
+    pub close: Spanned<()>,
+}
+
+impl<'src> CallArgs<'src> {
+    pub fn new(
+        open: Spanned<()>,
+        tags: MaybeSpan<Parameters<Expression<'src>>>,
+        close: Spanned<()>,
+    ) -> Self {
+        Self { open, tags, close }
+    }
+}
+impl<'src> CalcSpan for CallArgs<'src> {
     fn calculate_span(&self) -> super::Span {
         self.open.span.start..self.close.span.end
     }
@@ -90,7 +112,7 @@ pub struct SimpleStatement<'src> {
     pub action: Spanned<Iden<'src>>,
     pub selection: Option<Spanned<Selection<'src>>>,
     pub tags: Option<Spanned<Tags<'src>>>,
-    pub params: Spanned<Parameters<Expression<'src>>>,
+    pub params: Spanned<CallArgs<'src>>
 }
 
 impl<'src> SimpleStatement<'src> {
@@ -113,9 +135,7 @@ pub struct IfStatement<'src> {
 
 impl<'src> IfStatement<'src> {
     pub fn calc_span(&self) -> Span {
-        let start = self.type_tok.span.start;
-        let end = self.params.span.end;
-        start..end
+        self.type_tok.span.start..self.params.span.end
     }
 }
 
@@ -169,10 +189,46 @@ impl<'src> CalcSpan for IdenPair<'src> {
 }
 
 #[derive(Debug)]
+pub struct LitArgs<'src> {
+    pub open: Spanned<()>,
+    pub tags: MaybeSpan<Parameters<StaticLiteral<'src>>>,
+    pub close: Spanned<()>,
+}
+
+impl<'src> LitArgs<'src> {
+    pub fn new(
+        open: Spanned<()>,
+        tags: MaybeSpan<Parameters<StaticLiteral<'src>>>,
+        close: Spanned<()>,
+    ) -> Self {
+        Self { open, tags, close }
+    }
+}
+
+#[derive(Debug)]
 pub enum Expression<'src> {
     Static(StaticLiteral<'src>),
     Literal(ExprLiteral<'src>),
 }
+
+impl<'src> CalcSpan for Expression<'src> {
+    fn calculate_span(&self) -> Span {
+        let range = match self {
+            Self::Literal(lit) => {
+                lit.literal_type.span.start..lit.args.span.end
+            }
+            Self::Static(lit) => {
+                match lit {
+                    StaticLiteral::String(lit) => lit.span.clone(),
+                    StaticLiteral::Number(lit) => lit.span.clone(),
+                }
+            }
+        };
+        range
+    }
+}
+
+
 
 #[derive(Debug)]
 pub struct ExprLiteral<'src> {
@@ -182,8 +238,8 @@ pub struct ExprLiteral<'src> {
 
 #[derive(Debug)]
 pub enum StaticLiteral<'src> {
-    String(StringLiteral<'src>),
-    Number(NumberLiteral<'src>),
+    String(Spanned<StringLiteral<'src>>),
+    Number(Spanned<NumberLiteral<'src>>),
 }
 
 #[derive(Debug)]

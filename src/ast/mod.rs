@@ -124,6 +124,10 @@ pub struct NumberLiteral<'src> {
     inner: &'src str,
 }
 
+impl<'src> NumberLiteral<'src> {
+    pub fn new(inner: &'src str) -> Self { Self { inner } }
+}
+
 // Iden
 
 #[derive(Debug)]

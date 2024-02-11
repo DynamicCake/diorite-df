@@ -36,15 +36,11 @@ fn main() -> Result<(), Box<dyn Error + 'static>> {
     }?;
     */
 
-    let src = "
+    let src = r#"
     pevent Join 
-        paction SendMessage [hello: 'chat!',]
+        paction SendMessage ("Hello World", 42)
     end
-
-    pevent Join 
-        paction SendMessage <'coming soon'> [paramaters: 'and such', 'this will': 'be a pain', because: 'I store the recovery tokens', for: 'some reason']
-    end
-    ";
+    "#;
     let res = compile(src);
 
     println!("Somehow: {:#?}, \nSuccessfully parsed {}", res, src);
