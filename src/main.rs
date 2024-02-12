@@ -38,7 +38,7 @@ fn main() -> Result<(), Box<dyn Error + 'static>> {
 
     let src = r#"
     pevent Join 
-        paction SendMessage ("Hello World", 42)
+        paction SendMessage ("Hello World", 42,)
     end
     "#;
     let res = compile(src);

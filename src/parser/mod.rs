@@ -198,6 +198,7 @@ impl<'src> Parser<'src> {
     }
 }
 
+#[derive(Debug)]
 pub enum AdvanceUnexpected<'src> {
     Token(UnexpectedToken<'src>),
     Eof(UnexpectedEOF<'src>),

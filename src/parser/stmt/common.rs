@@ -2,12 +2,14 @@ use super::*;
 use crate::ast::recovery::StatementRecovery;
 
 use crate::ast::statement::CallArgs;
+use crate::ast::statement::ExprLitType;
 use crate::ast::statement::ExprLiteral;
 use crate::ast::statement::Expression;
 use crate::ast::statement::IdenPair;
 use crate::ast::statement::Selection;
 use crate::ast::statement::StaticLiteral;
 use crate::ast::statement::Tags;
+use crate::ast::statement::Wrapped;
 use crate::ast::CalcSpan;
 use crate::ast::MaybeSpan;
 use crate::ast::NumberLiteral;
@@ -23,7 +25,7 @@ impl<'src> Parser<'src> {
 
         let params = match helper::should_return(self.pair_list()) {
             Ok(it) => it,
-            Err(err) => return err
+            Err(err) => return err,
         };
 
         let close = match self.next_expect(&[Token::CloseBracket], None) {
@@ -162,45 +164,49 @@ impl<'src> Parser<'src> {
     }
 
     // Must start with '('
-    pub fn call_params(&mut self) -> ParseResult<'src, Result<CallArgs<'src>, StatementRecovery>> {
+    pub fn call_params(
+        &mut self,
+    ) -> ParseResult<'src, Result<Wrapped<Expression<'src>>, StatementRecovery>> {
         let open = self.next_assert(&[Token::OpenParen]);
 
-        let params = match helper::should_return(self.args_params_list()) {
-            Ok(it) => it,
-            Err(err) => return err,
-        };
-
-        let span = params.try_calculate_span();
-        let params = MaybeSpan::new(params, span);
-
-        let close = match self.next_expect(&[Token::CloseParen], None) {
-            Ok(it) => it,
-            Err(err) => return helper::recover_statement(self, err),
-        };
-
-        ParseResult::ok(Ok(CallArgs::new(open.to_empty(), params, close.to_empty())))
-    }
-
-    pub fn args_params_list(
-        &mut self,
-    ) -> ParseResult<'src, Result<Parameters<Expression<'src>>, StatementRecovery>> {
-        let mut items = Vec::new();
+        let mut items: Vec<Expression<'src>> = Vec::new();
 
         let next = match self.peek_expect(
             &[Token::CloseParen, Token::String(None), Token::Number(None)],
             None,
         ) {
             Ok(it) => it,
-            Err(err) => return helper::recover_statement(self, err),
+            Err(err) => panic!("{:#?}", err),
         };
 
         match next.data {
-            Token::CloseParen => return ParseResult::ok(Ok(Parameters::new(items))),
+            Token::CloseParen => {
+                let span = params.try_calculate_span();
+                return ParseResult::ok(Ok(Wrapped::new(
+                    open.to_empty(),
+                    MaybeSpan::new(params, span),
+                    next.to_empty(),
+                )));
+            }
             Token::String(_) | Token::Number(_) => {}
             _ => panic!("Should have been caught by peek_expect"),
         }
-
-        loop {
+        while {
+            match self.peek() {
+                Ok(it) => match it.data {
+                    Token::CloseParen => false,
+                    _ => true,
+                },
+                Err(err) => {
+                    return ParseResult::new(
+                        Err(StatementRecovery),
+                        Vec::new(),
+                        Some(Box::new(err)),
+                    )
+                }
+            }
+        } {
+            // Check if can parse argument
             let next = match self.peek_expect(
                 &[Token::String(None), Token::Number(None), Token::Iden(None)],
                 Some("Arg start"),
@@ -210,7 +216,7 @@ impl<'src> Parser<'src> {
                     return helper::recover_statement(self, err);
                 }
             };
-
+            // and parsing
             let item = match next.data {
                 Token::String(_) | Token::Number(_) => {
                     let lit = match helper::should_return(self.literal()) {
@@ -222,7 +228,7 @@ impl<'src> Parser<'src> {
                 Token::Iden(_) => {
                     let lit = match helper::should_return(self.expression()) {
                         Ok(it) => it,
-                        Err(err) => return err, 
+                        Err(err) => return err,
                     };
                     Expression::Literal(lit)
                 }
@@ -238,7 +244,6 @@ impl<'src> Parser<'src> {
             };
 
             match tok.data {
-                Token::CloseParen => break,
                 Token::Comma => {
                     self.next_assert(&[Token::Comma]);
 
@@ -258,17 +263,159 @@ impl<'src> Parser<'src> {
                         _ => panic!("Should be covered by next expect"),
                     }
                 }
+                Token::CloseParen => {}
                 _ => panic!("Should be covered by next expect"),
             };
         }
-        ParseResult::ok(Ok(Parameters::new(Vec::new())))
+
+        let close = match self.next_expect(&[Token::CloseParen], None) {
+            Ok(it) => it,
+            Err(err) => return helper::recover_statement(self, err),
+        };
+
+        let params = Parameters::new(items);
+        let span = params.try_calculate_span();
+
+        ParseResult::ok(Ok(Wrapped::new(
+            open.to_empty(),
+            MaybeSpan::new(params, span),
+            close.to_empty(),
+        )))
     }
 
-    // TODO this will be a pain
     pub fn expression(
         &mut self,
     ) -> ParseResult<'src, Result<ExprLiteral<'src>, StatementRecovery>> {
-        ParseResult::ok(Ok(todo!()))
+        // loc
+        let kind = self.next_assert(&[Token::Iden(None)]);
+        let kind = kind.map_inner(|it| ExprLitType::from(it.get_iden_inner()));
+
+        // loc(
+        let open = match self.next_expect(&[Token::OpenParen], None) {
+            Ok(it) => it,
+            Err(err) => return helper::recover_statement(self, err),
+        };
+
+        let mut items = Vec::new();
+
+        // loc(   check for ')', string or number
+        let next = match self.peek_expect(
+            &[Token::CloseParen, Token::String(None), Token::Number(None)],
+            None,
+        ) {
+            Ok(it) => it,
+            Err(err) => panic!("{:#?}", err),
+        };
+
+        match next.data {
+            Token::CloseParen => {
+                let params = Parameters::new(items);
+                let span = params.try_calculate_span();
+
+                let wrapped = Wrapped::new(
+                    open.to_empty(),
+                    MaybeSpan::new(params, span),
+                    next.to_empty(),
+                );
+                let wrapped_span = wrapped.calculate_span();
+                return ParseResult::ok(Ok(ExprLiteral::new(
+                    kind,
+                    Spanned::new(wrapped, wrapped_span),
+                )));
+            }
+            Token::String(_) | Token::Number(_) => {}
+            _ => panic!("Should have been caught by peek_expect"),
+        }
+        while {
+            match self.peek() {
+                Ok(it) => match it.data {
+                    Token::CloseParen => false,
+                    _ => true,
+                },
+                Err(err) => {
+                    return ParseResult::new(
+                        Err(StatementRecovery),
+                        Vec::new(),
+                        Some(Box::new(err)),
+                    )
+                }
+            }
+        } {
+            // Check if can parse argument
+            let next = match self.peek_expect(
+                &[Token::String(None), Token::Number(None), Token::Iden(None)],
+                Some("Arg start"),
+            ) {
+                Ok(it) => it,
+                Err(err) => {
+                    return helper::recover_statement(self, err);
+                }
+            };
+            // and parsing
+            let item = match next.data {
+                Token::String(_) | Token::Number(_) => {
+                    let lit = match helper::should_return(self.literal()) {
+                        Ok(it) => it,
+                        Err(err) => return err,
+                    };
+                    Expression::Static(lit)
+                }
+                Token::Iden(_) => {
+                    let lit = match helper::should_return(self.expression()) {
+                        Ok(it) => it,
+                        Err(err) => return err,
+                    };
+                    Expression::Literal(lit)
+                }
+                _ => panic!("Should be covered by peek expect"),
+            };
+
+            let span = item.calculate_span();
+            items.push(Spanned::new(item, span));
+
+            let tok = match self.peek_expect(&[Token::CloseParen, Token::Comma], None) {
+                Ok(it) => it,
+                Err(err) => return helper::recover_statement(self, err),
+            };
+
+            match tok.data {
+                Token::Comma => {
+                    self.next_assert(&[Token::Comma]);
+
+                    let tok = match self.peek_expect(
+                        &[Token::CloseParen, Token::Number(None), Token::String(None)],
+                        None,
+                    ) {
+                        Ok(it) => it,
+                        Err(err) => return helper::recover_statement(self, err),
+                    };
+
+                    match tok.data {
+                        Token::CloseParen => {
+                            break;
+                        }
+                        Token::Number(_) | Token::String(_) => {}
+                        _ => panic!("Should be covered by next expect"),
+                    }
+                }
+                Token::CloseParen => {}
+                _ => panic!("Should be covered by next expect"),
+            };
+        }
+
+        let close = match self.next_expect(&[Token::CloseParen], None) {
+            Ok(it) => it,
+            Err(err) => return helper::recover_statement(self, err),
+        };
+
+        let params = Parameters::new(items);
+        let span = params.try_calculate_span();
+
+        ParseResult::ok(Ok(CallArgs::new(
+            open.to_empty(),
+            MaybeSpan::new(params, span),
+            close.to_empty(),
+        )))
     }
 
     pub fn literal(&mut self) -> ParseResult<'src, Result<StaticLiteral<'src>, StatementRecovery>> {

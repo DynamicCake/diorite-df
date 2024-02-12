@@ -84,8 +84,6 @@ pub struct Parameters<T> {
 
 // I do not give a shit that
 impl<T> TryCalcSpan for Parameters<T>
-where
-    T: CalcSpan,
 {
     fn try_calculate_span(&self) -> Option<Span> {
         match self.items.first() {

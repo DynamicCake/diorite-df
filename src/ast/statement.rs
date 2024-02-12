@@ -30,6 +30,7 @@ impl<'src> CalcSpan for Tags<'src> {
     }
 }
 
+#[deprecated]
 #[derive(Debug)]
 pub struct CallArgs<'src> {
     pub open: Spanned<()>,
@@ -112,7 +113,7 @@ pub struct SimpleStatement<'src> {
     pub action: Spanned<Iden<'src>>,
     pub selection: Option<Spanned<Selection<'src>>>,
     pub tags: Option<Spanned<Tags<'src>>>,
-    pub params: Spanned<CallArgs<'src>>
+    pub params: Spanned<CallArgs<'src>>,
 }
 
 impl<'src> SimpleStatement<'src> {
@@ -188,6 +189,7 @@ impl<'src> CalcSpan for IdenPair<'src> {
     }
 }
 
+#[deprecated]
 #[derive(Debug)]
 pub struct LitArgs<'src> {
     pub open: Spanned<()>,
@@ -206,6 +208,25 @@ impl<'src> LitArgs<'src> {
 }
 
 #[derive(Debug)]
+pub struct Wrapped<T> {
+    pub open: Spanned<()>,
+    pub tags: MaybeSpan<Parameters<T>>,
+    pub close: Spanned<()>,
+}
+
+impl<T> Wrapped<T> {
+    pub fn new(open: Spanned<()>, tags: MaybeSpan<Parameters<T>>, close: Spanned<()>) -> Self {
+        Self { open, tags, close }
+    }
+}
+
+impl<T> CalcSpan for Wrapped<T> {
+    fn calculate_span(&self) -> super::Span {
+        self.open.span.start..self.close.span.end
+    }
+}
+
+#[derive(Debug)]
 pub enum Expression<'src> {
     Static(StaticLiteral<'src>),
     Literal(ExprLiteral<'src>),
@@ -214,26 +235,29 @@ pub enum Expression<'src> {
 impl<'src> CalcSpan for Expression<'src> {
     fn calculate_span(&self) -> Span {
         let range = match self {
-            Self::Literal(lit) => {
-                lit.literal_type.span.start..lit.args.span.end
-            }
-            Self::Static(lit) => {
-                match lit {
-                    StaticLiteral::String(lit) => lit.span.clone(),
-                    StaticLiteral::Number(lit) => lit.span.clone(),
-                }
-            }
+            Self::Literal(lit) => lit.literal_type.span.start..lit.args.span.end,
+            Self::Static(lit) => match lit {
+                StaticLiteral::String(lit) => lit.span.clone(),
+                StaticLiteral::Number(lit) => lit.span.clone(),
+            },
         };
         range
     }
 }
 
-
-
 #[derive(Debug)]
 pub struct ExprLiteral<'src> {
-    pub literal_type: Spanned<ExprLitType>,
-    pub args: Spanned<Parameters<StaticLiteral<'src>>>,
+    pub literal_type: Spanned<ExprLitType<'src>>,
+    pub args: Spanned<Wrapped<Parameters<StaticLiteral<'src>>>>,
+}
+
+impl<'src> ExprLiteral<'src> {
+    pub fn new(
+        literal_type: Spanned<ExprLitType<'src>>,
+        args: Spanned<Wrapped<Parameters<StaticLiteral<'src>>>>,
+    ) -> Self {
+        Self { literal_type, args }
+    }
 }
 
 #[derive(Debug)]
@@ -243,10 +267,11 @@ pub enum StaticLiteral<'src> {
 }
 
 #[derive(Debug)]
-pub enum ExprLitType {
+pub enum ExprLitType<'src> {
+    Unknown(&'src str),
     SaveVar,
     GlobalVar,
-    ThreadVar,
+    LocalVar,
     LineVar,
     Location,
     Vector,
@@ -255,3 +280,22 @@ pub enum ExprLitType {
     Potion,
     GameValue,
 }
+
+impl<'src> From<&'src str> for ExprLitType<'src> {
+    fn from(value: &'src str) -> Self {
+        match value {
+            "svar" => Self::SaveVar,
+            "gvar" => Self::GlobalVar,
+            "lvar" => Self::LocalVar,
+            "var" => Self::LineVar,
+            "loc" => Self::Location,
+            "vec" => Self::Vector,
+            "sound" => Self::Sound,
+            "part" => Self::Particle,
+            "pot" => Self::Potion,
+            "gval" => Self::GameValue,
+            it => Self::Unknown(it)
+        }
+    }
+}
+

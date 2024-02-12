@@ -54,26 +54,6 @@ pub enum Token<'src> {
     #[regex(r#"\$"([^"\\]*(?:\\.[^"\\]*)*)""#, |lexer| Some(lexer.slice()))]
     StyledText(Option<&'src str>),
 
-    #[token("svar")]
-    SaveVar,
-    #[token("gvar")]
-    GlobalVar,
-    #[token("tvar")]
-    ThreadVar,
-    #[token("lvar")]
-    LineVar,
-    #[token("loc")]
-    Location,
-    #[token("vec")]
-    Vector,
-    #[token("snd")]
-    Sound,
-    #[token("part")]
-    Particle,
-    #[token("pot")]
-    Potion,
-    #[token("gval")]
-    GameValue,
 
     #[token("paction")]
     PlayerAction,
