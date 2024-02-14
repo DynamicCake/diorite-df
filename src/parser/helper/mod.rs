@@ -2,10 +2,10 @@ use crate::ast::recovery::StatementRecovery;
 
 use super::{AdvanceUnexpected, ParseResult, Parser};
 
-pub fn recover_statement<'src, T>(
-    parser: &mut Parser<'src>,
-    err: AdvanceUnexpected<'src>,
-) -> ParseResult<'src, Result<T, StatementRecovery>> {
+pub fn recover_statement<'lex, T>(
+    parser: &mut Parser<'lex>,
+    err: AdvanceUnexpected,
+) -> ParseResult<Result<T, StatementRecovery>> {
     match err {
         AdvanceUnexpected::Token(err) => {
             let at_eof = parser.statement_recovery();
@@ -22,8 +22,8 @@ pub fn handle_result_statement<'src, T, E>(
         data,
         error,
         at_eof,
-    }: ParseResult<'src, Result<T, StatementRecovery>>,
-) -> Result<T, ParseResult<'src, Result<E, StatementRecovery>>> {
+    }: ParseResult<Result<T, StatementRecovery>>,
+) -> Result<T, ParseResult<Result<E, StatementRecovery>>> {
     match data {
         Ok(it) => {
             if at_eof.is_some() {
@@ -38,8 +38,8 @@ pub fn handle_result_statement<'src, T, E>(
 }
 
 pub fn should_return<'src, T, R>(
-    result: ParseResult<'src, Result<T, StatementRecovery>>,
-) -> Result<T, ParseResult<'src, Result<R, StatementRecovery>>> {
+    result: ParseResult<Result<T, StatementRecovery>>,
+) -> Result<T, ParseResult<Result<R, StatementRecovery>>> {
     let ParseResult {
         data,
         error,

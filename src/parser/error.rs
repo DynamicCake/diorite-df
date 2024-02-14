@@ -1,20 +1,20 @@
 use std::{fmt::Display, sync::Arc};
 
-use crate::{ast::Spanned, lexer::Token};
+use crate::{ast::Spanned, lexer::{Token}};
 
 #[derive(Debug)]
-pub struct ParseResult<'src, T, E = Vec<UnexpectedToken<'src>>> {
+pub struct ParseResult<T, E = Vec<UnexpectedToken>> {
     pub data: T,
     pub error: E,
     /// Show if EOF has been reached
     /// Is `Some` when an unexpected EOF has been reached
     /// and `None` when everything is going good
     /// Premature optimization go brrrr
-    pub at_eof: Option<Box<UnexpectedEOF<'src>>>,
+    pub at_eof: Option<Box<UnexpectedEOF>>,
 }
 
-impl<'src, T, E> ParseResult<'src, T, E> {
-    pub fn new(data: T, error: E, at_eof: Option<Box<UnexpectedEOF<'src>>>) -> Self {
+impl<T, E> ParseResult<T, E> {
+    pub fn new(data: T, error: E, at_eof: Option<Box<UnexpectedEOF>>) -> Self {
         Self {
             data,
             error,
@@ -22,7 +22,7 @@ impl<'src, T, E> ParseResult<'src, T, E> {
         }
     }
 
-    pub fn map_inner<R, F>(self, f: F) -> ParseResult<'src, R, E>
+    pub fn map_inner<R, F>(self, f: F) -> ParseResult<R, E>
     where
         F: FnOnce(T) -> R,
     {
@@ -36,7 +36,7 @@ impl<'src, T, E> ParseResult<'src, T, E> {
     }
 }
 
-impl<'src, T> ParseResult<'src, T> {
+impl<T> ParseResult<T> {
     pub fn ok(data: T) -> Self {
         let error = Default::default();
         Self {
@@ -48,16 +48,16 @@ impl<'src, T> ParseResult<'src, T> {
 }
 
 #[derive(Debug)]
-pub struct UnexpectedToken<'src> {
-    pub expected: ExpectedTokens<'src>,
-    pub received: Spanned<Token<'src>>,
+pub struct UnexpectedToken {
+    pub expected: ExpectedTokens,
+    pub received: Spanned<Token>,
     pub expected_name: Option<String>,
 }
 
-impl<'src> UnexpectedToken<'src> {
+impl UnexpectedToken {
     pub fn new(
-        expected: ExpectedTokens<'src>,
-        received: Spanned<Token<'src>>,
+        expected: ExpectedTokens,
+        received: Spanned<Token>,
         expected_name: Option<String>,
     ) -> Self {
         Self {
@@ -69,13 +69,13 @@ impl<'src> UnexpectedToken<'src> {
 }
 
 #[derive(Debug)]
-pub struct UnexpectedEOF<'src> {
-    pub expected: Option<ExpectedTokens<'src>>,
+pub struct UnexpectedEOF {
+    pub expected: Option<ExpectedTokens>,
     pub expected_name: Option<String>,
 }
 
-impl<'src> UnexpectedEOF<'src> {
-    pub fn new(expected: Option<ExpectedTokens<'src>>, expected_name: Option<String>) -> Self {
+impl UnexpectedEOF {
+    pub fn new(expected: Option<ExpectedTokens>, expected_name: Option<String>) -> Self {
         Self {
             expected,
             expected_name,
@@ -95,17 +95,17 @@ impl LexerError {
 }
 
 #[derive(Debug, Clone)]
-pub struct ExpectedTokens<'src> {
-    pub expected: Arc<[Token<'src>]>,
+pub struct ExpectedTokens {
+    pub expected: Arc<[Token]>,
 }
 
-impl<'src> ExpectedTokens<'src> {
-    pub fn new(expected: Arc<[Token<'src>]>) -> Self {
+impl ExpectedTokens {
+    pub fn new(expected: Arc<[Token]>) -> Self {
         Self { expected }
     }
 }
 
-impl Display for ExpectedTokens<'_> {
+impl Display for ExpectedTokens {
     // TODO Make this less scuffed, I am too lazy
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let mut iter = self.expected.iter();

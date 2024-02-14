@@ -1,4 +1,9 @@
-use self::top::TopLevel;
+use lasso::Spur;
+
+use self::{
+    statement::Expression,
+    top::{FuncParamDef, TopLevel},
+};
 
 pub mod recovery;
 pub mod statement;
@@ -62,34 +67,144 @@ pub trait CalcSpan {
     fn calculate_span(&self) -> Span;
 }
 
+pub trait SpanStart {
+    fn start(&self) -> usize;
+}
+
+pub trait SpanEnd {
+    fn end(&self) -> usize;
+}
+
 pub trait TryCalcSpan {
     fn try_calculate_span(&self) -> Option<Span>;
 }
 
-#[derive(Debug)]
-pub struct Program<'src> {
-    top_statements: Vec<TopLevel<'src>>,
+pub trait TrySpanStart {
+    fn try_start(&self) -> Option<usize>;
 }
 
-impl<'src> Program<'src> {
-    pub fn new(top_statements: Vec<TopLevel<'src>>) -> Self {
+pub trait TrySpanEnd {
+    fn try_end(&self) -> Option<usize>;
+}
+
+pub trait CalcThenWrap
+where
+    Self: Sized,
+{
+    fn calculate_span_wrap(self) -> Spanned<Self>;
+}
+
+impl<T> CalcThenWrap for T
+where
+    T: CalcSpan,
+    T: Sized,
+{
+    fn calculate_span_wrap(self) -> Spanned<Self> {
+        let span = self.calculate_span();
+        Spanned::new(self, span)
+    }
+}
+
+pub trait TryCalcThenWrap
+where
+    Self: Sized,
+{
+    fn try_calculate_span_wrap(self) -> MaybeSpan<Self>;
+}
+
+impl<T> TryCalcThenWrap for T
+where
+    T: TryCalcSpan,
+    T: Sized,
+{
+    fn try_calculate_span_wrap(self) -> MaybeSpan<Self> {
+        let span = self.try_calculate_span();
+        MaybeSpan::new(self, span)
+    }
+}
+
+#[derive(Debug)]
+pub struct Program {
+    top_statements: Vec<TopLevel>,
+}
+
+impl Program {
+    pub fn new(top_statements: Vec<TopLevel>) -> Self {
         Self { top_statements }
     }
 }
 
 #[derive(Debug)]
 pub struct Parameters<T> {
-    pub items: Vec<Spanned<T>>,
+    pub items: Vec<T>,
 }
 
-// I do not give a shit that
 impl<T> TryCalcSpan for Parameters<T>
+where
+    T: SpanStart,
+    T: SpanEnd,
 {
     fn try_calculate_span(&self) -> Option<Span> {
         match self.items.first() {
             Some(first) => {
-                let last = self.items.last().expect("If first exists, last exists");
-                Some(first.span.start..last.span.end)
+                let first = first.start();
+                let last = self
+                    .items
+                    .last()
+                    .expect("If first exists, last exists")
+                    .end();
+                Some(first..last)
+            }
+            None => None,
+        }
+    }
+}
+
+impl<T> TrySpanStart for Parameters<T>
+where
+    T: TrySpanStart,
+{
+    fn try_start(&self) -> Option<usize> {
+        for span in self.items.iter() {
+            let span = span.try_start();
+            if let Some(span) = span {
+                return Some(span);
+            }
+        }
+        None
+    }
+}
+
+impl<T> TrySpanEnd for Parameters<T>
+where
+    T: TrySpanEnd,
+{
+    fn try_end(&self) -> Option<usize> {
+        for span in self.items.iter().rev() {
+            let span = span.try_end();
+            if let Some(span) = span {
+                return Some(span);
+            }
+        }
+        None
+    }
+}
+
+impl<T> TryCalcSpan for Parameters<Parameters<T>>
+where
+    T: TrySpanStart,
+    T: TrySpanEnd,
+{
+    fn try_calculate_span(&self) -> Option<Span> {
+        match self.items.first() {
+            Some(first) => {
+                let first = first.try_start()?;
+                let last = self
+                    .items
+                    .last()
+                    .expect("If first exists, last exists")
+                    .try_end()?;
+                Some(first..last)
             }
             None => None,
         }
@@ -97,7 +212,7 @@ impl<T> TryCalcSpan for Parameters<T>
 }
 
 impl<T> Parameters<T> {
-    pub fn new(items: Vec<Spanned<T>>) -> Self {
+    pub fn new(items: Vec<T>) -> Self {
         Self { items }
     }
 }
@@ -105,12 +220,12 @@ impl<T> Parameters<T> {
 // StringLiteral
 
 #[derive(Debug)]
-pub struct StringLiteral<'src> {
-    inner: &'src str,
+pub struct StringLiteral {
+    inner: Spur,
 }
 
-impl<'src> StringLiteral<'src> {
-    pub fn new(inner: &'src str) -> Self {
+impl StringLiteral {
+    pub fn new(inner: Spur) -> Self {
         Self { inner }
     }
 }
@@ -118,23 +233,25 @@ impl<'src> StringLiteral<'src> {
 // NumberLiteral
 
 #[derive(Debug)]
-pub struct NumberLiteral<'src> {
-    inner: &'src str,
+pub struct NumberLiteral {
+    inner: Spur,
 }
 
-impl<'src> NumberLiteral<'src> {
-    pub fn new(inner: &'src str) -> Self { Self { inner } }
+impl NumberLiteral {
+    pub fn new(inner: Spur) -> Self {
+        Self { inner }
+    }
 }
 
 // Iden
 
 #[derive(Debug)]
-pub struct Iden<'src> {
-    pub name: &'src str,
+pub struct Iden {
+    pub name: Spur,
 }
 
-impl<'src> Iden<'src> {
-    pub fn new(name: &'src str) -> Self {
+impl Iden {
+    pub fn new(name: Spur) -> Self {
         Self { name }
     }
 }

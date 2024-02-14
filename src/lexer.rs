@@ -1,10 +1,13 @@
+use std::sync::Arc;
+
+use lasso::{Spur, ThreadedRodeo};
 use logos::{Lexer, Logos, Span};
 
 use crate::ast::Spanned;
 
 #[derive(Logos, Clone, Debug)]
-#[logos(skip r"[ \t\n\f]+")]
-pub enum Token<'src> {
+#[logos(skip r"[ \t\n\f]+", extras = Arc<ThreadedRodeo>)]
+pub enum Token {
     #[token("pevent")]
     PlayerEvent,
     #[token("eevent")]
@@ -46,14 +49,34 @@ pub enum Token<'src> {
         r#"([a-zA-Z_][a-zA-Z0-9_]*)|('([^'\\]*(?:\\.[^'\\]*)*)')"#,
         process_iden
     )]
-    Iden(Option<&'src str>),
-    #[regex(r"\d+(\.\d+)?", |lexer| Some(lexer.slice()) )]
-    Number(Option<&'src str>),
-    #[regex(r#""([^"\\]*(?:\\.[^"\\]*)*)""#, |lexer| Some(lexer.slice()))]
-    String(Option<&'src str>),
-    #[regex(r#"\$"([^"\\]*(?:\\.[^"\\]*)*)""#, |lexer| Some(lexer.slice()))]
-    StyledText(Option<&'src str>),
+    Iden(Option<Spur>),
+    #[regex(r"\d+(\.\d+)?", process_number)]
+    Number(Option<Spur>),
+    #[regex(r#""([^"\\]*(?:\\.[^"\\]*)*)""#, process_string)]
+    String(Option<Spur>),
+    #[regex(r#"\$"([^"\\]*(?:\\.[^"\\]*)*)""#, process_styled_text)]
+    StyledText(Option<Spur>),
 
+    #[token("svar")]
+    SaveVar,
+    #[token("gvar")]
+    GlobalVar,
+    #[token("tvar")]
+    ThreadVar,
+    #[token("lvar")]
+    LineVar,
+    #[token("loc")]
+    Location,
+    #[token("vec")]
+    Vector,
+    #[token("snd")]
+    Sound,
+    #[token("part")]
+    Particle,
+    #[token("pot")]
+    Potion,
+    #[token("gval")]
+    GameValue,
 
     #[token("paction")]
     PlayerAction,
@@ -90,19 +113,44 @@ pub enum Token<'src> {
     Invalid,
 }
 
-fn process_iden<'src>(lex: &mut Lexer<'src, Token<'src>>) -> Option<&'src str> {
+
+fn process_iden<'src>(lex: &mut Lexer<'src, Token>) -> Option<Spur> {
     let text = lex.slice();
-    let res = if text.len() >= 2 && text.starts_with("'") && text.ends_with("'") {
+    let res = if text.len() >= 2 && text.starts_with('\'') && text.ends_with('\'') {
         &text[1..text.len() - 1]
     } else {
         text
     };
+    let spur = lex.extras.get_or_intern(res);
 
-    Some(res)
+    Some(spur)
+}
+
+fn process_string<'src>(lex: &mut Lexer<'src, Token>) -> Option<Spur> {
+    let text = lex.slice();
+    let res = &text[1..text.len() - 1];
+    let spur = lex.extras.get_or_intern(res);
+
+    Some(spur)
+}
+
+fn process_styled_text<'src>(lex: &mut Lexer<'src, Token>) -> Option<Spur> {
+    let text = lex.slice();
+    let res = &text[2..text.len() - 1];
+    let spur = lex.extras.get_or_intern(res);
+
+    Some(spur)
+}
+
+fn process_number<'src>(lex: &mut Lexer<'src, Token>) -> Option<Spur> {
+    let text = lex.slice();
+    let spur = lex.extras.get_or_intern(text);
+
+    Some(spur)
 }
 
 //by default the logos error type is (). You may want to replace it with a better one.
-fn comment<'src>(lexer: &mut Lexer<'src, Token<'src>>) -> Result<(), ()> {
+fn comment<'src>(lexer: &mut Lexer<'src, Token>) -> Result<(), ()> {
     println!("Comment triggered!");
     #[derive(Logos, Debug)]
     enum CommentHelper {
@@ -132,13 +180,13 @@ fn comment<'src>(lexer: &mut Lexer<'src, Token<'src>>) -> Result<(), ()> {
     Ok(())
 }
 
-impl<'src> PartialEq for Token<'src> {
+impl PartialEq for Token {
     fn eq(&self, other: &Self) -> bool {
         core::mem::discriminant(self) == core::mem::discriminant(other)
     }
 }
 
-impl<'src> Token<'src> {
+impl<'src> Token {
     pub fn spanned(self, span: Span) -> Spanned<Self> {
         Spanned::new(self, span)
     }
@@ -158,7 +206,7 @@ impl<'src> Token<'src> {
     }
 
     /// Gets the iden, if the varient isn't a Iden, this function panics
-    pub fn get_iden_inner(&self) -> &'src str {
+    pub fn get_iden_inner(self) -> Spur {
         match self {
             Self::Iden(it) => return it.unwrap(),
             it => panic!("Expected Iden recieved {:#?}", it),
@@ -166,8 +214,8 @@ impl<'src> Token<'src> {
     }
 }
 
-impl<'src> Token<'src> {
-    pub const STATEMENT: [Token<'src>; 12] = [
+impl<'src> Token {
+    pub const STATEMENT: [Token; 12] = [
         Token::PlayerAction,
         Token::EntityAction,
         Token::GameAction,
@@ -182,7 +230,7 @@ impl<'src> Token<'src> {
         Token::IfVar,
     ];
 
-    pub const STATEMENT_LOOP: [Token<'src>; 13] = [
+    pub const STATEMENT_LOOP: [Token; 13] = [
         Token::PlayerAction,
         Token::EntityAction,
         Token::GameAction,
@@ -198,14 +246,14 @@ impl<'src> Token<'src> {
         Token::End,
     ];
 
-    pub const IF_STATEMENT: [Token<'src>; 4] = [
+    pub const IF_STATEMENT: [Token; 4] = [
         Token::IfPlayer,
         Token::IfEntity,
         Token::IfGame,
         Token::IfVar,
     ];
 
-    pub const SIMPLE_STATEMENT: [Token<'src>; 8] = [
+    pub const SIMPLE_STATEMENT: [Token; 8] = [
         Token::PlayerAction,
         Token::EntityAction,
         Token::GameAction,
@@ -216,12 +264,16 @@ impl<'src> Token<'src> {
         Token::SetVar,
     ];
 
-    pub const TOP_LEVEL: [Token<'src>; 4] = [
+    pub const TOP_LEVEL: [Token; 4] = [
         Token::FuncDef,
         Token::ProcDef,
         Token::PlayerEvent,
         Token::EntityEvent,
     ];
 
-    pub const EVENT: [Token<'src>; 2] = [Token::PlayerEvent, Token::EntityEvent];
+    pub const EVENT: [Token; 2] = [Token::PlayerEvent, Token::EntityEvent];
+
+    pub const EXPRESSION_ARG: [Token; 2] = [Token::Number(None), Token::String(None)];
+
+    pub const POSSIBLE_PARAM: [Token; 3] = [Token::Number(None), Token::String(None), Token::Iden(None)];
 }

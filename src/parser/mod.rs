@@ -1,5 +1,7 @@
 use std::iter::Peekable;
+use std::sync::Arc;
 
+use lasso::{Rodeo, ThreadedRodeo};
 use logos::{Lexer, SpannedIter};
 
 use crate::ast::{Program, Spanned};
@@ -12,25 +14,28 @@ pub mod helper;
 pub mod stmt;
 pub mod top;
 
-pub struct Parser<'src> {
+pub struct Parser<'lex> {
     /// The main token iterator
     /// It is not advised to use this in functions called by `parse(&mut self)`
-    toks: Peekable<SpannedIter<'src, Token<'src>>>,
+    toks: Peekable<SpannedIter<'lex, Token>>,
     // source: &'src str,
     /// Whenever an invalid token is replaced with `Token::Invalid`, a lexer error gets added
     lex_errs: Vec<LexerError>,
+    /// The string pool, share this across parser instances
+    rodeo: Arc<ThreadedRodeo>,
 }
 
-impl<'src> Parser<'src> {
-    pub fn new(lexer: Lexer<'src, Token<'src>>) -> Self {
+impl<'lex> Parser<'lex> {
+    pub fn new(lexer: Lexer<'lex, Token>, rodeo: Arc<ThreadedRodeo>) -> Self {
         Self {
             // source: lexer.source(),
             toks: lexer.spanned().peekable(),
             lex_errs: Vec::new(),
+            rodeo
         }
     }
 
-    pub fn parse(&mut self) -> ParseResult<'src, Program<'src>, Vec<UnexpectedToken<'src>>> {
+    pub fn parse(&mut self) -> ParseResult<Program, Vec<UnexpectedToken>> {
         let mut stmts = Vec::new();
         let mut errors = Vec::new();
         loop {
@@ -55,10 +60,7 @@ impl<'src> Parser<'src> {
     }
 
     /// Only use if you are sure at compile time that this cannot fail
-    pub fn next_assert(
-        &mut self,
-        expected: &[Token<'src>],
-    ) -> Spanned<Token<'src>> {
+    pub fn next_assert(&mut self, expected: &[Token]) -> Spanned<Token> {
         if let Some(it) = self.toks.next() {
             let (token, span) = it;
             if let Ok(token) = token {
@@ -99,9 +101,9 @@ impl<'src> Parser<'src> {
     /// If you are 100% sure during compiler time use next_assert
     pub fn next_expect(
         &mut self,
-        expected: &[Token<'src>],
+        expected: &[Token],
         expected_name: Option<&str>,
-    ) -> Result<Spanned<Token<'src>>, AdvanceUnexpected<'src>> {
+    ) -> Result<Spanned<Token>, AdvanceUnexpected> {
         if let Some(it) = self.toks.next() {
             let (token, span) = it;
             if let Ok(token) = token {
@@ -129,9 +131,9 @@ impl<'src> Parser<'src> {
 
     pub fn peek_expect(
         &mut self,
-        expected: &[Token<'src>],
+        expected: &[Token],
         msg: Option<&str>,
-    ) -> Result<Spanned<&Token<'src>>, AdvanceUnexpected<'src>> {
+    ) -> Result<Spanned<&Token>, AdvanceUnexpected> {
         if let Some((token, span)) = self.toks.peek() {
             if let Ok(token) = token {
                 return if expected.contains(token) {
@@ -159,7 +161,7 @@ impl<'src> Parser<'src> {
 
     /// Returns a reference to the next() Token without advancing the iterator.
     /// On lexer error, it pushes it onto `self.lex_errs` and returns `Token::Invalid`
-    pub fn peek(&mut self) -> Result<Spanned<&Token<'src>>, UnexpectedEOF<'src>> {
+    pub fn peek(&mut self) -> Result<Spanned<&Token>, UnexpectedEOF> {
         if let Some(it) = self.toks.peek() {
             let (token, span) = it;
             if let Ok(token) = token {
@@ -181,7 +183,7 @@ impl<'src> Parser<'src> {
     /// Advances to the iterator to the next token
     /// Great for use in recovery functions
     /// Returns a `Some(Token::Invalid)` if there is a lexer error
-    pub fn advance(&mut self) -> Result<Spanned<Token<'src>>, UnexpectedEOF<'src>> {
+    pub fn advance(&mut self) -> Result<Spanned<Token>, UnexpectedEOF> {
         if let Some(it) = self.toks.next() {
             let (token, span) = it;
             Ok(if let Ok(token) = token {
@@ -199,7 +201,7 @@ impl<'src> Parser<'src> {
 }
 
 #[derive(Debug)]
-pub enum AdvanceUnexpected<'src> {
-    Token(UnexpectedToken<'src>),
-    Eof(UnexpectedEOF<'src>),
+pub enum AdvanceUnexpected {
+    Token(UnexpectedToken),
+    Eof(UnexpectedEOF),
 }

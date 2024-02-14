@@ -11,14 +11,10 @@ use crate::{
     lexer::Token,
 };
 
-impl<'src> Parser<'src> {
+impl<'lex> Parser<'lex> {
     pub fn regular_statement(
         &mut self,
-    ) -> ParseResult<
-        'src,
-        Result<SimpleStatement<'src>, StatementRecovery>,
-        Vec<UnexpectedToken<'src>>,
-    > {
+    ) -> ParseResult<Result<SimpleStatement, StatementRecovery>, Vec<UnexpectedToken>> {
         // paction
         let type_tok = self.next_assert(&Token::SIMPLE_STATEMENT);
 
@@ -61,7 +57,7 @@ impl<'src> Parser<'src> {
                     Ok(it) => it,
                     Err(err) => return err,
                 };
- 
+
                 Some(tags)
             }
             _ => None,
@@ -102,7 +98,7 @@ impl<'src> Parser<'src> {
         }))
     }
 
-    pub fn if_statement(&mut self) -> ParseResult<'src, IfStatement<'src>> {
+    pub fn if_statement(&mut self) -> ParseResult<IfStatement> {
         todo!()
     }
 }

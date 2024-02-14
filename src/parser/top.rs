@@ -7,9 +7,9 @@ use crate::ast::{
 
 use super::*;
 
-impl<'src> Parser<'src> {
+impl<'lex> Parser<'lex> {
     /// It is guaranteed that the next token will be a top level declaration token
-    pub(super) fn top_level(&mut self) -> ParseResult<'src, TopLevel<'src>> {
+    pub(super) fn top_level(&mut self) -> ParseResult<TopLevel> {
         // Find first token
         let token = match self.peek_expect(&Token::TOP_LEVEL, Some("top level decleration token")) {
             Ok(it) => it,
@@ -62,21 +62,18 @@ impl<'src> Parser<'src> {
         top
     }
 
-    fn process(&mut self) -> ParseResult<'src, ProcDef<'src>, UnexpectedToken<'src>> {
+    fn process(&mut self) -> ParseResult<ProcDef, UnexpectedToken> {
         todo!()
     }
 
-    fn function(&mut self) -> ParseResult<'src, FuncDef<'src>, UnexpectedToken<'src>> {
+    fn function(&mut self) -> ParseResult<FuncDef, UnexpectedToken> {
         todo!()
     }
 
     /// Represents an event delceration
     /// `pevent Join (statements) end`
     /// If the compiler result data is None, then it can be treated as malformed
-    fn event(
-        &mut self,
-    ) -> ParseResult<'src, Result<Event<'src>, TopLevelRecovery>, Vec<UnexpectedToken<'src>>>
-    {
+    fn event(&mut self) -> ParseResult<Result<Event, TopLevelRecovery>, Vec<UnexpectedToken>> {
         let definition = self.next_assert(&Token::EVENT);
 
         let type_tok = match definition.data {
@@ -138,7 +135,7 @@ impl<'src> Parser<'src> {
 
     /// Looks for event, proc, func tokens
     /// This function will never syntax error
-    fn top_recovery(&mut self) -> Option<Box<UnexpectedEOF<'src>>> {
+    fn top_recovery(&mut self) -> Option<Box<UnexpectedEOF>> {
         loop {
             match self.peek() {
                 Ok(tok) => match tok.data {

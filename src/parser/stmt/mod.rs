@@ -1,10 +1,7 @@
 use super::*;
 use crate::ast::recovery::StatementRecovery;
 use crate::{
-    ast::{
-        statement::Statement,
-        Spanned,
-    },
+    ast::{statement::Statement, Spanned},
     lexer::Token,
 };
 
@@ -13,11 +10,9 @@ pub mod kind;
 
 use super::{error::ParseResult, Parser};
 
-impl<'src> Parser<'src> {
-    pub fn statements(
-        &mut self,
-    ) -> ParseResult<'src, Vec<Statement<'src>>, Vec<UnexpectedToken<'src>>> {
-        let mut statements: Vec<Statement<'src>> = Vec::new();
+impl<'lex> Parser<'lex> {
+    pub fn statements(&mut self) -> ParseResult<Vec<Statement>, Vec<UnexpectedToken>> {
+        let mut statements: Vec<Statement> = Vec::new();
         let mut errors = Vec::new();
 
         loop {
@@ -68,8 +63,7 @@ impl<'src> Parser<'src> {
 
     fn statement(
         &mut self,
-    ) -> ParseResult<'src, Result<Statement<'src>, StatementRecovery>, Vec<UnexpectedToken<'src>>>
-    {
+    ) -> ParseResult<Result<Statement, StatementRecovery>, Vec<UnexpectedToken>> {
         let decl_token = match self.peek_expect(&Token::STATEMENT, Some("statements")) {
             Ok(it) => it.data.to_owned().spanned(it.span),
             Err(err) => match err {
@@ -129,8 +123,7 @@ impl<'src> Parser<'src> {
         // CompilerResult::new(Ok(Spanned::new(, 1..2)), Vec::new(), None)
     }
 
-
-    pub fn statement_recovery(&mut self) -> Option<Box<UnexpectedEOF<'src>>> {
+    pub fn statement_recovery(&mut self) -> Option<Box<UnexpectedEOF>> {
         loop {
             match self.peek() {
                 Ok(tok) => match tok.data {

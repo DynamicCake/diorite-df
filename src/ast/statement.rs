@@ -1,3 +1,6 @@
+use std::sync::Arc;
+
+use lasso::ThreadedRodeo;
 use logos::Span;
 
 use crate::lexer::Token;
@@ -5,26 +8,26 @@ use crate::lexer::Token;
 use super::*;
 
 #[derive(Debug)]
-pub struct Selection<'src> {
+pub struct Selection {
     pub open: Spanned<()>,
-    pub selection: Option<Spanned<&'src str>>,
+    pub selection: Option<Spanned<Spur>>,
     pub close: Spanned<()>,
 }
 
-impl<'src> CalcSpan for Selection<'src> {
+impl CalcSpan for Selection {
     fn calculate_span(&self) -> super::Span {
         self.open.span.start..self.close.span.end
     }
 }
 
 #[derive(Debug)]
-pub struct Tags<'src> {
+pub struct Tags {
     pub open: Spanned<()>,
-    pub tags: MaybeSpan<Parameters<IdenPair<'src>>>,
+    pub tags: MaybeSpan<Parameters<IdenPair>>,
     pub close: Spanned<()>,
 }
 
-impl<'src> CalcSpan for Tags<'src> {
+impl CalcSpan for Tags {
     fn calculate_span(&self) -> super::Span {
         self.open.span.start..self.close.span.end
     }
@@ -32,39 +35,39 @@ impl<'src> CalcSpan for Tags<'src> {
 
 #[deprecated]
 #[derive(Debug)]
-pub struct CallArgs<'src> {
+pub struct CallArgs {
     pub open: Spanned<()>,
-    pub tags: MaybeSpan<Parameters<Expression<'src>>>,
+    pub tags: MaybeSpan<Parameters<Expression>>,
     pub close: Spanned<()>,
 }
 
-impl<'src> CallArgs<'src> {
+impl CallArgs {
     pub fn new(
         open: Spanned<()>,
-        tags: MaybeSpan<Parameters<Expression<'src>>>,
+        tags: MaybeSpan<Parameters<Expression>>,
         close: Spanned<()>,
     ) -> Self {
         Self { open, tags, close }
     }
 }
-impl<'src> CalcSpan for CallArgs<'src> {
+impl CalcSpan for CallArgs {
     fn calculate_span(&self) -> super::Span {
         self.open.span.start..self.close.span.end
     }
 }
 
 #[derive(Debug)]
-pub struct Statements<'src> {
-    pub items: Vec<Statement<'src>>,
+pub struct Statements {
+    pub items: Vec<Statement>,
 }
 
-impl<'src> Statements<'src> {
-    pub fn new(items: Vec<Statement<'src>>) -> Self {
+impl Statements {
+    pub fn new(items: Vec<Statement>) -> Self {
         Self { items }
     }
 }
 
-impl<'src> TryCalcSpan for Statements<'src> {
+impl TryCalcSpan for Statements {
     // TODO test this function
     fn try_calculate_span(&self) -> Option<Span> {
         let mut iter = self.items.iter().peekable();
@@ -101,22 +104,22 @@ impl<'src> TryCalcSpan for Statements<'src> {
 }
 
 #[derive(Debug)]
-pub enum Statement<'src> {
-    Simple(Spanned<SimpleStatement<'src>>),
-    If(Spanned<IfStatement<'src>>),
+pub enum Statement {
+    Simple(Spanned<SimpleStatement>),
+    If(Spanned<IfStatement>),
     Recovery,
 }
 
 #[derive(Debug)]
-pub struct SimpleStatement<'src> {
+pub struct SimpleStatement {
     pub type_tok: Spanned<ActionType>,
-    pub action: Spanned<Iden<'src>>,
-    pub selection: Option<Spanned<Selection<'src>>>,
-    pub tags: Option<Spanned<Tags<'src>>>,
-    pub params: Spanned<CallArgs<'src>>,
+    pub action: Spanned<Iden>,
+    pub selection: Option<Spanned<Selection>>,
+    pub tags: Option<Spanned<Tags>>,
+    pub params: Spanned<Wrapped<Expression>>,
 }
 
-impl<'src> SimpleStatement<'src> {
+impl SimpleStatement {
     pub fn calc_span(&self) -> Span {
         let start = self.type_tok.span.start;
         let end = self.params.span.end;
@@ -125,16 +128,16 @@ impl<'src> SimpleStatement<'src> {
 }
 
 #[derive(Debug)]
-pub struct IfStatement<'src> {
+pub struct IfStatement {
     type_tok: Spanned<IfActionType>,
     not: Option<Spanned<()>>,
     action: ActionType,
-    selection: Option<Spanned<Selection<'src>>>,
-    tags: Option<Spanned<Tags<'src>>>,
-    params: Spanned<Parameters<Expression<'src>>>,
+    selection: Option<Spanned<Selection>>,
+    tags: Option<Spanned<Tags>>,
+    params: Spanned<Parameters<Expression>>,
 }
 
-impl<'src> IfStatement<'src> {
+impl IfStatement {
     pub fn calc_span(&self) -> Span {
         self.type_tok.span.start..self.params.span.end
     }
@@ -160,8 +163,8 @@ pub enum ActionType {
     Var,
 }
 
-impl<'src> ActionType {
-    pub fn from_token(token: Token<'src>) -> Result<Self, Token<'src>> {
+impl ActionType {
+    pub fn from_token(token: Token) -> Result<Self, Token> {
         match token {
             Token::PlayerAction => Ok(Self::PlayerAction),
             Token::EntityAction => Ok(Self::EntityAction),
@@ -177,33 +180,27 @@ impl<'src> ActionType {
 }
 
 #[derive(Debug)]
-pub struct IdenPair<'src> {
-    pub key: Spanned<&'src str>,
+pub struct IdenPair {
+    pub key: Spanned<Spur>,
     pub colon: Spanned<()>,
-    pub value: Spanned<&'src str>,
+    pub value: Spanned<Spur>,
 }
 
-impl<'src> CalcSpan for IdenPair<'src> {
-    fn calculate_span(&self) -> Span {
-        self.key.span.start..self.value.span.end
+impl SpanStart for IdenPair {
+    fn start(&self) -> usize {
+        self.key.span.start
     }
 }
 
-#[deprecated]
-#[derive(Debug)]
-pub struct LitArgs<'src> {
-    pub open: Spanned<()>,
-    pub tags: MaybeSpan<Parameters<StaticLiteral<'src>>>,
-    pub close: Spanned<()>,
+impl SpanEnd for IdenPair {
+    fn end(&self) -> usize {
+        self.value.span.end
+    }
 }
 
-impl<'src> LitArgs<'src> {
-    pub fn new(
-        open: Spanned<()>,
-        tags: MaybeSpan<Parameters<StaticLiteral<'src>>>,
-        close: Spanned<()>,
-    ) -> Self {
-        Self { open, tags, close }
+impl CalcSpan for IdenPair {
+    fn calculate_span(&self) -> Span {
+        self.start()..self.end()
     }
 }
 
@@ -227,48 +224,93 @@ impl<T> CalcSpan for Wrapped<T> {
 }
 
 #[derive(Debug)]
-pub enum Expression<'src> {
-    Static(StaticLiteral<'src>),
-    Literal(ExprLiteral<'src>),
+pub enum Expression {
+    Static(StaticLiteral),
+    Literal(ExprLiteral),
 }
 
-impl<'src> CalcSpan for Expression<'src> {
-    fn calculate_span(&self) -> Span {
+impl SpanStart for Expression {
+    fn start(&self) -> usize {
         let range = match self {
-            Self::Literal(lit) => lit.literal_type.span.start..lit.args.span.end,
+            Self::Literal(lit) => lit.literal_type.span.start,
             Self::Static(lit) => match lit {
-                StaticLiteral::String(lit) => lit.span.clone(),
-                StaticLiteral::Number(lit) => lit.span.clone(),
-            },
+                StaticLiteral::String(lit) => lit.span.start,
+                StaticLiteral::Number(lit) => lit.span.start,
+            }
+            .clone(),
+        };
+        range
+    }
+}
+
+impl SpanEnd for Expression {
+    fn end(&self) -> usize {
+        let range = match self {
+            Self::Literal(lit) => lit.literal_type.span.end,
+            Self::Static(lit) => match lit {
+                StaticLiteral::String(lit) => lit.span.end,
+                StaticLiteral::Number(lit) => lit.span.end,
+            }
+            .clone(),
         };
         range
     }
 }
 
 #[derive(Debug)]
-pub struct ExprLiteral<'src> {
-    pub literal_type: Spanned<ExprLitType<'src>>,
-    pub args: Spanned<Wrapped<Parameters<StaticLiteral<'src>>>>,
+pub struct ExprLiteral {
+    pub literal_type: Spanned<ExprLitType>,
+    pub args: Spanned<Wrapped<StaticLiteral>>,
 }
 
-impl<'src> ExprLiteral<'src> {
+impl ExprLiteral {
     pub fn new(
-        literal_type: Spanned<ExprLitType<'src>>,
-        args: Spanned<Wrapped<Parameters<StaticLiteral<'src>>>>,
+        literal_type: Spanned<ExprLitType>,
+        args: Spanned<Wrapped<StaticLiteral>>,
     ) -> Self {
         Self { literal_type, args }
     }
 }
 
 #[derive(Debug)]
-pub enum StaticLiteral<'src> {
-    String(Spanned<StringLiteral<'src>>),
-    Number(Spanned<NumberLiteral<'src>>),
+pub enum StaticLiteral {
+    String(Spanned<StringLiteral>),
+    Number(Spanned<NumberLiteral>),
+}
+
+impl SpanStart for StaticLiteral {
+    fn start(&self) -> usize {
+        match self {
+            StaticLiteral::String(it) => it.span.start,
+            StaticLiteral::Number(it) => it.span.start,
+        }
+    }
+}
+
+impl SpanEnd for StaticLiteral {
+    fn end(&self) -> usize {
+        match self {
+            StaticLiteral::String(it) => it.span.end,
+            StaticLiteral::Number(it) => it.span.end,
+        }
+    }
+}
+
+impl TrySpanStart for StaticLiteral {
+    fn try_start(&self) -> Option<usize> {
+        Some(self.start())
+    }
+}
+
+impl TrySpanEnd for StaticLiteral {
+    fn try_end(&self) -> Option<usize> {
+        Some(self.end())
+    }
 }
 
 #[derive(Debug)]
-pub enum ExprLitType<'src> {
-    Unknown(&'src str),
+pub enum ExprLitType {
+    Unknown(Spur),
     SaveVar,
     GlobalVar,
     LocalVar,
@@ -281,9 +323,11 @@ pub enum ExprLitType<'src> {
     GameValue,
 }
 
-impl<'src> From<&'src str> for ExprLitType<'src> {
-    fn from(value: &'src str) -> Self {
-        match value {
+impl ExprLitType {
+    pub fn from_spur(value: &Spur, rodeo: Arc<ThreadedRodeo>) -> Self {
+        println!("{:#?}, {:#?}", value, rodeo.strings().collect::<Vec<_>>());
+        let res = rodeo.resolve(value);
+        match res {
             "svar" => Self::SaveVar,
             "gvar" => Self::GlobalVar,
             "lvar" => Self::LocalVar,
@@ -294,8 +338,7 @@ impl<'src> From<&'src str> for ExprLitType<'src> {
             "part" => Self::Particle,
             "pot" => Self::Potion,
             "gval" => Self::GameValue,
-            it => Self::Unknown(it)
+            it => Self::Unknown(value.clone()),
         }
     }
 }
-

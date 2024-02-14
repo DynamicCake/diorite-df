@@ -14,12 +14,13 @@ use std::{
     error::Error,
     fs::File,
     io::{self, stdin, stdout, BufRead, BufReader, Read, Write},
-    path::PathBuf,
+    path::PathBuf, sync::Arc,
 };
 
 use args::Arguments;
 use ast::Program;
 use clap::Parser;
+use lasso::ThreadedRodeo;
 use lexer::Token;
 use logos::Logos;
 use parser::error::{ParseResult, UnexpectedToken};
@@ -38,7 +39,7 @@ fn main() -> Result<(), Box<dyn Error + 'static>> {
 
     let src = r#"
     pevent Join 
-        paction SendMessage ("Hello World", 42,)
+        paction SendMessage ("Hello World", 42, hello())
     end
     "#;
     let res = compile(src);
@@ -48,11 +49,12 @@ fn main() -> Result<(), Box<dyn Error + 'static>> {
     Ok(())
 }
 
-fn compile(src: &str) -> ParseResult<'_, Program<'_>, Vec<UnexpectedToken<'_>>> {
-    let lexer = Token::lexer(src);
+fn compile(src: &str) -> ParseResult<Program, Vec<UnexpectedToken>> {
+    let rodeo = Arc::new(ThreadedRodeo::new());
+    let lexer = Token::lexer_with_extras(src, rodeo.clone());
     let print_lexer: Vec<_> = lexer.clone().collect();
     println!("{:?}", print_lexer);
-    let mut parser = parser::Parser::new(lexer);
+    let mut parser = parser::Parser::new(lexer, rodeo);
     let ast = parser.parse();
 
     ast
