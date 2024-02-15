@@ -27,6 +27,10 @@ pub struct Tags {
     pub close: Spanned<()>,
 }
 
+impl Tags {
+    pub fn new(open: Spanned<()>, tags: MaybeSpan<Parameters<IdenPair>>, close: Spanned<()>) -> Self { Self { open, tags, close } }
+}
+
 impl CalcSpan for Tags {
     fn calculate_span(&self) -> super::Span {
         self.open.span.start..self.close.span.end
@@ -225,15 +229,15 @@ impl<T> CalcSpan for Wrapped<T> {
 
 #[derive(Debug)]
 pub enum Expression {
-    Static(StaticLiteral),
-    Literal(ExprLiteral),
+    Literal(StaticLiteral),
+    Expr(ExprLiteral),
 }
 
 impl SpanStart for Expression {
     fn start(&self) -> usize {
         let range = match self {
-            Self::Literal(lit) => lit.literal_type.span.start,
-            Self::Static(lit) => match lit {
+            Self::Expr(lit) => lit.literal_type.span.start,
+            Self::Literal(lit) => match lit {
                 StaticLiteral::String(lit) => lit.span.start,
                 StaticLiteral::Number(lit) => lit.span.start,
             }
@@ -246,8 +250,8 @@ impl SpanStart for Expression {
 impl SpanEnd for Expression {
     fn end(&self) -> usize {
         let range = match self {
-            Self::Literal(lit) => lit.literal_type.span.end,
-            Self::Static(lit) => match lit {
+            Self::Expr(lit) => lit.literal_type.span.end,
+            Self::Literal(lit) => match lit {
                 StaticLiteral::String(lit) => lit.span.end,
                 StaticLiteral::Number(lit) => lit.span.end,
             }

@@ -25,13 +25,50 @@ pub struct Parser<'lex> {
     rodeo: Arc<ThreadedRodeo>,
 }
 
+mod ext {
+    macro_rules! adv_stmt {
+        ($params:expr, $func:expr) => {
+            match $func {
+                Ok(it) => it,
+                Err(err) => return helper::recover_statement($params, err),
+            }
+        };
+    }
+
+    macro_rules! ret_err {
+        ($expr:expr) => {
+            match $expr {
+                Ok(it) => it,
+                Err(err) => return err,
+            }
+        };
+    }
+
+    macro_rules! should_return {
+        ($expr:expr) => {
+            match helper::should_return($expr) {
+                Ok(it) => it,
+                Err(err) => return err,
+            }
+        };
+    }
+
+    pub(crate) use adv_stmt;
+    pub(crate) use ret_err;
+    pub(crate) use should_return;
+}
+
 impl<'lex> Parser<'lex> {
+    fn test(&mut self) -> ParseResult<Result<i32, crate::ast::recovery::StatementRecovery>> {
+        let token = ext::adv_stmt!(self, self.next_expect(&[Token::Iden(None)], None));
+        ParseResult::ok(Ok(3))
+    }
     pub fn new(lexer: Lexer<'lex, Token>, rodeo: Arc<ThreadedRodeo>) -> Self {
         Self {
             // source: lexer.source(),
             toks: lexer.spanned().peekable(),
             lex_errs: Vec::new(),
-            rodeo
+            rodeo,
         }
     }
 

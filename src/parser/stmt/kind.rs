@@ -1,7 +1,10 @@
+use self::ext::*;
+
 use super::*;
 use crate::ast::recovery::StatementRecovery;
 
 use crate::ast::CalcSpan;
+use crate::ast::CalcThenWrap;
 use crate::ast::Iden;
 use crate::{
     ast::{
@@ -18,13 +21,10 @@ impl<'lex> Parser<'lex> {
         // paction
         let type_tok = self.next_assert(&Token::SIMPLE_STATEMENT);
 
-        // SendMessage
-        let action = match self.next_expect(&[Token::Iden(None)], None) {
-            Ok(it) => it,
-            Err(err) => return helper::recover_statement(self, err),
-        };
+        // paction SendMessage
+        let action = adv_stmt!(self, self.next_expect(&[Token::Iden(None)], None));
 
-        // <selection>
+        // paction SendMessage <selection>
         let selector_start = match self.peek() {
             Ok(it) => it.data,
             Err(err) => {
@@ -43,7 +43,7 @@ impl<'lex> Parser<'lex> {
             _ => None,
         };
 
-        // [key: 'and value', pairs: here,]
+        // SendMessage <selection> [key: 'and value', pairs: here,]
         let selector_start = match self.peek() {
             Ok(it) => it.data,
             Err(err) => {
@@ -64,20 +64,12 @@ impl<'lex> Parser<'lex> {
         };
 
         let params = match self.peek_expect(&[Token::OpenParen], None) {
-            Ok(_) => {
-                let args = match helper::should_return(self.call_params()) {
-                    Ok(it) => it,
-                    Err(err) => return err,
-                };
-                let span = args.calculate_span();
-                Spanned::new(args, span)
-            }
+            Ok(_) => should_return!(self.call_params()).calculate_span_wrap(),
             Err(err) => return helper::recover_statement(self, err),
         };
 
         let selection = selection.map(|sel| {
-            let span = sel.calculate_span();
-            Spanned::new(sel, span)
+            sel.calculate_span_wrap()
         });
 
         let type_tok = type_tok.map_inner(|inner| {
@@ -85,8 +77,7 @@ impl<'lex> Parser<'lex> {
         });
 
         let tags = tags.map(|it| {
-            let span = it.calculate_span();
-            Spanned::new(it, span)
+            it.calculate_span_wrap()
         });
 
         ParseResult::ok(Ok(SimpleStatement {

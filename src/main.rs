@@ -8,6 +8,7 @@ pub mod ast;
 pub mod lexer;
 pub mod parser;
 pub mod test;
+pub mod diagnostics;
 
 use std::{
     env::set_var,

@@ -1,51 +1,31 @@
 use super::*;
 use crate::ast::recovery::StatementRecovery;
 
-use crate::ast::statement::ExprLitType;
-use crate::ast::statement::ExprLiteral;
-use crate::ast::statement::Expression;
-use crate::ast::statement::IdenPair;
-use crate::ast::statement::Selection;
-use crate::ast::statement::StaticLiteral;
-use crate::ast::statement::Tags;
-use crate::ast::statement::Wrapped;
-use crate::ast::CalcThenWrap;
-use crate::ast::MaybeSpan;
-use crate::ast::NumberLiteral;
-use crate::ast::Parameters;
-use crate::ast::StringLiteral;
-use crate::ast::TryCalcSpan;
-use crate::ast::TryCalcThenWrap;
+use super::ext::*;
+use crate::ast::statement::*;
+use crate::ast::*;
 use crate::{ast::Spanned, lexer::Token};
 
 impl Parser<'_> {
     /// Must start with a `[`
     pub fn tags(&mut self) -> ParseResult<Result<Tags, StatementRecovery>> {
-        let open = self.next_assert(&[Token::OpenBracket]);
+        // [
+        let open = self.next_assert(&[Token::OpenBracket]).to_empty();
 
-        let params = match helper::should_return(self.pair_list()) {
-            Ok(it) => it,
-            Err(err) => return err,
-        };
+        // [ key: value
+        let tags = should_return!(self.pair_list()).try_calculate_span_wrap();
 
-        let close = match self.next_expect(&[Token::CloseBracket], None) {
-            Ok(it) => it,
-            Err(err) => {
-                return helper::recover_statement(self, err);
-            }
-        };
+        // [ key: value ]
+        let close = adv_stmt!(self, self.next_expect(&[Token::CloseBracket], None)).to_empty();
 
-        ParseResult::ok(Ok(Tags {
-            open: open.to_empty(),
-            tags: params.try_calculate_span_wrap(),
-            close: close.to_empty(),
-        }))
+        ParseResult::ok(Ok(Tags::new(open, tags, close)))
     }
 
     /// Must start with an iden
     pub fn pair_list(&mut self) -> ParseResult<Result<Parameters<IdenPair>, StatementRecovery>> {
         let mut pairs = Vec::new();
 
+        // Allow [] to happen
         let next = match self.peek_expect(&[Token::CloseBracket, Token::Iden(None)], None) {
             Ok(it) => it,
             Err(err) => return helper::recover_statement(self, err),
@@ -60,30 +40,28 @@ impl Parser<'_> {
         }
 
         loop {
-            let pair = match helper::should_return(self.iden_pair()) {
-                Ok(it) => it,
-                Err(err) => return err,
-            };
+            let pair = should_return!(self.iden_pair());
 
             pairs.push(pair);
 
-            let tok = match self.peek_expect(&[Token::CloseBracket, Token::Comma], None) {
-                Ok(it) => it,
-                Err(err) => return helper::recover_statement(self, err),
-            };
+            let tok = adv_stmt!(
+                self,
+                self.peek_expect(&[Token::CloseBracket, Token::Comma], None)
+            );
 
             match tok.data {
                 Token::CloseBracket => break,
+                // Here we go again
                 Token::Comma => {
                     self.next_assert(&[Token::Comma]);
 
-                    let tok =
-                        match self.peek_expect(&[Token::CloseBracket, Token::Iden(None)], None) {
-                            Ok(it) => it,
-                            Err(err) => return helper::recover_statement(self, err),
-                        };
+                    let tok = adv_stmt!(
+                        self,
+                        self.peek_expect(&[Token::CloseBracket, Token::Iden(None)], None)
+                    );
 
                     match tok.data {
+                        // To allow trailing commas
                         Token::CloseBracket => {
                             break;
                         }
@@ -100,27 +78,29 @@ impl Parser<'_> {
 
     /// Must start with an iden
     pub fn iden_pair(&mut self) -> ParseResult<Result<IdenPair, StatementRecovery>> {
+        // key
         let key = self
             .next_assert(&[Token::Iden(None)])
             .map_inner(|it| it.get_iden_inner());
 
-        let colon = match self.next_expect(&[Token::Colon], None) {
-            Ok(it) => it.to_empty(),
-            Err(err) => return helper::recover_statement(self, err),
-        };
+        // key:
+        let colon = adv_stmt!(self, self.next_expect(&[Token::Colon], None)).to_empty();
 
-        let value = match self.next_expect(&[Token::Iden(None)], None) {
-            Ok(it) => it.map_inner(|it| it.get_iden_inner()),
-            Err(err) => return helper::recover_statement(self, err),
-        };
+        // key: value
+        let value = adv_stmt!(self, self.next_expect(&[Token::Iden(None)], None))
+            .map_inner(|it| it.get_iden_inner());
 
         ParseResult::ok(Ok(IdenPair { key, colon, value }))
     }
 
     /// Must start with a `<`
     pub fn selector(&mut self) -> ParseResult<Result<Selection, StatementRecovery>> {
+        // <
         let open = self.next_assert(&[Token::OpenComp]);
 
+        // < default
+        // To allow <>
+        // Lengthy but you win some you lose some
         let selection = match self.next_expect(&[Token::Iden(None)], None) {
             Ok(it) => it,
             Err(err) => {
@@ -147,10 +127,8 @@ impl Parser<'_> {
             }
         };
 
-        let close = match self.next_expect(&[Token::CloseComp], None) {
-            Ok(it) => it,
-            Err(err) => return helper::recover_statement(self, err),
-        };
+        // < default >
+        let close = adv_stmt!(self, self.next_expect(&[Token::CloseComp], None));
 
         ParseResult::ok(Ok(Selection {
             open: open.to_empty(),
@@ -161,24 +139,27 @@ impl Parser<'_> {
 
     // Must start with '('
     pub fn call_params(&mut self) -> ParseResult<Result<Wrapped<Expression>, StatementRecovery>> {
+        // (
         let open = self.next_assert(&[Token::OpenParen]);
 
         let mut items: Vec<Expression> = Vec::new();
 
-        let next = match self.peek_expect(
-            &[
-                Token::CloseParen,
-                Token::String(None),
-                Token::Number(None),
-                Token::Iden(None),
-            ],
-            None,
-        ) {
-            Ok(it) => it,
-            Err(err) => panic!("{:#?}", err),
-        };
-
+        // Allowing ()
+        // () or ( 1      ...
+        let next = adv_stmt!(
+            self,
+            self.peek_expect(
+                &[
+                    Token::CloseParen,
+                    Token::String(None),
+                    Token::Number(None),
+                    Token::Iden(None),
+                ],
+                None,
+            )
+        );
         match next.data {
+            // TODO this should be done by default without needing this
             Token::CloseParen => {
                 let params = Parameters::new(Vec::new());
                 let span = params.try_calculate_span();
@@ -192,6 +173,7 @@ impl Parser<'_> {
             _ => panic!("Should have been caught by peek_expect"),
         }
         while {
+            // Only repeat when ')' not in sight
             match self.peek() {
                 Ok(it) => match it.data {
                     Token::CloseParen => false,
@@ -206,60 +188,45 @@ impl Parser<'_> {
                 }
             }
         } {
-            // Check if can parse argument
-            let next = match self.peek_expect(
-                &Token::POSSIBLE_PARAM,
-                Some("Arg start"),
-            ) {
-                Ok(it) => it,
-                Err(err) => {
-                    return helper::recover_statement(self, err);
-                }
-            };
+            // Check if can parse argument if iden, string, number
+            let next = adv_stmt!(
+                self,
+                self.peek_expect(&Token::POSSIBLE_PARAM, Some("Arg start"))
+            );
+
             // and parsing
             let item = match next.data {
                 Token::String(_) | Token::Number(_) => {
-                    let lit = match helper::should_return(self.literal()) {
-                        Ok(it) => it,
-                        Err(err) => return err,
-                    };
-                    Expression::Static(lit)
+                    Expression::Literal(should_return!(self.literal()))
                 }
-                Token::Iden(_) => {
-                    let lit = match helper::should_return(self.expression()) {
-                        Ok(it) => it,
-                        Err(err) => return err,
-                    };
-                    Expression::Literal(lit)
-                }
+                Token::Iden(_) => Expression::Expr(should_return!(self.expression())),
                 _ => panic!("Should be covered by peek expect"),
             };
 
             items.push(item);
 
-            let tok = match self.peek_expect(&[Token::CloseParen, Token::Comma], None) {
-                Ok(it) => it,
-                Err(err) => return helper::recover_statement(self, err),
-            };
+            let tok = adv_stmt!(
+                self,
+                self.peek_expect(&[Token::CloseParen, Token::Comma], None)
+            );
 
             match tok.data {
                 Token::Comma => {
                     self.next_assert(&[Token::Comma]);
 
-                    let tok = match self.peek_expect(
-                        // TODO make this a thing in lexer
-                        &[
-                            Token::CloseParen,
-                            Token::Number(None),
-                            Token::String(None),
-                            Token::Iden(None),
-                        ],
-                        None,
-                    ) {
-                        Ok(it) => it,
-                        Err(err) => return helper::recover_statement(self, err),
-                    };
-
+                    // TODO make this a thing in lexer
+                    let tok = adv_stmt!(
+                        self,
+                        self.peek_expect(
+                            &[
+                                Token::CloseParen,
+                                Token::Number(None),
+                                Token::String(None),
+                                Token::Iden(None),
+                            ],
+                            None,
+                        )
+                    );
                     match tok.data {
                         Token::CloseParen => {
                             break;
@@ -273,53 +240,43 @@ impl Parser<'_> {
             };
         }
 
-        let close = match self.next_expect(&[Token::CloseParen], None) {
-            Ok(it) => it,
-            Err(err) => return helper::recover_statement(self, err),
-        };
+        let close = adv_stmt!(self, self.next_expect(&[Token::CloseParen], None));
 
-        let params = Parameters::new(items);
-        let span = params.try_calculate_span();
+        let params = Parameters::new(items).try_calculate_span_wrap();
 
-        ParseResult::ok(Ok(Wrapped::new(
-            open.to_empty(),
-            MaybeSpan::new(params, span),
-            close.to_empty(),
-        )))
+        ParseResult::ok(Ok(Wrapped::new(open.to_empty(), params, close.to_empty())))
     }
 
     pub fn expression(&mut self) -> ParseResult<Result<ExprLiteral, StatementRecovery>> {
         // loc
-        let kind = self.next_assert(&[Token::Iden(None)]);
-        let kind =
-            kind.map_inner(|it| ExprLitType::from_spur(&it.get_iden_inner(), self.rodeo.clone()));
+        let kind = self
+            .next_assert(&[Token::Iden(None)])
+            .map_inner(|it| ExprLitType::from_spur(&it.get_iden_inner(), self.rodeo.clone()));
 
         // loc(
-        let open = match self.next_expect(&[Token::OpenParen], None) {
-            Ok(it) => it,
-            Err(err) => return helper::recover_statement(self, err),
-        };
+        let open = adv_stmt!(self, self.next_expect(&[Token::OpenParen], None));
 
         let mut items: Vec<StaticLiteral> = Vec::new();
 
         // loc(   check for ')', string or number
-        let next = match self.peek_expect(
-            &[Token::CloseParen, Token::String(None), Token::Number(None), Token::Iden(None)],
-            None,
-        ) {
-            Ok(it) => it,
-            Err(err) => panic!("{:#?}", err),
-        };
+        let next = adv_stmt!(
+            self,
+            self.peek_expect(
+                &[
+                    Token::CloseParen,
+                    Token::String(None),
+                    Token::Number(None),
+                    Token::Iden(None),
+                ],
+                None,
+            )
+        );
 
         match next.data {
             Token::CloseParen => {
-                println!("close");
-                let params = Parameters::new(items);
-                let span = params.try_calculate_span();
-
                 let wrapped = Wrapped::new(
                     open.to_empty(),
-                    MaybeSpan::new(params, span),
+                    Parameters::new(items).try_calculate_span_wrap(),
                     next.to_empty(),
                 );
                 return ParseResult::ok(Ok(ExprLiteral::new(kind, wrapped.calculate_span_wrap())));
@@ -342,45 +299,38 @@ impl Parser<'_> {
                 }
             }
         } {
-            let next = match self.peek_expect(
-                &[Token::String(None), Token::Number(None)],
-                Some("Arg start"),
-            ) {
-                Ok(it) => it,
-                Err(err) => {
-                    return helper::recover_statement(self, err);
-                }
-            };
+            let next = adv_stmt!(
+                self,
+                self.peek_expect(
+                    &[Token::String(None), Token::Number(None)],
+                    Some("Arg start"),
+                )
+            );
+
             // and parsing
             let item = match next.data {
-                Token::String(_) | Token::Number(_) => {
-                    let lit = match helper::should_return(self.literal()) {
-                        Ok(it) => it,
-                        Err(err) => return err,
-                    };
-                    lit
-                }
+                Token::String(_) | Token::Number(_) => should_return!(self.literal()),
                 _ => panic!("Should be covered by peek expect"),
             };
 
             items.push(item);
 
-            let tok = match self.peek_expect(&[Token::CloseParen, Token::Comma], None) {
-                Ok(it) => it,
-                Err(err) => return helper::recover_statement(self, err),
-            };
+            let tok = adv_stmt!(
+                self,
+                self.peek_expect(&[Token::CloseParen, Token::Comma], None)
+            );
 
             match tok.data {
                 Token::Comma => {
                     self.next_assert(&[Token::Comma]);
 
-                    let tok = match self.peek_expect(
-                        &[Token::CloseParen, Token::Number(None), Token::String(None)],
-                        None,
-                    ) {
-                        Ok(it) => it,
-                        Err(err) => return helper::recover_statement(self, err),
-                    };
+                    let tok = adv_stmt!(
+                        self,
+                        self.peek_expect(
+                            &[Token::CloseParen, Token::Number(None), Token::String(None)],
+                            None,
+                        )
+                    );
 
                     match tok.data {
                         Token::CloseParen => {
@@ -395,10 +345,7 @@ impl Parser<'_> {
             };
         }
 
-        let close = match self.next_expect(&[Token::CloseParen], None) {
-            Ok(it) => it,
-            Err(err) => return helper::recover_statement(self, err),
-        };
+        let close = adv_stmt!(self, self.next_expect(&[Token::CloseParen], None));
 
         let params = Parameters::new(items).try_calculate_span_wrap();
 
@@ -412,12 +359,14 @@ impl Parser<'_> {
         let lit = self.next_assert(&[Token::String(None), Token::Number(None)]);
         let lit = match lit.data {
             Token::String(it) => {
-                let str_lit = StringLiteral::new(it.expect("Lexer dosen't produce empty Strings"));
-                StaticLiteral::String(Spanned::new(str_lit, lit.span))
+                StaticLiteral::String(lit.map_inner(|_| {
+                    StringLiteral::new(it.expect("Lexer dosen't produce empty Strings"))
+                }))
             }
             Token::Number(it) => {
-                let str_lit = NumberLiteral::new(it.expect("Lexer dosen't produce empty Strings"));
-                StaticLiteral::Number(Spanned::new(str_lit, lit.span))
+                StaticLiteral::Number(lit.map_inner(|_| {
+                    NumberLiteral::new(it.expect("Lexer dosen't produce empty Strings"))
+                }))
             }
             _ => panic!("Should be covered by next assert"),
         };
