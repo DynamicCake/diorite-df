@@ -1,18 +1,27 @@
-/*
+use std::sync::Arc;
+
 use ariadne::{Color, Label, Report, ReportKind};
 
-fn generate_syntax_error<'src>() -> Report<'src> {
+use crate::{ast::Span, parser::error::UnexpectedToken};
+
+pub fn generate_syntax_error<'src>(
+    file: Arc<str>,
+    error: UnexpectedToken,
+) -> Report<'src, (Arc<str>, Span)> {
     let a = Color::Red;
 
-    let rep = Report::build(ReportKind::Error, "test.drt", 3)
-        .with_code(69)
+    let expected = error.expected_print();
+    Report::build(ReportKind::Error, file.clone(), 0)
+        .with_code(1)
         .with_message(format!("Syntax Error"))
         .with_label(
-            Label::new(("test.drt", 16..22))
-                .with_message(format!("Expected action start recieved {}", "iden"))
+            Label::new((file, error.received.span))
+                .with_message(format!(
+                    "Expected {} recieved {}",
+                    expected,
+                    error.received.data.expected_print()
+                ))
                 .with_color(a),
         )
-        .finish();
-    rep
+        .finish()
 }
-*/

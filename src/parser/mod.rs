@@ -150,7 +150,7 @@ impl<'lex> Parser<'lex> {
                     Err(AdvanceUnexpected::Token(UnexpectedToken {
                         expected: ExpectedTokens::new(expected.into()),
                         received: token.spanned(span),
-                        expected_name: expected_name.map(|str| str.to_owned()),
+                        expected_name: expected_name.map(|str| str.into()),
                     }))
                 };
             } else {
@@ -179,7 +179,7 @@ impl<'lex> Parser<'lex> {
                     Err(AdvanceUnexpected::Token(UnexpectedToken {
                         expected: ExpectedTokens::new(expected.into()),
                         received: token.clone().spanned(span.clone()),
-                        expected_name: msg.map(|str| str.to_owned()),
+                        expected_name: msg.map(|str| str.into()),
                     }))
                 };
             } else {

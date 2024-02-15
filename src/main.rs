@@ -5,20 +5,22 @@
 
 mod args;
 pub mod ast;
+pub mod diagnostics;
 pub mod lexer;
 pub mod parser;
 pub mod test;
-pub mod diagnostics;
 
 use std::{
     env::set_var,
     error::Error,
     fs::File,
     io::{self, stdin, stdout, BufRead, BufReader, Read, Write},
-    path::PathBuf, sync::Arc,
+    path::PathBuf,
+    sync::Arc,
 };
 
 use args::Arguments;
+use ariadne::Source;
 use ast::Program;
 use clap::Parser;
 use lasso::ThreadedRodeo;
@@ -40,12 +42,18 @@ fn main() -> Result<(), Box<dyn Error + 'static>> {
 
     let src = r#"
     pevent Join 
-        paction SendMessage ("Hello World", 42, hello())
+        paction SendMessage ("Hello World", 42, hello()
     end
     "#;
     let res = compile(src);
+    let file: Arc<str> = "test.drt".into();
+    for err in res.error {
+        diagnostics::generate_syntax_error(file.clone(), err)
+            .print((file.clone(), Source::from(src)))
+            .unwrap();
+    }
 
-    println!("Somehow: {:#?}, \nSuccessfully parsed {}", res, src);
+    println!("Ran!");
 
     Ok(())
 }

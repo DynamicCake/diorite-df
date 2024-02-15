@@ -1,3 +1,10 @@
+use std::sync::Arc;
+
+use crate::{
+    lexer::Token,
+    parser::error::{ExpectedTokens, UnexpectedToken},
+};
+
 #[test]
 fn print_test() {
     use crate::lexer::Token;
@@ -23,4 +30,14 @@ fn iden_quotes() {
     let left = lexer.next().unwrap().unwrap();
     let right = Token::Iden(Some(rodeo.get_or_intern("hello")));
     assert_eq!(left, right);
+}
+
+#[test]
+fn unexpected() {
+    let a = UnexpectedToken::new(
+        ExpectedTokens::new(Arc::new([Token::Iden(None)])),
+        Token::Colon.spanned(1..3),
+        Some("les go".into()),
+    );
+    println!("{}", a.expected_print());
 }

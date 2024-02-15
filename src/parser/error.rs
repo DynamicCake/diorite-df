@@ -1,4 +1,4 @@
-use std::{fmt::Display, sync::Arc};
+use std::{fmt::Display, ops::Deref, sync::Arc};
 
 use crate::{ast::Spanned, lexer::{Token}};
 
@@ -51,19 +51,28 @@ impl<T> ParseResult<T> {
 pub struct UnexpectedToken {
     pub expected: ExpectedTokens,
     pub received: Spanned<Token>,
-    pub expected_name: Option<String>,
+    pub expected_name: Option<Arc<str>>,
 }
+
 
 impl UnexpectedToken {
     pub fn new(
         expected: ExpectedTokens,
         received: Spanned<Token>,
-        expected_name: Option<String>,
+        expected_name: Option<Arc<str>>,
     ) -> Self {
         Self {
             expected,
             received,
             expected_name,
+        }
+    }
+
+    pub fn expected_print(&self) -> String {
+        if let Some(it) = &self.expected_name {
+            format!("{} ({})", it, self.expected.to_string())
+        } else {
+            self.expected.to_string()
         }
     }
 }
@@ -110,16 +119,17 @@ impl Display for ExpectedTokens {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let mut iter = self.expected.iter();
         let first = if let Some(it) = iter.next() {
-            format!("{:?}", it)
+            format!("{}", it.expected_print())
         } else {
             write!(f, "[]").unwrap();
             return Ok(());
         };
         let later: String = iter
-            .map(|tok| ", ".to_string() + &format!("{:#?}", tok))
+            .map(|tok| ", ".to_string() + &format!("{}", tok.expected_print()))
             .collect();
         write!(f, "[{}{}]", first, later).unwrap();
 
         Ok(())
     }
 }
+

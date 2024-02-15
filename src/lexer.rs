@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::{fmt::Display, sync::Arc};
 
 use lasso::{Spur, ThreadedRodeo};
 use logos::{Lexer, Logos, Span};
@@ -179,6 +179,7 @@ fn comment<'src>(lexer: &mut Lexer<'src, Token>) -> Result<(), ()> {
     lexer.bump(comment_length);
     Ok(())
 }
+
 
 impl PartialEq for Token {
     fn eq(&self, other: &Self) -> bool {
