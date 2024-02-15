@@ -37,29 +37,6 @@ impl CalcSpan for Tags {
     }
 }
 
-#[deprecated]
-#[derive(Debug)]
-pub struct CallArgs {
-    pub open: Spanned<()>,
-    pub tags: MaybeSpan<Parameters<Expression>>,
-    pub close: Spanned<()>,
-}
-
-impl CallArgs {
-    pub fn new(
-        open: Spanned<()>,
-        tags: MaybeSpan<Parameters<Expression>>,
-        close: Spanned<()>,
-    ) -> Self {
-        Self { open, tags, close }
-    }
-}
-impl CalcSpan for CallArgs {
-    fn calculate_span(&self) -> super::Span {
-        self.open.span.start..self.close.span.end
-    }
-}
-
 #[derive(Debug)]
 pub struct Statements {
     pub items: Vec<Statement>,
@@ -329,7 +306,6 @@ pub enum ExprLitType {
 
 impl ExprLitType {
     pub fn from_spur(value: &Spur, rodeo: Arc<ThreadedRodeo>) -> Self {
-        println!("{:#?}, {:#?}", value, rodeo.strings().collect::<Vec<_>>());
         let res = rodeo.resolve(value);
         match res {
             "svar" => Self::SaveVar,
@@ -342,7 +318,7 @@ impl ExprLitType {
             "part" => Self::Particle,
             "pot" => Self::Potion,
             "gval" => Self::GameValue,
-            it => Self::Unknown(value.clone()),
+            _ => Self::Unknown(value.clone()),
         }
     }
 }

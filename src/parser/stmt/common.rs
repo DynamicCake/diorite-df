@@ -161,6 +161,7 @@ impl Parser<'_> {
         match next.data {
             // TODO this should be done by default without needing this
             Token::CloseParen => {
+                let next = self.next_assert(&[Token::CloseParen]);
                 let params = Parameters::new(Vec::new());
                 let span = params.try_calculate_span();
                 return ParseResult::ok(Ok(Wrapped::new(
@@ -274,6 +275,7 @@ impl Parser<'_> {
 
         match next.data {
             Token::CloseParen => {
+                let next = self.next_assert(&[Token::CloseParen]);
                 let wrapped = Wrapped::new(
                     open.to_empty(),
                     Parameters::new(items).try_calculate_span_wrap(),

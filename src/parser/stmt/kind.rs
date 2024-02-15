@@ -3,7 +3,6 @@ use self::ext::*;
 use super::*;
 use crate::ast::recovery::StatementRecovery;
 
-use crate::ast::CalcSpan;
 use crate::ast::CalcThenWrap;
 use crate::ast::Iden;
 use crate::{

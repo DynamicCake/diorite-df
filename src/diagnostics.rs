@@ -8,7 +8,7 @@ pub fn generate_syntax_error<'src>(
     file: Arc<str>,
     error: UnexpectedToken,
 ) -> Report<'src, (Arc<str>, Span)> {
-    let a = Color::Red;
+    let red = Color::Red;
 
     let expected = error.expected_print();
     Report::build(ReportKind::Error, file.clone(), 0)
@@ -21,7 +21,7 @@ pub fn generate_syntax_error<'src>(
                     expected,
                     error.received.data.expected_print()
                 ))
-                .with_color(a),
+                .with_color(red),
         )
         .finish()
 }

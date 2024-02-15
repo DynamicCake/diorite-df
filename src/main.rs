@@ -42,9 +42,10 @@ fn main() -> Result<(), Box<dyn Error + 'static>> {
 
     let src = r#"
     pevent Join 
-        paction SendMessage ("Hello World", 42, hello()
+        paction SendMessage ('IT WORKS'("lets go", 42,),)
     end
     "#;
+
     let res = compile(src);
     let file: Arc<str> = "test.drt".into();
     for err in res.error {
@@ -61,8 +62,6 @@ fn main() -> Result<(), Box<dyn Error + 'static>> {
 fn compile(src: &str) -> ParseResult<Program, Vec<UnexpectedToken>> {
     let rodeo = Arc::new(ThreadedRodeo::new());
     let lexer = Token::lexer_with_extras(src, rodeo.clone());
-    let print_lexer: Vec<_> = lexer.clone().collect();
-    println!("{:?}", print_lexer);
     let mut parser = parser::Parser::new(lexer, rodeo);
     let ast = parser.parse();
 
