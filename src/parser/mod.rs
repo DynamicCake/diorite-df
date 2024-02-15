@@ -1,7 +1,7 @@
 use std::iter::Peekable;
 use std::sync::Arc;
 
-use lasso::{Rodeo, ThreadedRodeo};
+use lasso::ThreadedRodeo;
 use logos::{Lexer, SpannedIter};
 
 use crate::ast::{Program, Spanned};
@@ -54,15 +54,11 @@ mod ext {
     }
 
     pub(crate) use adv_stmt;
-    pub(crate) use ret_err;
+
     pub(crate) use should_return;
 }
 
 impl<'lex> Parser<'lex> {
-    fn test(&mut self) -> ParseResult<Result<i32, crate::ast::recovery::StatementRecovery>> {
-        let token = ext::adv_stmt!(self, self.next_expect(&[Token::Iden(None)], None));
-        ParseResult::ok(Ok(3))
-    }
     pub fn new(lexer: Lexer<'lex, Token>, rodeo: Arc<ThreadedRodeo>) -> Self {
         Self {
             // source: lexer.source(),

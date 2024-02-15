@@ -28,7 +28,13 @@ pub struct Tags {
 }
 
 impl Tags {
-    pub fn new(open: Spanned<()>, tags: MaybeSpan<Parameters<IdenPair>>, close: Spanned<()>) -> Self { Self { open, tags, close } }
+    pub fn new(
+        open: Spanned<()>,
+        tags: MaybeSpan<Parameters<IdenPair>>,
+        close: Spanned<()>,
+    ) -> Self {
+        Self { open, tags, close }
+    }
 }
 
 impl CalcSpan for Tags {
@@ -245,10 +251,7 @@ pub struct ExprLiteral {
 }
 
 impl ExprLiteral {
-    pub fn new(
-        literal_type: Spanned<ExprLitType>,
-        args: Spanned<Wrapped<StaticLiteral>>,
-    ) -> Self {
+    pub fn new(literal_type: Spanned<ExprLitType>, args: Spanned<Wrapped<StaticLiteral>>) -> Self {
         Self { literal_type, args }
     }
 }

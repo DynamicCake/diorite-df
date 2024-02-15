@@ -1,6 +1,6 @@
-use std::{fmt::Display, ops::Deref, sync::Arc};
+use std::{fmt::Display, sync::Arc};
 
-use crate::{ast::Spanned, lexer::{Token}};
+use crate::{ast::Spanned, lexer::Token};
 
 #[derive(Debug)]
 pub struct ParseResult<T, E = Vec<UnexpectedToken>> {
@@ -53,7 +53,6 @@ pub struct UnexpectedToken {
     pub received: Spanned<Token>,
     pub expected_name: Option<Arc<str>>,
 }
-
 
 impl UnexpectedToken {
     pub fn new(
@@ -132,4 +131,3 @@ impl Display for ExpectedTokens {
         Ok(())
     }
 }
-

@@ -6,10 +6,7 @@ use crate::ast::recovery::StatementRecovery;
 use crate::ast::CalcThenWrap;
 use crate::ast::Iden;
 use crate::{
-    ast::{
-        statement::{ActionType, IfStatement, SimpleStatement},
-        Spanned,
-    },
+    ast::statement::{ActionType, IfStatement, SimpleStatement},
     lexer::Token,
 };
 
@@ -67,17 +64,13 @@ impl<'lex> Parser<'lex> {
             Err(err) => return helper::recover_statement(self, err),
         };
 
-        let selection = selection.map(|sel| {
-            sel.calculate_span_wrap()
-        });
+        let selection = selection.map(|sel| sel.calculate_span_wrap());
 
         let type_tok = type_tok.map_inner(|inner| {
             ActionType::from_token(inner).expect("A non action token managed to sneak in")
         });
 
-        let tags = tags.map(|it| {
-            it.calculate_span_wrap()
-        });
+        let tags = tags.map(|it| it.calculate_span_wrap());
 
         ParseResult::ok(Ok(SimpleStatement {
             type_tok,

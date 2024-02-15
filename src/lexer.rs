@@ -1,4 +1,4 @@
-use std::{fmt::Display, sync::Arc};
+use std::sync::Arc;
 
 use lasso::{Spur, ThreadedRodeo};
 use logos::{Lexer, Logos, Span};
@@ -113,7 +113,6 @@ pub enum Token {
     Invalid,
 }
 
-
 fn process_iden<'src>(lex: &mut Lexer<'src, Token>) -> Option<Spur> {
     let text = lex.slice();
     let res = if text.len() >= 2 && text.starts_with('\'') && text.ends_with('\'') {
@@ -179,7 +178,6 @@ fn comment<'src>(lexer: &mut Lexer<'src, Token>) -> Result<(), ()> {
     lexer.bump(comment_length);
     Ok(())
 }
-
 
 impl PartialEq for Token {
     fn eq(&self, other: &Self) -> bool {
@@ -276,5 +274,6 @@ impl<'src> Token {
 
     pub const EXPRESSION_ARG: [Token; 2] = [Token::Number(None), Token::String(None)];
 
-    pub const POSSIBLE_PARAM: [Token; 3] = [Token::Number(None), Token::String(None), Token::Iden(None)];
+    pub const POSSIBLE_PARAM: [Token; 3] =
+        [Token::Number(None), Token::String(None), Token::Iden(None)];
 }

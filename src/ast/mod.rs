@@ -1,9 +1,6 @@
 use lasso::Spur;
 
-use self::{
-    statement::Expression,
-    top::{FuncParamDef, TopLevel},
-};
+use self::top::TopLevel;
 
 pub mod recovery;
 pub mod statement;

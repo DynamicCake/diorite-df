@@ -38,7 +38,7 @@ impl SpanEnd for FuncParamDef {
         let desc = &self.description;
         match desc {
             Some(it) => it.span.end,
-            None => self.data_type.span.end
+            None => self.data_type.span.end,
         }
     }
 }
@@ -82,12 +82,3 @@ pub enum EventType {
     Entity,
 }
 
-impl EventType {
-    fn from(string: &str) -> Option<Self> {
-        match string {
-            "pevent" => Some(Self::Player),
-            "eevent" => Some(Self::Player),
-            _ => None,
-        }
-    }
-}

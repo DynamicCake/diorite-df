@@ -360,16 +360,12 @@ impl Parser<'_> {
     pub fn literal(&mut self) -> ParseResult<Result<StaticLiteral, StatementRecovery>> {
         let lit = self.next_assert(&[Token::String(None), Token::Number(None)]);
         let lit = match lit.data {
-            Token::String(it) => {
-                StaticLiteral::String(lit.map_inner(|_| {
-                    StringLiteral::new(it.expect("Lexer dosen't produce empty Strings"))
-                }))
-            }
-            Token::Number(it) => {
-                StaticLiteral::Number(lit.map_inner(|_| {
-                    NumberLiteral::new(it.expect("Lexer dosen't produce empty Strings"))
-                }))
-            }
+            Token::String(it) => StaticLiteral::String(lit.map_inner(|_| {
+                StringLiteral::new(it.expect("Lexer dosen't produce empty Strings"))
+            })),
+            Token::Number(it) => StaticLiteral::Number(lit.map_inner(|_| {
+                NumberLiteral::new(it.expect("Lexer dosen't produce empty Strings"))
+            })),
             _ => panic!("Should be covered by next assert"),
         };
         ParseResult::ok(Ok(lit))
