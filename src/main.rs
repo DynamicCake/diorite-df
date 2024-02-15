@@ -11,7 +11,6 @@ pub mod parser;
 pub mod test;
 
 use std::{
-    env::set_var,
     error::Error,
     fs::File,
     io::{self, stdin, stdout, BufRead, BufReader, Read, Write},
@@ -29,28 +28,20 @@ use logos::Logos;
 use parser::error::{ParseResult, UnexpectedToken};
 
 fn main() -> Result<(), Box<dyn Error + 'static>> {
-    let _args = Arguments::parse();
-    set_var("RUST_BACKTRACE", "1");
+    let args = Arguments::parse();
+    // set_var("RUST_BACKTRACE", "1");
 
-    /*
     let src = if let Some(path) = args.file {
         compile_file(path)
     } else {
         compile_prompt()
     }?;
-    */
 
-    let src = r#"
-    pevent Join 
-        paction SendMessage ('IT WORKS'("lets go", 42,),)
-    end
-    "#;
-
-    let res = compile(src);
+    let res = compile(&src);
     let file: Arc<str> = "test.drt".into();
     for err in res.error {
         diagnostics::generate_syntax_error(file.clone(), err)
-            .print((file.clone(), Source::from(src)))
+            .print((file.clone(), Source::from(&src)))
             .unwrap();
     }
 
