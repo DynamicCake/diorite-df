@@ -1,9 +1,9 @@
 use self::ext::*;
 
 use super::*;
+use crate::span::CalcThenWrap;
 use crate::tree::recovery::StatementRecovery;
 
-use crate::tree::CalcThenWrap;
 use crate::tree::Iden;
 use crate::{
     tree::statement::{ActionType, IfStatement, SimpleStatement},

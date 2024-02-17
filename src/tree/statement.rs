@@ -4,7 +4,7 @@ use lasso::ThreadedRodeo;
 use logos::Span;
 use serde::Serialize;
 
-use crate::lexer::Token;
+use crate::{lexer::Token, span::{CalcSpan, MaybeSpan, SpanEnd, SpanStart, Spanned, TryCalcSpan, TrySpanEnd, TrySpanStart}};
 
 use super::*;
 
@@ -16,7 +16,7 @@ pub struct Selection {
 }
 
 impl CalcSpan for Selection {
-    fn calculate_span(&self) -> super::Span {
+    fn calculate_span(&self) -> Span {
         self.open.span.start..self.close.span.end
     }
 }
@@ -39,7 +39,7 @@ impl Tags {
 }
 
 impl CalcSpan for Tags {
-    fn calculate_span(&self) -> super::Span {
+    fn calculate_span(&self) -> Span {
         self.open.span.start..self.close.span.end
     }
 }
@@ -208,7 +208,7 @@ impl<T> Wrapped<T> {
 }
 
 impl<T> CalcSpan for Wrapped<T> {
-    fn calculate_span(&self) -> super::Span {
+    fn calculate_span(&self) -> Span {
         self.open.span.start..self.close.span.end
     }
 }

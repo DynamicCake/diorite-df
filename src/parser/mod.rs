@@ -4,8 +4,9 @@ use std::sync::Arc;
 use lasso::ThreadedRodeo;
 use logos::{Lexer, SpannedIter};
 
-use crate::tree::{Program, Spanned};
-use crate::{tree::top::TopLevel, lexer::Token};
+use crate::span::Spanned;
+use crate::tree::Program;
+use crate::{lexer::Token, tree::top::TopLevel};
 
 use self::error::*;
 

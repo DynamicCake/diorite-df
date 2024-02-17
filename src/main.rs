@@ -10,6 +10,7 @@ pub mod lexer;
 pub mod parser;
 pub mod test;
 pub mod codegen;
+pub mod span;
 
 use std::{
     error::Error,

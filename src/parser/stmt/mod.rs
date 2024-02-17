@@ -1,9 +1,6 @@
 use super::*;
 use crate::tree::recovery::StatementRecovery;
-use crate::{
-    tree::{statement::Statement, Spanned},
-    lexer::Token,
-};
+use crate::{lexer::Token, tree::statement::Statement};
 
 pub mod common;
 pub mod kind;

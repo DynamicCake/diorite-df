@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use ariadne::{Color, Label, Report, ReportKind};
 
-use crate::{tree::Span, parser::error::UnexpectedToken};
+use crate::{parser::error::UnexpectedToken, span::Span};
 
 pub fn generate_syntax_error<'src>(
     file: Arc<str>,
