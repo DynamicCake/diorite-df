@@ -70,6 +70,7 @@ impl TryCalcSpan for Statements {
                 match stmt {
                     Statement::Simple(it) => break it.span.start,
                     Statement::If(it) => break it.span.start,
+                    Statement::Repeat(it) => break it.span.start,
                     Statement::Recovery => iter.next(),
                 }
             } else {
@@ -84,6 +85,7 @@ impl TryCalcSpan for Statements {
                 match stmt {
                     Statement::Simple(it) => break it.span.end,
                     Statement::If(it) => break it.span.end,
+                    Statement::Repeat(it) => break it.span.end,
                     Statement::Recovery => iter.next(),
                 }
             } else {
@@ -99,6 +101,7 @@ impl TryCalcSpan for Statements {
 pub enum Statement {
     Simple(Spanned<SimpleStatement>),
     If(Spanned<IfStatement>),
+    Repeat(Spanned<RepeatLoop>),
     Recovery,
 }
 
@@ -138,8 +141,25 @@ pub struct ElseBlock {
     pub statements: Statements,
 }
 
-impl IfStatement {
-    pub fn calc_span(&self) -> Span {
+impl CalcSpan for IfStatement {
+    fn calculate_span(&self) -> Span {
+        self.type_tok.span.start..self.params.span.end
+    }
+}
+
+#[derive(Debug)]
+pub struct RepeatLoop {
+    pub type_tok: Spanned<()>,
+    pub action: Spanned<Iden>,
+    pub selection: Option<Spanned<Selection>>,
+    pub tags: Option<Spanned<Tags>>,
+    pub params: Spanned<Wrapped<Expression>>,
+    pub statements: Statements,
+    pub end: Spanned<()>
+}
+
+impl CalcSpan for RepeatLoop {
+    fn calculate_span(&self) -> Span {
         self.type_tok.span.start..self.params.span.end
     }
 }

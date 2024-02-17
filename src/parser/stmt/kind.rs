@@ -4,7 +4,7 @@ use super::*;
 use crate::span::CalcThenWrap;
 use crate::tree::recovery::StatementRecovery;
 
-use crate::tree::statement::{ElseBlock, IfActionType, Statements};
+use crate::tree::statement::{ElseBlock, IfActionType, RepeatLoop, Statements};
 use crate::tree::Iden;
 use crate::{
     lexer::Token,
@@ -134,7 +134,7 @@ impl<'lex> Parser<'lex> {
         let what_now = adv_stmt!(self, self.peek_expect(&[Token::End, Token::Else], None));
 
         //      gaction Explosion (gval(Location), 4)
-        // else 
+        // else
         //      <whatever>
         let else_block = match what_now.data {
             Token::End => None,
@@ -152,13 +152,13 @@ impl<'lex> Parser<'lex> {
 
                 Some(ElseBlock {
                     else_tok: else_tok.to_empty(),
-                    statements: Statements::new(data)
+                    statements: Statements::new(data),
                 })
             }
-            _ => panic!("should be covered by next expect")
+            _ => panic!("should be covered by next expect"),
         };
 
-        //  else 
+        //  else
         //      <whatever>
         //  end
         let end = adv_stmt!(self, self.next_expect(&[Token::End], None)).to_empty();
@@ -174,6 +174,74 @@ impl<'lex> Parser<'lex> {
                 params,
                 statements: Statements::new(statements),
                 else_block,
+                end,
+            }),
+            error,
+            None,
+        )
+    }
+
+    pub fn repeat(&mut self) -> ParseResult<Result<RepeatLoop, StatementRecovery>> {
+        // repeat
+        let type_tok = self.next_assert(&[Token::Repeat]).to_empty();
+
+        // repeat While 
+        let action = adv_stmt!(self, self.next_expect(&[Token::Iden(None)], Some("Action")))
+            .map_inner(|it| Iden::new(it.get_iden_inner()));
+
+        // repeat While <IsSneaking>
+        let selection = match self.peek() {
+            Ok(it) => match it.data {
+                Token::OpenComp => Some((should_return!(self.selector())).calculate_span_wrap()),
+                _ => None,
+            },
+            Err(err) => {
+                return ParseResult::new(Err(StatementRecovery), Vec::new(), Some(Box::new(err)))
+            }
+        };
+
+        // While <IsSneaking> []
+        let tags = match self.peek() {
+            Ok(it) => match it.data {
+                Token::OpenBracket => Some((should_return!(self.tags())).calculate_span_wrap()),
+                _ => None,
+            },
+            Err(err) => {
+                return ParseResult::new(Err(StatementRecovery), Vec::new(), Some(Box::new(err)));
+            }
+        };
+
+        // <IsSneaking> [] ()
+        let params = match self.peek_expect(&[Token::OpenParen], None) {
+            Ok(_) => should_return!(self.call_params()).calculate_span_wrap(),
+            Err(err) => return helper::recover_statement(self, err),
+        };
+
+        // [] ()
+        //      gaction Explosion (gval(Location), 4)
+        let ParseResult {
+            data: statements,
+            // NOTE use this vec when returning
+            mut error,
+            at_eof,
+        } = self.statements(true);
+        if at_eof.is_some() {
+            return ParseResult::new(Err(StatementRecovery), error, at_eof);
+        };
+
+        // ()
+        //      gaction Explosion (gval(Location), 4)
+        // end
+        let end = adv_stmt!(self, self.next_expect(&[Token::End], None)).to_empty();
+
+        ParseResult::new(
+            Ok(RepeatLoop {
+                type_tok,
+                action,
+                selection,
+                tags,
+                params,
+                statements: Statements::new(statements),
                 end,
             }),
             error,

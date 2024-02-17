@@ -36,6 +36,15 @@ mod ext {
         };
     }
 
+    macro_rules! adv_top {
+        ($params:expr, $func:expr) => {
+            match $func {
+                Ok(it) => it,
+                Err(err) => return helper::recover_top_level($params, err),
+            }
+        };
+    }
+
     macro_rules! ret_err {
         ($expr:expr) => {
             match $expr {
@@ -47,7 +56,16 @@ mod ext {
 
     macro_rules! should_return {
         ($expr:expr) => {
-            match helper::should_return($expr) {
+            match helper::should_return_func($expr) {
+                Ok(it) => it,
+                Err(err) => return err,
+            }
+        };
+    }
+
+    macro_rules! should_return_top {
+        ($expr:expr) => {
+            match helper::should_return_top_func($expr) {
                 Ok(it) => it,
                 Err(err) => return err,
             }
@@ -55,8 +73,9 @@ mod ext {
     }
 
     pub(crate) use adv_stmt;
-
+    pub(crate) use adv_top;
     pub(crate) use should_return;
+    pub(crate) use should_return_top;
 }
 
 impl<'lex> Parser<'lex> {

@@ -17,16 +17,17 @@ pub enum TopLevel {
 pub struct FuncDef {
     pub type_tok: Spanned<()>,
     pub name: Spanned<Iden>,
-    pub params: Parameters<FuncParamDef>,
+    pub params: Wrapped<FuncParamDef>,
+    pub statements: Statements,
     pub end_tok: Spanned<()>,
 }
 
 #[derive(Debug)]
 pub struct FuncParamDef {
-    pub name: Spanned<Spur>,
+    pub name: Spanned<Iden>,
     pub colon: Spanned<()>,
-    pub data_type: Spanned<Spur>,
-    pub description: Option<Spanned<Spur>>,
+    pub data_type: Spanned<Iden>,
+    pub description: Option<Spanned<Iden>>,
 }
 
 impl SpanStart for FuncParamDef {
@@ -50,6 +51,7 @@ impl SpanEnd for FuncParamDef {
 pub struct ProcDef {
     pub type_tok: Spanned<()>,
     pub name: Spanned<Iden>,
+    pub statements: Statements,
     pub end_tok: Spanned<()>,
 }
 

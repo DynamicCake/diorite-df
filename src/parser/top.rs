@@ -1,10 +1,14 @@
-use crate::tree::{
-    recovery::TopLevelRecovery,
-    statement::Statements,
-    top::{Event, EventType, FuncDef, ProcDef},
-    Iden,
+use crate::{
+    span::TryCalcThenWrap,
+    tree::{
+        recovery::{StatementRecovery, TopLevelRecovery},
+        statement::{Statements, Wrapped},
+        top::{Event, EventType, FuncDef, FuncParamDef, ProcDef},
+        Iden, Parameters,
+    },
 };
 
+use self::ext::{adv_stmt, adv_top, should_return, should_return_top};
 
 use super::*;
 
@@ -44,12 +48,28 @@ impl<'lex> Parser<'lex> {
                 ParseResult::new(data, error, at_eof)
             }
             Token::ProcDef => {
-                let _def = self.process();
-                todo!()
+                let ParseResult {
+                    data,
+                    error,
+                    at_eof,
+                } = self.process();
+                let data = match data {
+                    Ok(it) => TopLevel::ProcDef(it),
+                    Err(err) => TopLevel::Recovery(err),
+                };
+                ParseResult::new(data, error, at_eof)
             }
             Token::FuncDef => {
-                let _def = self.function();
-                todo!()
+                let ParseResult {
+                    data,
+                    error,
+                    at_eof,
+                } = self.function();
+                let data = match data {
+                    Ok(it) => TopLevel::FuncDef(it),
+                    Err(err) => TopLevel::Recovery(err),
+                };
+                ParseResult::new(data, error, at_eof)
             }
             it => {
                 panic!(
@@ -63,12 +83,133 @@ impl<'lex> Parser<'lex> {
         top
     }
 
-    fn process(&mut self) -> ParseResult<ProcDef, UnexpectedToken> {
-        todo!()
+    fn process(&mut self) -> ParseResult<Result<ProcDef, TopLevelRecovery>> {
+        let type_tok = self.next_assert(&[Token::ProcDef]).to_empty();
+        let name = adv_top!(self, self.next_expect(&[Token::Iden(None)], None))
+            .map_inner(|it| Iden::new(it.get_iden_inner()));
+
+        let ParseResult {
+            data,
+            error,
+            at_eof,
+        } = self.statements(false);
+        if at_eof.is_some() {
+            return ParseResult::new(Err(TopLevelRecovery), error, at_eof);
+        }
+
+        let end = adv_top!(self, self.next_expect(&[Token::End], None)).to_empty();
+
+        ParseResult::new(
+            Ok(ProcDef {
+                type_tok,
+                name,
+                statements: Statements::new(data),
+                end_tok: end,
+            }),
+            error,
+            None,
+        )
     }
 
-    fn function(&mut self) -> ParseResult<FuncDef, UnexpectedToken> {
-        todo!()
+    fn function(&mut self) -> ParseResult<Result<FuncDef, TopLevelRecovery>> {
+        let type_tok = self.next_assert(&[Token::FuncDef]).to_empty();
+        let name = adv_top!(self, self.next_expect(&[Token::Iden(None)], None))
+            .map_inner(|it| Iden::new(it.get_iden_inner()));
+
+        let params = {
+            let open = adv_top!(self, self.next_expect(&[Token::OpenParen], None)).to_empty();
+            let mut params = Vec::new();
+            while {
+                let next = adv_top!(
+                    self,
+                    self.peek_expect(
+                        &[Token::CloseParen, Token::Iden(None)],
+                        Some("Next param or close")
+                    )
+                );
+                match next.data {
+                    Token::CloseParen => false,
+                    _ => true,
+                }
+            } {
+                let param = should_return_top!(self.params());
+                params.push(param);
+
+                let comma = adv_top!(
+                    self,
+                    self.peek_expect(
+                        &[Token::Comma, Token::CloseParen],
+                        Some("Comma or end of paramaters")
+                    )
+                );
+                match comma.data {
+                    Token::Comma => {
+                        let _comma = self.next_assert(&[Token::Comma]);
+                    }
+                    Token::CloseParen => {}
+                    _ => panic!("should be covered by next expect"),
+                }
+            }
+            let close = adv_top!(self, self.next_expect(&[Token::CloseParen], None)).to_empty();
+
+            Wrapped {
+                open,
+                tags: Parameters::new(params).try_calculate_span_wrap(),
+                close,
+            }
+        };
+
+        let ParseResult {
+            data,
+            error,
+            at_eof,
+        } = self.statements(false);
+        if at_eof.is_some() {
+            return ParseResult::new(Err(TopLevelRecovery), error, at_eof);
+        }
+
+        let end = adv_top!(self, self.next_expect(&[Token::End], None)).to_empty();
+
+        ParseResult::new(
+            Ok(FuncDef {
+                type_tok,
+                name,
+                params,
+                statements: Statements::new(data),
+                end_tok: end,
+            }),
+            error,
+            None,
+        )
+    }
+
+    fn params(&mut self) -> ParseResult<Result<FuncParamDef, TopLevelRecovery>> {
+        let name = self
+            .next_assert(&[Token::Iden(None)])
+            .map_inner(|it| Iden::new(it.get_iden_inner()));
+        let colon = adv_top!(self, self.next_expect(&[Token::Colon], None)).to_empty();
+        let data_type = adv_top!(self, self.next_expect(&[Token::Iden(None)], None))
+            .map_inner(|it| Iden::new(it.get_iden_inner()));
+        let description = adv_top!(
+            self,
+            self.peek_expect(&[Token::Iden(None), Token::CloseParen], None)
+        );
+        let description = match description.data {
+            Token::Iden(_) => Some(
+                self.next_assert(&[Token::Iden(None)])
+                    .map_inner(|it| Iden::new(it.get_iden_inner())),
+            ),
+            Token::CloseParen => None,
+            _ => panic!("should be covered by peek expect"),
+        };
+
+        // .map_inner(|it| Iden::new(it.get_iden_inner()));
+        ParseResult::ok(Ok(FuncParamDef {
+            name,
+            colon,
+            data_type,
+            description,
+        }))
     }
 
     /// Represents an event delceration
@@ -136,7 +277,7 @@ impl<'lex> Parser<'lex> {
 
     /// Looks for event, proc, func tokens
     /// This function will never syntax error
-    fn top_recovery(&mut self) -> Option<Box<UnexpectedEOF>> {
+    pub fn top_recovery(&mut self) -> Option<Box<UnexpectedEOF>> {
         loop {
             match self.peek() {
                 Ok(tok) => match tok.data {

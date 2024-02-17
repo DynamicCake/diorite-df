@@ -1,4 +1,5 @@
 use super::*;
+use crate::span::CalcSpan;
 use crate::tree::recovery::StatementRecovery;
 use crate::{lexer::Token, tree::statement::Statement};
 
@@ -126,8 +127,27 @@ impl<'lex> Parser<'lex> {
 
                 match data {
                     Ok(it) => {
-                        let span = it.calc_span();
+                        let span = it.calculate_span();
                         ParseResult::new(Ok(Statement::If(Spanned::new(it, span))), error, at_eof)
+                    }
+                    Err(err) => ParseResult::new(Err(err), error, at_eof),
+                }
+            }
+            Token::Repeat => {
+                let ParseResult {
+                    data,
+                    error,
+                    at_eof,
+                } = self.repeat();
+
+                match data {
+                    Ok(it) => {
+                        let span = it.calculate_span();
+                        ParseResult::new(
+                            Ok(Statement::Repeat(Spanned::new(it, span))),
+                            error,
+                            at_eof,
+                        )
                     }
                     Err(err) => ParseResult::new(Err(err), error, at_eof),
                 }
@@ -158,6 +178,7 @@ impl<'lex> Parser<'lex> {
                     | Token::IfEntity
                     | Token::IfGame
                     | Token::IfVar
+                    | Token::Repeat
                     | Token::End => {
                         break;
                     }

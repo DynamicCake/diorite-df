@@ -221,7 +221,7 @@ impl<'src> Token {
 }
 
 impl<'src> Token {
-    pub const STATEMENT: [Token; 12] = [
+    pub const STATEMENT: [Token; 13] = [
         Token::PlayerAction,
         Token::EntityAction,
         Token::GameAction,
@@ -234,9 +234,10 @@ impl<'src> Token {
         Token::IfEntity,
         Token::IfGame,
         Token::IfVar,
+        Token::Repeat,
     ];
 
-    pub const STATEMENT_LOOP: [Token; 13] = [
+    pub const STATEMENT_LOOP: [Token; 14] = [
         Token::PlayerAction,
         Token::EntityAction,
         Token::GameAction,
@@ -249,10 +250,11 @@ impl<'src> Token {
         Token::IfEntity,
         Token::IfGame,
         Token::IfVar,
+        Token::Repeat,
         Token::End,
     ];
 
-    pub const IF_BODY_LOOP: [Token; 14] = [
+    pub const IF_BODY_LOOP: [Token; 15] = [
         Token::PlayerAction,
         Token::EntityAction,
         Token::GameAction,
@@ -265,6 +267,7 @@ impl<'src> Token {
         Token::IfEntity,
         Token::IfGame,
         Token::IfVar,
+        Token::Repeat,
         Token::End,
         Token::Else,
     ];
@@ -276,7 +279,7 @@ impl<'src> Token {
         Token::IfVar,
     ];
 
-    pub const SIMPLE_STATEMENT: [Token; 8] = [
+    pub const SIMPLE_STATEMENT: [Token; 9] = [
         Token::PlayerAction,
         Token::EntityAction,
         Token::GameAction,
@@ -285,6 +288,7 @@ impl<'src> Token {
         Token::CallProcess,
         Token::Select,
         Token::SetVar,
+        Token::Repeat,
     ];
 
     pub const TOP_LEVEL: [Token; 4] = [

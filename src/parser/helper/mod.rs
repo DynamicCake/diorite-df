@@ -1,4 +1,4 @@
-use crate::tree::recovery::StatementRecovery;
+use crate::tree::recovery::{StatementRecovery, TopLevelRecovery};
 
 use super::{AdvanceUnexpected, ParseResult, Parser};
 
@@ -13,6 +13,21 @@ pub fn recover_statement<'lex, T>(
         }
         AdvanceUnexpected::Eof(err) => {
             ParseResult::new(Err(StatementRecovery), Vec::new(), Some(Box::new(err)))
+        }
+    }
+}
+
+pub fn recover_top_level<'lex, T>(
+    parser: &mut Parser<'lex>,
+    err: AdvanceUnexpected,
+) -> ParseResult<Result<T, TopLevelRecovery>> {
+    match err {
+        AdvanceUnexpected::Token(err) => {
+            let at_eof = parser.top_recovery();
+            ParseResult::new(Err(TopLevelRecovery), vec![err], at_eof)
+        }
+        AdvanceUnexpected::Eof(err) => {
+            ParseResult::new(Err(TopLevelRecovery), Vec::new(), Some(Box::new(err)))
         }
     }
 }
@@ -37,7 +52,7 @@ pub fn handle_result_statement<'src, T, E>(
     }
 }
 
-pub fn should_return<'src, T, R>(
+pub fn should_return_func<'src, T, R>(
     result: ParseResult<Result<T, StatementRecovery>>,
 ) -> Result<T, ParseResult<Result<R, StatementRecovery>>> {
     let ParseResult {
@@ -49,6 +64,29 @@ pub fn should_return<'src, T, R>(
         Ok(it) => {
             if at_eof.is_some() {
                 return Err(ParseResult::new(Err(StatementRecovery), error, at_eof));
+            }
+            it
+        }
+        Err(err) => {
+            return Err(ParseResult::new(Err(err), error, at_eof));
+        }
+    };
+
+    Ok(lit)
+}
+
+pub fn should_return_top_func<'src, T, R>(
+    result: ParseResult<Result<T, TopLevelRecovery>>,
+) -> Result<T, ParseResult<Result<R, TopLevelRecovery>>> {
+    let ParseResult {
+        data,
+        error,
+        at_eof,
+    } = result;
+    let lit = match data {
+        Ok(it) => {
+            if at_eof.is_some() {
+                return Err(ParseResult::new(Err(TopLevelRecovery), error, at_eof));
             }
             it
         }
