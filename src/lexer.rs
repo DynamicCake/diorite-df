@@ -1,9 +1,9 @@
 use std::sync::Arc;
 
 use lasso::{Spur, ThreadedRodeo};
-use logos::{Lexer, Logos, Span};
+use logos::{Lexer, Logos};
 
-use crate::span::Spanned;
+use crate::span::{Span, Spanned};
 
 #[derive(Logos, Clone, Debug)]
 #[logos(skip r"[ \t\n\f]+", extras = Arc<ThreadedRodeo>)]
@@ -22,6 +22,9 @@ pub enum Token {
 
     #[token("not")]
     Not,
+
+    #[token("else")]
+    Else,
 
     #[token(",")]
     Comma,
@@ -57,6 +60,7 @@ pub enum Token {
     #[regex(r#"\$"([^"\\]*(?:\\.[^"\\]*)*)""#, process_styled_text)]
     StyledText(Option<Spur>),
 
+    /*
     #[token("svar")]
     SaveVar,
     #[token("gvar")]
@@ -77,7 +81,7 @@ pub enum Token {
     Potion,
     #[token("gval")]
     GameValue,
-
+    */
     #[token("paction")]
     PlayerAction,
     #[token("eaction")]
@@ -92,7 +96,7 @@ pub enum Token {
     CallProcess,
     #[token("select")]
     Select,
-    #[token("var")]
+    #[token("setvar")]
     SetVar,
 
     #[token("ifplayer")]
@@ -103,6 +107,9 @@ pub enum Token {
     IfGame,
     #[token("ifvar")]
     IfVar,
+
+    #[token("repeat")]
+    Repeat,
 
     #[token(r"//[^\n]*")]
     Comment,
@@ -187,7 +194,7 @@ impl PartialEq for Token {
 
 impl<'src> Token {
     pub fn spanned(self, span: Span) -> Spanned<Self> {
-        Spanned::new(self, span)
+        Spanned::new(self, (span.start as u32)..(span.end as u32))
     }
 
     // HACK Not sure if it is but get another pair of eyes on this
@@ -243,6 +250,23 @@ impl<'src> Token {
         Token::IfGame,
         Token::IfVar,
         Token::End,
+    ];
+
+    pub const IF_BODY_LOOP: [Token; 14] = [
+        Token::PlayerAction,
+        Token::EntityAction,
+        Token::GameAction,
+        Token::Control,
+        Token::CallFunction,
+        Token::CallProcess,
+        Token::Select,
+        Token::SetVar,
+        Token::IfPlayer,
+        Token::IfEntity,
+        Token::IfGame,
+        Token::IfVar,
+        Token::End,
+        Token::Else,
     ];
 
     pub const IF_STATEMENT: [Token; 4] = [

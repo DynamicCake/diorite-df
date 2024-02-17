@@ -1,6 +1,6 @@
 use lasso::Spur;
 
-use crate::span::{Span, SpanEnd, SpanStart, TryCalcSpan, TrySpanEnd, TrySpanStart};
+use crate::span::{Span, SpanEnd, SpanSize, SpanStart, TryCalcSpan, TrySpanEnd, TrySpanStart};
 
 use self::top::TopLevel;
 
@@ -11,7 +11,7 @@ pub mod top;
 
 #[derive(Debug)]
 pub struct Program {
-    top_statements: Vec<TopLevel>,
+    pub top_statements: Vec<TopLevel>,
 }
 
 impl Program {
@@ -50,7 +50,7 @@ impl<T> TrySpanStart for Parameters<T>
 where
     T: TrySpanStart,
 {
-    fn try_start(&self) -> Option<usize> {
+    fn try_start(&self) -> Option<SpanSize> {
         for span in self.items.iter() {
             let span = span.try_start();
             if let Some(span) = span {
@@ -65,7 +65,7 @@ impl<T> TrySpanEnd for Parameters<T>
 where
     T: TrySpanEnd,
 {
-    fn try_end(&self) -> Option<usize> {
+    fn try_end(&self) -> Option<SpanSize> {
         for span in self.items.iter().rev() {
             let span = span.try_end();
             if let Some(span) = span {

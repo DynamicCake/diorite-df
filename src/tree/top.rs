@@ -1,4 +1,4 @@
-use crate::span::{SpanEnd, SpanStart, Spanned};
+use crate::span::{SpanEnd, SpanSize, SpanStart, Spanned};
 
 use super::recovery::TopLevelRecovery;
 use super::statement::*;
@@ -30,13 +30,13 @@ pub struct FuncParamDef {
 }
 
 impl SpanStart for FuncParamDef {
-    fn start(&self) -> usize {
+    fn start(&self) -> SpanSize {
         self.name.span.start
     }
 }
 
 impl SpanEnd for FuncParamDef {
-    fn end(&self) -> usize {
+    fn end(&self) -> SpanSize {
         let desc = &self.description;
         match desc {
             Some(it) => it.span.end,
@@ -83,4 +83,3 @@ pub enum EventType {
     Player,
     Entity,
 }
-

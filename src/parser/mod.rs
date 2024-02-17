@@ -4,7 +4,7 @@ use std::sync::Arc;
 use lasso::ThreadedRodeo;
 use logos::{Lexer, SpannedIter};
 
-use crate::span::Spanned;
+use crate::span::{SpanSize, Spanned};
 use crate::tree::Program;
 use crate::{lexer::Token, tree::top::TopLevel};
 
@@ -98,6 +98,7 @@ impl<'lex> Parser<'lex> {
         if let Some(it) = self.toks.next() {
             let (token, span) = it;
             if let Ok(token) = token {
+                let span = (span.start as SpanSize)..(span.end as SpanSize);
                 return if expected.contains(&token) {
                     token.spanned(span)
                 } else {
@@ -111,6 +112,7 @@ impl<'lex> Parser<'lex> {
                     )
                 };
             } else {
+                let span = (span.start as SpanSize)..(span.end as SpanSize);
                 panic!(
                     "Unexpected Error: {:#?}",
                     LexerError::new(Spanned::<()>::empty(span))
@@ -140,6 +142,7 @@ impl<'lex> Parser<'lex> {
     ) -> Result<Spanned<Token>, AdvanceUnexpected> {
         if let Some(it) = self.toks.next() {
             let (token, span) = it;
+            let span = (span.start as SpanSize)..(span.end as SpanSize);
             if let Ok(token) = token {
                 return if expected.contains(&token) {
                     Ok(token.spanned(span))
@@ -170,6 +173,7 @@ impl<'lex> Parser<'lex> {
     ) -> Result<Spanned<&Token>, AdvanceUnexpected> {
         if let Some((token, span)) = self.toks.peek() {
             if let Ok(token) = token {
+                let span = (span.start as SpanSize)..(span.end as SpanSize);
                 return if expected.contains(token) {
                     Ok(Spanned::new(token, span.clone()))
                 } else {
@@ -180,6 +184,7 @@ impl<'lex> Parser<'lex> {
                     }))
                 };
             } else {
+                let span = (span.start as SpanSize)..(span.end as SpanSize);
                 // This clone has minimal overhead as it is only cloning a Range<usize>
                 self.lex_errs
                     .push(LexerError::new(Spanned::<()>::empty(span.clone())));
@@ -199,9 +204,11 @@ impl<'lex> Parser<'lex> {
         if let Some(it) = self.toks.peek() {
             let (token, span) = it;
             if let Ok(token) = token {
+                let span = (span.start as SpanSize)..(span.end as SpanSize);
                 let spanned = Spanned::new(token, span.clone());
                 Ok(spanned)
             } else {
+                let span = (span.start as SpanSize)..(span.end as SpanSize);
                 self.lex_errs
                     .push(LexerError::new(Spanned::<()>::empty(span.clone())));
                 Ok(Spanned::new(&Token::Invalid, span.clone()))
@@ -220,6 +227,7 @@ impl<'lex> Parser<'lex> {
     pub fn advance(&mut self) -> Result<Spanned<Token>, UnexpectedEOF> {
         if let Some(it) = self.toks.next() {
             let (token, span) = it;
+            let span = (span.start as SpanSize)..(span.end as SpanSize);
             Ok(if let Ok(token) = token {
                 token.spanned(span)
             } else {

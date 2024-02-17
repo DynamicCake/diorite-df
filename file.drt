@@ -1,6 +1,12 @@
 pevent Join
-    paction SendMessage (123124124)
-
+    setvar '=' (var("player_ping"), gval("Ping"))
+    paction SendMessage <default> (vara("player_ping"))
 end
 
+pevent Command
+    ifplayer not IsLookingAt <default> ['Fluid Mode': 'Ignore Fluids'] (item("{Count:1b,id:\"minecraft:grass_block\"}"))
+        gaction Explosion (gval("Location"), 4)
+    else
+    end
+end
 

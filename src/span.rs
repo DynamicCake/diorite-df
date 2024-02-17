@@ -1,4 +1,9 @@
-pub type Span = core::ops::Range<usize>;
+// If you have ONE file that is bigger than 4_294_967_295 bytes
+// or more than 4gb, you should be more concerned about other things,
+// not that the compiler dosen't work
+pub type Span<S = SpanSize> = core::ops::Range<S>;
+
+pub type SpanSize = u32;
 
 #[derive(Debug, Clone)]
 pub struct Spanned<T> {
@@ -57,11 +62,11 @@ pub trait CalcSpan {
 }
 
 pub trait SpanStart {
-    fn start(&self) -> usize;
+    fn start(&self) -> SpanSize;
 }
 
 pub trait SpanEnd {
-    fn end(&self) -> usize;
+    fn end(&self) -> SpanSize;
 }
 
 pub trait TryCalcSpan {
@@ -69,11 +74,11 @@ pub trait TryCalcSpan {
 }
 
 pub trait TrySpanStart {
-    fn try_start(&self) -> Option<usize>;
+    fn try_start(&self) -> Option<SpanSize>;
 }
 
 pub trait TrySpanEnd {
-    fn try_end(&self) -> Option<usize>;
+    fn try_end(&self) -> Option<SpanSize>;
 }
 
 pub trait CalcThenWrap

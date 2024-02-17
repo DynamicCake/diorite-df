@@ -8,34 +8,45 @@ pub mod kind;
 use super::{error::ParseResult, Parser};
 
 impl<'lex> Parser<'lex> {
-    pub fn statements(&mut self) -> ParseResult<Vec<Statement>, Vec<UnexpectedToken>> {
+    pub fn statements(&mut self, in_else: bool) -> ParseResult<Vec<Statement>> {
         let mut statements: Vec<Statement> = Vec::new();
         let mut errors = Vec::new();
 
         loop {
-            match self.peek_expect(&Token::STATEMENT_LOOP, Some("statement declaration or end")) {
+            let which_one = if in_else {
+                self.peek_expect(
+                    &Token::IF_BODY_LOOP,
+                    Some("statement declaration, end or else"),
+                )
+            } else {
+                self.peek_expect(&Token::STATEMENT_LOOP, Some("statement declaration or end"))
+            };
+            match which_one {
                 Ok(it) => {
                     // Tokens are guaranteed to be end or statement
-                    if let Token::End = it.data {
-                        break;
-                    } else {
-                        let ParseResult {
-                            data,
-                            mut error,
-                            at_eof,
-                        } = self.statement();
-                        errors.append(&mut error);
-                        match data {
-                            Ok(it) => {
-                                statements.push(it);
-                            }
-                            Err(_err) => statements.push(Statement::Recovery),
-                        };
-                        // Because it is in a loop, a break will happen if at_eof is some
-                        if let Some(at_eof) = at_eof {
-                            return ParseResult::new(statements, errors, Some(at_eof));
+                    match it.data {
+                        Token::End | Token::Else => {
+                            break;
                         }
-                    }
+                        _ => {
+                            let ParseResult {
+                                data,
+                                mut error,
+                                at_eof,
+                            } = self.statement();
+                            errors.append(&mut error);
+                            match data {
+                                Ok(it) => {
+                                    statements.push(it);
+                                }
+                                Err(_err) => statements.push(Statement::Recovery),
+                            };
+                            // Because it is in a loop, a break will happen if at_eof is some
+                            if let Some(at_eof) = at_eof {
+                                return ParseResult::new(statements, errors, Some(at_eof));
+                            }
+                        }
+                    };
                 }
                 Err(err) => {
                     match err {
@@ -107,8 +118,19 @@ impl<'lex> Parser<'lex> {
                 }
             }
             Token::IfPlayer | Token::IfEntity | Token::IfGame | Token::IfVar => {
-                self.if_statement();
-                todo!()
+                let ParseResult {
+                    data,
+                    error,
+                    at_eof,
+                } = self.if_statement();
+
+                match data {
+                    Ok(it) => {
+                        let span = it.calc_span();
+                        ParseResult::new(Ok(Statement::If(Spanned::new(it, span))), error, at_eof)
+                    }
+                    Err(err) => ParseResult::new(Err(err), error, at_eof),
+                }
             }
             _ => {
                 let at_eof = self.statement_recovery();

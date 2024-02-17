@@ -7,7 +7,7 @@ use crate::{parser::error::UnexpectedToken, span::Span};
 pub fn generate_syntax_error<'src>(
     file: Arc<str>,
     error: UnexpectedToken,
-) -> Report<'src, (Arc<str>, Span)> {
+) -> Report<'src, (Arc<str>, Span<usize>)> {
     let red = Color::Red;
 
     let expected = error.expected_print();
@@ -15,13 +15,16 @@ pub fn generate_syntax_error<'src>(
         .with_code(1)
         .with_message(format!("Syntax Error"))
         .with_label(
-            Label::new((file, error.received.span))
-                .with_message(format!(
-                    "Expected {} recieved {}",
-                    expected,
-                    error.received.data.expected_print()
-                ))
-                .with_color(red),
+            Label::new((file, {
+                let Span { start, end } = error.received.span;
+                (start as usize)..(end as usize)
+            }))
+            .with_message(format!(
+                "Expected {} recieved {}",
+                expected,
+                error.received.data.expected_print()
+            ))
+            .with_color(red),
         )
         .finish()
 }

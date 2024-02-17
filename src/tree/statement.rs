@@ -1,10 +1,14 @@
 use std::sync::Arc;
 
 use lasso::ThreadedRodeo;
-use logos::Span;
 use serde::Serialize;
 
-use crate::{lexer::Token, span::{CalcSpan, MaybeSpan, SpanEnd, SpanStart, Spanned, TryCalcSpan, TrySpanEnd, TrySpanStart}};
+use crate::{
+    lexer::Token,
+    span::{
+        CalcSpan, MaybeSpan, SpanEnd, SpanSize, SpanStart, Spanned, TryCalcSpan, TrySpanEnd, TrySpanStart
+    },
+};
 
 use super::*;
 
@@ -117,12 +121,21 @@ impl SimpleStatement {
 
 #[derive(Debug)]
 pub struct IfStatement {
-    type_tok: Spanned<IfActionType>,
-    not: Option<Spanned<()>>,
-    action: ActionType,
-    selection: Option<Spanned<Selection>>,
-    tags: Option<Spanned<Tags>>,
-    params: Spanned<Parameters<Expression>>,
+    pub type_tok: Spanned<IfActionType>,
+    pub not: Option<Spanned<()>>,
+    pub action: Spanned<Iden>,
+    pub selection: Option<Spanned<Selection>>,
+    pub tags: Option<Spanned<Tags>>,
+    pub params: Spanned<Wrapped<Expression>>,
+    pub statements: Statements,
+    pub else_block: Option<ElseBlock>,
+    pub end: Spanned<()>
+}
+
+#[derive(Debug)]
+pub struct ElseBlock {
+    pub else_tok: Spanned<()>,
+    pub statements: Statements,
 }
 
 impl IfStatement {
@@ -139,6 +152,20 @@ pub enum IfActionType {
     Var,
 }
 
+impl TryInto<IfActionType> for Token {
+    type Error = ();
+
+    fn try_into(self) -> Result<IfActionType, Self::Error> {
+        Ok(match self {
+            Token::IfPlayer => IfActionType::Player,
+            Token::IfEntity => IfActionType::Entity,
+            Token::IfGame => IfActionType::Game,
+            Token::IfVar => IfActionType::Var,
+            _ => return Err(()),
+        })
+    }
+}
+
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "snake_case")]
 pub enum ActionType {
@@ -152,20 +179,21 @@ pub enum ActionType {
     Var,
 }
 
+impl TryInto<ActionType> for Token {
+    type Error = ();
 
-impl ActionType {
-    pub fn from_token(token: Token) -> Result<Self, Token> {
-        match token {
-            Token::PlayerAction => Ok(Self::PlayerAction),
-            Token::EntityAction => Ok(Self::EntityAction),
-            Token::GameAction => Ok(Self::GameAction),
-            Token::Control => Ok(Self::Control),
-            Token::CallFunction => Ok(Self::CallFunction),
-            Token::CallProcess => Ok(Self::CallProcess),
-            Token::Select => Ok(Self::Select),
-            Token::SetVar => Ok(Self::Var),
-            tok => Err(tok),
-        }
+    fn try_into(self) -> Result<ActionType, Self::Error> {
+        Ok(match self {
+            Token::PlayerAction => ActionType::PlayerAction,
+            Token::EntityAction => ActionType::EntityAction,
+            Token::GameAction => ActionType::GameAction,
+            Token::Control => ActionType::Control,
+            Token::CallFunction => ActionType::CallFunction,
+            Token::CallProcess => ActionType::CallProcess,
+            Token::Select => ActionType::Select,
+            Token::SetVar => ActionType::Var,
+            _ => return Err(()),
+        })
     }
 }
 
@@ -177,13 +205,13 @@ pub struct IdenPair {
 }
 
 impl SpanStart for IdenPair {
-    fn start(&self) -> usize {
+    fn start(&self) -> SpanSize {
         self.key.span.start
     }
 }
 
 impl SpanEnd for IdenPair {
-    fn end(&self) -> usize {
+    fn end(&self) -> SpanSize {
         self.value.span.end
     }
 }
@@ -220,7 +248,7 @@ pub enum Expression {
 }
 
 impl SpanStart for Expression {
-    fn start(&self) -> usize {
+    fn start(&self) -> SpanSize {
         let range = match self {
             Self::Expr(lit) => lit.literal_type.span.start,
             Self::Literal(lit) => match lit {
@@ -234,7 +262,7 @@ impl SpanStart for Expression {
 }
 
 impl SpanEnd for Expression {
-    fn end(&self) -> usize {
+    fn end(&self) -> SpanSize {
         let range = match self {
             Self::Expr(lit) => lit.literal_type.span.end,
             Self::Literal(lit) => match lit {
@@ -266,7 +294,7 @@ pub enum StaticLiteral {
 }
 
 impl SpanStart for StaticLiteral {
-    fn start(&self) -> usize {
+    fn start(&self) -> SpanSize {
         match self {
             StaticLiteral::String(it) => it.span.start,
             StaticLiteral::Number(it) => it.span.start,
@@ -275,7 +303,7 @@ impl SpanStart for StaticLiteral {
 }
 
 impl SpanEnd for StaticLiteral {
-    fn end(&self) -> usize {
+    fn end(&self) -> SpanSize {
         match self {
             StaticLiteral::String(it) => it.span.end,
             StaticLiteral::Number(it) => it.span.end,
@@ -284,13 +312,13 @@ impl SpanEnd for StaticLiteral {
 }
 
 impl TrySpanStart for StaticLiteral {
-    fn try_start(&self) -> Option<usize> {
+    fn try_start(&self) -> Option<SpanSize> {
         Some(self.start())
     }
 }
 
 impl TrySpanEnd for StaticLiteral {
-    fn try_end(&self) -> Option<usize> {
+    fn try_end(&self) -> Option<SpanSize> {
         Some(self.end())
     }
 }

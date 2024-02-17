@@ -104,7 +104,7 @@ impl<'lex> Parser<'lex> {
             data: stmts,
             error: errors,
             at_eof,
-        } = self.statements();
+        } = self.statements(false);
 
         if let Some(at_eof) = at_eof {
             return ParseResult::new(Err(TopLevelRecovery), errors, Some(at_eof));
