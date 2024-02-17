@@ -1,4 +1,4 @@
-use crate::ast::recovery::StatementRecovery;
+use crate::tree::recovery::StatementRecovery;
 
 use super::{AdvanceUnexpected, ParseResult, Parser};
 

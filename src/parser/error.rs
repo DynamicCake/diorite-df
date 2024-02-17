@@ -1,6 +1,6 @@
 use std::{fmt::Display, sync::Arc};
 
-use crate::{ast::Spanned, lexer::Token};
+use crate::{tree::Spanned, lexer::Token};
 
 #[derive(Debug)]
 pub struct ParseResult<T, E = Vec<UnexpectedToken>> {

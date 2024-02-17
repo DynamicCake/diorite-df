@@ -1,7 +1,7 @@
 use super::*;
-use crate::ast::recovery::StatementRecovery;
+use crate::tree::recovery::StatementRecovery;
 use crate::{
-    ast::{statement::Statement, Spanned},
+    tree::{statement::Statement, Spanned},
     lexer::Token,
 };
 

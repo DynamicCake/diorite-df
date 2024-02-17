@@ -4,7 +4,7 @@
 )]
 
 mod args;
-pub mod ast;
+pub mod tree;
 pub mod diagnostics;
 pub mod lexer;
 pub mod parser;
@@ -21,7 +21,7 @@ use std::{
 
 use args::Arguments;
 use ariadne::Source;
-use ast::Program;
+use tree::Program;
 use clap::Parser;
 use lasso::ThreadedRodeo;
 use lexer::Token;

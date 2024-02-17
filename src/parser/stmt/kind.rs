@@ -1,12 +1,12 @@
 use self::ext::*;
 
 use super::*;
-use crate::ast::recovery::StatementRecovery;
+use crate::tree::recovery::StatementRecovery;
 
-use crate::ast::CalcThenWrap;
-use crate::ast::Iden;
+use crate::tree::CalcThenWrap;
+use crate::tree::Iden;
 use crate::{
-    ast::statement::{ActionType, IfStatement, SimpleStatement},
+    tree::statement::{ActionType, IfStatement, SimpleStatement},
     lexer::Token,
 };
 
