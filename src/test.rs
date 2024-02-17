@@ -1,3 +1,4 @@
+
 #[test]
 fn print_tes() {
     use crate::lexer::Token;
@@ -39,3 +40,15 @@ fn unexpected() {
     ).expected_print();
 
 }
+
+#[test]
+fn parse_int() {
+    use crate::codegen::block::DfNumber;
+
+    let number = "123.2";
+    let number: DfNumber = number.try_into().unwrap();
+    assert_eq!(number, DfNumber::new(-123200).unwrap())
+}
+
+
+

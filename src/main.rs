@@ -9,6 +9,7 @@ pub mod diagnostics;
 pub mod lexer;
 pub mod parser;
 pub mod test;
+pub mod codegen;
 
 use std::{
     error::Error,
@@ -45,6 +46,9 @@ fn main() -> Result<(), Box<dyn Error + 'static>> {
             .unwrap();
     }
 
+    if args.tree {
+        println!("Tree: {:#?}", res.data);
+    }
     println!("Ran!");
 
     Ok(())

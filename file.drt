@@ -1,3 +1,6 @@
 pevent Join
-    paction SendMessage ("Hello World!")
+    paction SendMessage (123124124)
+
 end
+
+

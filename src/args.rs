@@ -7,4 +7,6 @@ use clap::Parser;
 pub(crate) struct Arguments {
     #[arg(short, long)]
     pub file: Option<PathBuf>,
+    #[arg(long)]
+    pub tree: bool,
 }

@@ -73,6 +73,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "arrayvec"
+version = "0.7.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "96d30a06541fbafbc7f82ed10c06164cfbd2c401138f6addd8404629c4b16711"
+
+[[package]]
 name = "autocfg"
 version = "1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -166,6 +172,7 @@ name = "diorite_df"
 version = "0.1.0"
 dependencies = [
  "ariadne",
+ "arrayvec",
  "base64",
  "clap",
  "lasso",
@@ -216,6 +223,7 @@ checksum = "4644821e1c3d7a560fe13d842d13f587c07348a1a05d3a797152d41c90c56df2"
 dependencies = [
  "dashmap",
  "hashbrown 0.13.2",
+ "serde",
 ]
 
 [[package]]

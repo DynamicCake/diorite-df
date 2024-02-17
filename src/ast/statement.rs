@@ -2,6 +2,7 @@ use std::sync::Arc;
 
 use lasso::ThreadedRodeo;
 use logos::Span;
+use serde::Serialize;
 
 use crate::lexer::Token;
 
@@ -138,7 +139,8 @@ pub enum IfActionType {
     Var,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "snake_case")]
 pub enum ActionType {
     PlayerAction,
     EntityAction,
@@ -149,6 +151,7 @@ pub enum ActionType {
     Select,
     Var,
 }
+
 
 impl ActionType {
     pub fn from_token(token: Token) -> Result<Self, Token> {
