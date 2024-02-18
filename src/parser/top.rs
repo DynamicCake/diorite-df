@@ -227,19 +227,10 @@ impl<'lex> Parser<'lex> {
             ),
         };
 
-        let name = match self.next_expect(&[Token::Iden(None)], Some("event name")) {
-            Ok(it) => it,
-            Err(err) => {
-                return match err {
-                    AdvanceUnexpected::Token(err) => {
-                        ParseResult::new(Err(TopLevelRecovery), vec![err], self.top_recovery())
-                    }
-                    AdvanceUnexpected::Eof(err) => {
-                        ParseResult::new(Err(TopLevelRecovery), Vec::new(), Some(Box::new(err)))
-                    }
-                }
-            }
-        };
+        let name = adv_top!(
+            self,
+            self.next_expect(&[Token::Iden(None)], Some("event name"))
+        );
 
         let ParseResult {
             data: stmts,
@@ -251,19 +242,7 @@ impl<'lex> Parser<'lex> {
             return ParseResult::new(Err(TopLevelRecovery), errors, Some(at_eof));
         }
 
-        let end = match self.next_expect(&[Token::End], None) {
-            Ok(it) => it.to_empty(),
-            Err(err) => {
-                return match err {
-                    AdvanceUnexpected::Token(err) => {
-                        ParseResult::new(Err(TopLevelRecovery), vec![err], self.top_recovery())
-                    }
-                    AdvanceUnexpected::Eof(err) => {
-                        ParseResult::new(Err(TopLevelRecovery), errors, Some(Box::new(err)))
-                    }
-                };
-            }
-        };
+        let end = adv_top!(self, self.next_expect(&[Token::End], None)).to_empty();
 
         let event = Event::new(
             Spanned::new(type_tok, definition.span),

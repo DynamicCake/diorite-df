@@ -297,13 +297,37 @@ impl SpanEnd for Expression {
 
 #[derive(Debug)]
 pub struct ExprLiteral {
-    pub literal_type: Spanned<ExprLitType>,
-    pub args: Spanned<Wrapped<StaticLiteral>>,
+    pub literal_type: Spanned<Iden>,
+    pub args: Spanned<Wrapped<ExprValue>>,
+}
+
+#[derive(Debug)]
+pub enum ExprValue {
+    Iden(Spanned<Iden>),
+    Number(Spanned<NumberLiteral>),
 }
 
 impl ExprLiteral {
-    pub fn new(literal_type: Spanned<ExprLitType>, args: Spanned<Wrapped<StaticLiteral>>) -> Self {
+    pub fn new(literal_type: Spanned<Iden>, args: Spanned<Wrapped<ExprValue>>) -> Self {
         Self { literal_type, args }
+    }
+}
+
+impl SpanStart for ExprValue {
+    fn start(&self) -> SpanSize {
+        match self {
+            ExprValue::Iden(it) => it.span.start,
+            ExprValue::Number(it) => it.span.start,
+        }
+    }
+}
+
+impl SpanEnd for ExprValue {
+    fn end(&self) -> SpanSize {
+        match self {
+            ExprValue::Iden(it) => it.span.end,
+            ExprValue::Number(it) => it.span.end,
+        }
     }
 }
 

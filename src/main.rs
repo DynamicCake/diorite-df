@@ -13,11 +13,7 @@ pub mod test;
 pub mod tree;
 
 use std::{
-    error::Error,
-    fs::File,
-    io::{self, stdin, stdout, BufRead, BufReader, Read, Write},
-    path::Path,
-    sync::Arc,
+    env::set_var, error::Error, fs::File, io::{self, stdin, stdout, BufRead, BufReader, Read, Write}, path::Path, sync::Arc
 };
 
 use args::Arguments;
@@ -31,7 +27,7 @@ use tree::Program;
 
 fn main() -> Result<(), Box<dyn Error + 'static>> {
     let args = Arguments::parse();
-    // set_var("RUST_BACKTRACE", "1");
+    set_var("RUST_BACKTRACE", "1");
 
     let (src, file) = if let Some(path) = args.file {
         (compile_file(&path)?, Some(path))

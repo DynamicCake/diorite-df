@@ -253,23 +253,18 @@ impl Parser<'_> {
         // loc
         let kind = self
             .next_assert(&[Token::Iden(None)])
-            .map_inner(|it| ExprLitType::from_spur(&it.get_iden_inner(), self.rodeo.clone()));
+            .map_inner(|it| Iden::new(it.get_iden_inner()));
 
         // loc(
         let open = adv_stmt!(self, self.next_expect(&[Token::OpenParen], None));
 
-        let mut items: Vec<StaticLiteral> = Vec::new();
+        let mut items: Vec<ExprValue> = Vec::new();
 
         // loc(   check for ')', string or number
         let next = adv_stmt!(
             self,
             self.peek_expect(
-                &[
-                    Token::CloseParen,
-                    Token::String(None),
-                    Token::Number(None),
-                    Token::Iden(None),
-                ],
+                &[Token::CloseParen, Token::Number(None), Token::Iden(None),],
                 None,
             )
         );
@@ -284,7 +279,7 @@ impl Parser<'_> {
                 );
                 return ParseResult::ok(Ok(ExprLiteral::new(kind, wrapped.calculate_span_wrap())));
             }
-            Token::String(_) | Token::Number(_) | Token::Iden(_) => {}
+            Token::Number(_) | Token::Iden(_) => {}
             _ => panic!("Should have been caught by peek_expect"),
         }
         while {
@@ -304,15 +299,12 @@ impl Parser<'_> {
         } {
             let next = adv_stmt!(
                 self,
-                self.peek_expect(
-                    &[Token::String(None), Token::Number(None)],
-                    Some("Arg start"),
-                )
+                self.peek_expect(&[Token::Iden(None), Token::Number(None)], Some("Arg start"),)
             );
 
             // and parsing
             let item = match next.data {
-                Token::String(_) | Token::Number(_) => should_return!(self.literal()),
+                Token::Iden(_) | Token::Number(_) => should_return!(self.expr_value()),
                 _ => panic!("Should be covered by peek expect"),
             };
 
@@ -330,7 +322,7 @@ impl Parser<'_> {
                     let tok = adv_stmt!(
                         self,
                         self.peek_expect(
-                            &[Token::CloseParen, Token::Number(None), Token::String(None)],
+                            &[Token::CloseParen, Token::Number(None), Token::Iden(None)],
                             None,
                         )
                     );
@@ -339,7 +331,7 @@ impl Parser<'_> {
                         Token::CloseParen => {
                             break;
                         }
-                        Token::Number(_) | Token::String(_) => {}
+                        Token::Number(_) | Token::Iden(_) => {}
                         _ => panic!("Should be covered by next expect"),
                     }
                 }
@@ -365,6 +357,20 @@ impl Parser<'_> {
                 StringLiteral::new(it.expect("Lexer dosen't produce empty Strings"))
             })),
             Token::Number(it) => StaticLiteral::Number(lit.map_inner(|_| {
+                NumberLiteral::new(it.expect("Lexer dosen't produce empty Strings"))
+            })),
+            _ => panic!("Should be covered by next assert"),
+        };
+        ParseResult::ok(Ok(lit))
+    }
+
+    pub fn expr_value(&mut self) -> ParseResult<Result<ExprValue, StatementRecovery>> {
+        let lit = self.next_assert(&[Token::Iden(None), Token::Number(None)]);
+        let lit = match lit.data {
+            Token::Iden(it) => ExprValue::Iden(
+                lit.map_inner(|_| Iden::new(it.expect("Lexer dosen't produce empty Strings"))),
+            ),
+            Token::Number(it) => ExprValue::Number(lit.map_inner(|_| {
                 NumberLiteral::new(it.expect("Lexer dosen't produce empty Strings"))
             })),
             _ => panic!("Should be covered by next assert"),
