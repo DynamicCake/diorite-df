@@ -36,7 +36,8 @@ fn unexpected() {
     UnexpectedToken::new(
         ExpectedTokens::new(Arc::new([Token::Iden(None)])),
         Token::Colon.spanned(1..3),
-        Some("les go".into())
+        Some("les go".into()),
+        "test".into()
     ).expected_print();
 
 }

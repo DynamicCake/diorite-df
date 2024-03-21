@@ -1,0 +1,8 @@
+[project]
+name = "test"
+version = "0.1.0"
+compiler_version = "0.1.0"
+
+[target]
+size = "small"
+rank = "none"

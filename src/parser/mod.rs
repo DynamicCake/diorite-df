@@ -22,8 +22,7 @@ pub struct Parser<'lex> {
     // source: &'src str,
     /// Whenever an invalid token is replaced with `Token::Invalid`, a lexer error gets added
     lex_errs: Vec<LexerError>,
-    /// The string pool, share this across parser instances
-    rodeo: Arc<ThreadedRodeo>,
+    file: Arc<str>,
 }
 
 mod ext {
@@ -79,12 +78,12 @@ mod ext {
 }
 
 impl<'lex> Parser<'lex> {
-    pub fn new(lexer: Lexer<'lex, Token>, rodeo: Arc<ThreadedRodeo>) -> Self {
+    pub fn new(lexer: Lexer<'lex, Token>, file: Arc<str>) -> Self {
         Self {
             // source: lexer.source(),
             toks: lexer.spanned().peekable(),
             lex_errs: Vec::new(),
-            rodeo,
+            file,
         }
     }
 
@@ -126,7 +125,8 @@ impl<'lex> Parser<'lex> {
                         UnexpectedToken {
                             expected: ExpectedTokens::new(expected.into()),
                             received: token.spanned(span),
-                            expected_name: None
+                            expected_name: None,
+                            file: self.file.clone(),
                         }
                     )
                 };
@@ -170,6 +170,7 @@ impl<'lex> Parser<'lex> {
                         expected: ExpectedTokens::new(expected.into()),
                         received: token.spanned(span),
                         expected_name: expected_name.map(|str| str.into()),
+                        file: self.file.clone(),
                     }))
                 };
             } else {
@@ -200,6 +201,7 @@ impl<'lex> Parser<'lex> {
                         expected: ExpectedTokens::new(expected.into()),
                         received: token.clone().spanned(span.clone()),
                         expected_name: msg.map(|str| str.into()),
+                        file: self.file.clone(),
                     }))
                 };
             } else {

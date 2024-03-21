@@ -52,6 +52,7 @@ pub struct UnexpectedToken {
     pub expected: ExpectedTokens,
     pub received: Spanned<Token>,
     pub expected_name: Option<Arc<str>>,
+    pub file: Arc<str>
 }
 
 impl UnexpectedToken {
@@ -59,11 +60,13 @@ impl UnexpectedToken {
         expected: ExpectedTokens,
         received: Spanned<Token>,
         expected_name: Option<Arc<str>>,
+        file: Arc<str>
     ) -> Self {
         Self {
             expected,
             received,
             expected_name,
+            file
         }
     }
 
