@@ -1,6 +1,6 @@
-use crate::tree::recovery::{StatementRecovery, TopLevelRecovery};
+use crate::{tree::recovery::{StatementRecovery, TopLevelRecovery}, error::syntax::ParseResult};
 
-use super::{AdvanceUnexpected, ParseResult, Parser};
+use super::{AdvanceUnexpected, Parser};
 
 pub fn recover_statement<'lex, T>(
     parser: &mut Parser<'lex>,

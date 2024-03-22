@@ -1,14 +1,15 @@
 use self::ext::*;
 
 use super::*;
+use crate::error::syntax::UnexpectedToken;
 use crate::span::CalcThenWrap;
 use crate::tree::recovery::StatementRecovery;
 
-use crate::tree::statement::{ElseBlock, IfActionType, RepeatLoop, Statements};
+use crate::tree::statement::{ElseBlock, RepeatLoop, Statements};
 use crate::tree::Iden;
 use crate::{
     lexer::Token,
-    tree::statement::{ActionType, IfStatement, SimpleStatement},
+    tree::statement::{IfStatement, SimpleStatement},
 };
 
 impl<'lex> Parser<'lex> {
@@ -222,7 +223,7 @@ impl<'lex> Parser<'lex> {
         let ParseResult {
             data: statements,
             // NOTE use this vec when returning
-            mut error,
+            error,
             at_eof,
         } = self.statements(true);
         if at_eof.is_some() {

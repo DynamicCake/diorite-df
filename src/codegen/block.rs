@@ -5,6 +5,11 @@ use serde_json::Number;
 
 
 #[derive(Serialize)]
+pub struct GeneratedCode<'src> {
+    blocks: Vec<CodeBlock<'src>>
+}
+
+#[derive(Serialize)]
 #[serde(tag = "id", rename_all = "snake_case")]
 pub enum CodeBlock<'src> {
     Block(Block<'src>),
@@ -120,6 +125,15 @@ impl TryFrom<&str> for DfNumber {
         let num = start.parse::<i64>().map_err(|_| ())?;
         Ok(DfNumber(num))
     }
+}
+
+#[test]
+fn parse_int() {
+    use crate::codegen::block::DfNumber;
+
+    let number = "123.2";
+    let number: DfNumber = number.try_into().unwrap();
+    assert_eq!(number, DfNumber::new(-123200).unwrap())
 }
 
 #[derive(Serialize)]

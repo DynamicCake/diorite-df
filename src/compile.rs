@@ -4,15 +4,14 @@ use lasso::ThreadedRodeo;
 use logos::Logos;
 
 use crate::{
+    codegen::CodeGenerator,
+    dump::ActionDump,
     lexer::Token,
-    parser::{
-        error::{ParseResult, UnexpectedToken},
-        Parser,
-    },
-    tree::Program,
+    parser::Parser,
+    semantic::Checker,
 };
 
-pub async fn compile(files: Vec<SourceFile>) -> Vec<ParseResult<Program, Vec<UnexpectedToken>>> {
+pub async fn compile(files: Vec<SourceFile>) -> () {
     let mut handles = Vec::with_capacity(files.len());
     let rodeo = Arc::new(ThreadedRodeo::new());
 
@@ -39,16 +38,19 @@ pub async fn compile(files: Vec<SourceFile>) -> Vec<ParseResult<Program, Vec<Une
     let _rodeo = Arc::try_unwrap(rodeo).expect("Somehow, the Arc has escaped this scope");
     // gonna need this for codegen
     // let rodeo = rodeo.into_resolver();
-
-    trees
 }
 
-pub async fn compile_single(file: SourceFile) -> ParseResult<Program> {
+pub async fn compile_single(file: SourceFile, dump: ActionDump) -> String {
     let rodeo = Arc::new(ThreadedRodeo::new());
     let lexer = Token::lexer_with_extras(&file.source, rodeo);
-    let mut parser = Parser::new(lexer, file.file);
+    let parser = Parser::new(lexer, file.file);
     let ast = parser.parse();
-    ast
+
+    let dump = Arc::new(dump);
+    let checker = Checker::new(dump.clone(), &ast.program);
+
+    let codegen = CodeGenerator::new(dump, &ast.program);
+    codegen.generate()
 }
 
 pub struct SourceFile {

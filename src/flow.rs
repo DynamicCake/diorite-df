@@ -1,8 +1,9 @@
 #![allow(unused_imports, unused_variables)]
 use std::{
-    fs::File,
+    fs::{self, File},
     io::{self, stdin, stdout, BufRead, BufReader, Read, Write},
     path::{Path, PathBuf},
+    rc::Rc,
     sync::Arc,
     time::Instant,
 };
@@ -13,32 +14,62 @@ use crate::{
     args::{Action, Args},
     compile::{self, compile_single, SourceFile},
     diagnostics,
+    error::cli::CliError,
 };
 
-pub async fn handle(args: Args) {
+pub async fn handle(args: Args) -> Result<(), CliError>{
     match args.action {
         Action::New { name } => todo!(),
         Action::Init => todo!(),
         Action::Build { target } => todo!(),
         Action::Send { target, all } => todo!(),
-        Action::Single { file, tree, out} => single(file),
+        Action::Single {
+            file,
+            tree,
+            out,
+            dump,
+        } => {
+            let out = out.unwrap_or_else(|| file.clone());
+            single(file, dump, out, tree).await?
+        },
         Action::Interactive => todo!(),
     };
+    Ok(())
 }
 
-async fn single(file: PathBuf) {
-    let mut src = File::open(&file).unwrap();
-    let mut buf = String::new();
-    src.read_to_string(&mut buf).unwrap();
-    let result = compile_single(SourceFile::new(
-        buf.into(),
-        file.file_name()
-            .expect("File open should have been checked before")
-            .to_string_lossy()
-            .into(),
-    )).await;
+async fn single(file: PathBuf, actiondump: PathBuf, out: PathBuf, tree: bool) -> Result<String, CliError> {
+    let src = match fs::read_to_string(&file) {
+        Ok(it) => it,
+        Err(code) => return Err(CliError::CannotReadSource { file, code }),
+    };
 
-    println!("{:#?}", result)
+    let actiondump = match fs::read_to_string(actiondump) {
+        Ok(it) => it,
+        Err(code) => return Err(CliError::CannotReadActionDump { file, code }),
+    };
+
+    let parsed = match serde_json::from_str(&actiondump) {
+        Ok(it) => it,
+        Err(error) => return Err(CliError::MalformedActionDump { file, error }),
+    };
+
+    let result = compile_single(
+        SourceFile::new(
+            src.into(),
+            file.file_name()
+                .expect("File open should have been opened before and therefore exists")
+                .to_string_lossy()
+                .into(),
+        ),
+        parsed,
+    )
+    .await;
+
+    if tree {
+        println!("{}", result);
+    }
+
+    Ok(result)
 }
 
 fn interactive() -> Result<String, io::Error> {

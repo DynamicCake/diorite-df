@@ -1,16 +1,15 @@
 use std::iter::Peekable;
 use std::sync::Arc;
 
-use lasso::ThreadedRodeo;
 use logos::{Lexer, SpannedIter};
 
+use crate::error::syntax::{
+    ExpectedTokens, LexerError, ParseResult, UnexpectedEOF, UnexpectedToken,
+};
 use crate::span::{SpanSize, Spanned};
 use crate::tree::Program;
 use crate::{lexer::Token, tree::top::TopLevel};
 
-use self::error::*;
-
-pub mod error;
 pub mod helper;
 pub mod stmt;
 pub mod top;
@@ -25,56 +24,11 @@ pub struct Parser<'lex> {
     file: Arc<str>,
 }
 
-mod ext {
-    macro_rules! adv_stmt {
-        ($params:expr, $func:expr) => {
-            match $func {
-                Ok(it) => it,
-                Err(err) => return helper::recover_statement($params, err),
-            }
-        };
-    }
-
-    macro_rules! adv_top {
-        ($params:expr, $func:expr) => {
-            match $func {
-                Ok(it) => it,
-                Err(err) => return helper::recover_top_level($params, err),
-            }
-        };
-    }
-
-    macro_rules! ret_err {
-        ($expr:expr) => {
-            match $expr {
-                Ok(it) => it,
-                Err(err) => return err,
-            }
-        };
-    }
-
-    macro_rules! should_return {
-        ($expr:expr) => {
-            match helper::should_return_func($expr) {
-                Ok(it) => it,
-                Err(err) => return err,
-            }
-        };
-    }
-
-    macro_rules! should_return_top {
-        ($expr:expr) => {
-            match helper::should_return_top_func($expr) {
-                Ok(it) => it,
-                Err(err) => return err,
-            }
-        };
-    }
-
-    pub(crate) use adv_stmt;
-    pub(crate) use adv_top;
-    pub(crate) use should_return;
-    pub(crate) use should_return_top;
+pub struct ParsedFile {
+    pub program: Program,
+    pub lex_errs: Vec<LexerError>,
+    pub parse_errs: Vec<UnexpectedToken>,
+    pub at_eof: Option<Box<UnexpectedEOF>>,
 }
 
 impl<'lex> Parser<'lex> {
@@ -87,7 +41,7 @@ impl<'lex> Parser<'lex> {
         }
     }
 
-    pub fn parse(&mut self) -> ParseResult<Program, Vec<UnexpectedToken>> {
+    pub fn parse(mut self) -> ParsedFile {
         let mut stmts = Vec::new();
         let mut errors = Vec::new();
         loop {
@@ -105,10 +59,21 @@ impl<'lex> Parser<'lex> {
             stmts.push(data);
 
             if let Some(at_eof) = at_eof {
-                return ParseResult::new(Program::new(stmts), errors, Some(at_eof));
+                return ParsedFile {
+                    program: Program::new(stmts),
+                    lex_errs: self.lex_errs,
+                    parse_errs: errors,
+                    at_eof: Some(at_eof),
+                };
             }
         }
-        ParseResult::new(Program::new(stmts), errors, None)
+        ParsedFile {
+            program: Program::new(stmts),
+            lex_errs: self.lex_errs,
+            parse_errs: errors,
+            at_eof: None,
+        }
+        // ParseResult::new(Program::new(stmts), errors, None)
     }
 
     /// Only use if you are sure at compile time that this cannot fail
@@ -267,4 +232,56 @@ impl<'lex> Parser<'lex> {
 pub enum AdvanceUnexpected {
     Token(UnexpectedToken),
     Eof(UnexpectedEOF),
+}
+
+mod ext {
+    macro_rules! adv_stmt {
+        ($params:expr, $func:expr) => {
+            match $func {
+                Ok(it) => it,
+                Err(err) => return helper::recover_statement($params, err),
+            }
+        };
+    }
+
+    macro_rules! adv_top {
+        ($params:expr, $func:expr) => {
+            match $func {
+                Ok(it) => it,
+                Err(err) => return helper::recover_top_level($params, err),
+            }
+        };
+    }
+
+    macro_rules! ret_err {
+        ($expr:expr) => {
+            match $expr {
+                Ok(it) => it,
+                Err(err) => return err,
+            }
+        };
+    }
+
+    macro_rules! should_return {
+        ($expr:expr) => {
+            match helper::should_return_func($expr) {
+                Ok(it) => it,
+                Err(err) => return err,
+            }
+        };
+    }
+
+    macro_rules! should_return_top {
+        ($expr:expr) => {
+            match helper::should_return_top_func($expr) {
+                Ok(it) => it,
+                Err(err) => return err,
+            }
+        };
+    }
+
+    pub(crate) use adv_stmt;
+    pub(crate) use adv_top;
+    pub(crate) use should_return;
+    pub(crate) use should_return_top;
 }

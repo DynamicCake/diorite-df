@@ -1,4 +1,5 @@
 
+
 #[test]
 fn print_tes() {
     use crate::lexer::Token;
@@ -28,9 +29,8 @@ fn iden_quotes() {
 
 #[test]
 fn unexpected() {
+    use crate::error::syntax::{UnexpectedToken, ExpectedTokens};
     use crate::lexer::Token;
-    use crate::parser::error::UnexpectedToken;
-    use crate::parser::error::ExpectedTokens;
     use std::sync::Arc;
 
     UnexpectedToken::new(
@@ -41,15 +41,4 @@ fn unexpected() {
     ).expected_print();
 
 }
-
-#[test]
-fn parse_int() {
-    use crate::codegen::block::DfNumber;
-
-    let number = "123.2";
-    let number: DfNumber = number.try_into().unwrap();
-    assert_eq!(number, DfNumber::new(-123200).unwrap())
-}
-
-
 

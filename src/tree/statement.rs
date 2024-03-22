@@ -289,7 +289,6 @@ impl SpanEnd for Expression {
                 StaticLiteral::String(lit) => lit.span.end,
                 StaticLiteral::Number(lit) => lit.span.end,
             }
-            .clone(),
         };
         range
     }

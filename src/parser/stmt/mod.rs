@@ -1,4 +1,5 @@
 use super::*;
+use crate::error::syntax::{ParseResult, UnexpectedToken, UnexpectedEOF};
 use crate::span::CalcSpan;
 use crate::tree::recovery::StatementRecovery;
 use crate::{lexer::Token, tree::statement::Statement};
@@ -6,7 +7,7 @@ use crate::{lexer::Token, tree::statement::Statement};
 pub mod common;
 pub mod kind;
 
-use super::{error::ParseResult, Parser};
+use super::Parser;
 
 impl<'lex> Parser<'lex> {
     pub fn statements(&mut self, in_else: bool) -> ParseResult<Vec<Statement>> {

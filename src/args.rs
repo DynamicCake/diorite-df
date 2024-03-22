@@ -4,7 +4,7 @@ use clap::{Parser, Subcommand};
 
 #[derive(Parser)]
 #[command(author, version, about, long_about = None)]
-pub(crate) struct Args {
+pub struct Args {
     #[command(subcommand)]
     pub action: Action,
 }
@@ -30,6 +30,8 @@ pub enum Action {
         out: Option<PathBuf>,
         #[arg(long)]
         tree: bool,
+        #[arg(short, long, default_value = "actiondump.json")]
+        dump: PathBuf
     },
     #[command(name = "interactive")]
     Interactive

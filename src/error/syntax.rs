@@ -127,7 +127,7 @@ impl Display for ExpectedTokens {
             return Ok(());
         };
         let later: String = iter
-            .map(|tok| ", ".to_string() + &format!("{}", tok.expected_print()))
+            .map(|tok| ", ".to_string() + &tok.expected_print())
             .collect();
         write!(f, "[{}{}]", first, later).unwrap();
 
