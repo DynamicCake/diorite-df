@@ -8,7 +8,7 @@ use crate::{
     dump::ActionDump,
     lexer::Token,
     parser::Parser,
-    semantic::Checker,
+    semantic::Analyzer,
 };
 
 pub async fn compile(files: Vec<SourceFile>) -> () {
@@ -47,7 +47,7 @@ pub async fn compile_single(file: SourceFile, dump: ActionDump) -> String {
     let ast = parser.parse();
 
     let dump = Arc::new(dump);
-    let checker = Checker::new(dump.clone(), &ast.program);
+    let checker = Analyzer::new(dump.clone(), &ast.program);
 
     let codegen = CodeGenerator::new(dump, &ast.program);
     codegen.generate()

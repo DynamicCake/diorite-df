@@ -38,10 +38,9 @@ impl<T, E> ParseResult<T, E> {
 
 impl<T> ParseResult<T> {
     pub fn ok(data: T) -> Self {
-        let error = Default::default();
         Self {
             data,
-            error,
+            error: Vec::new(),
             at_eof: None,
         }
     }
