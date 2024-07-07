@@ -1,3 +1,5 @@
+//! Set of functions to show how to compile
+
 use std::sync::Arc;
 
 use lasso::ThreadedRodeo;
@@ -22,7 +24,7 @@ pub async fn compile(files: Vec<SourceFile>) -> () {
         let rodeo = rodeo.clone();
         let handle = tokio::spawn(async move {
             let lexer = Token::lexer_with_extras(&src, rodeo);
-            let mut parser = Parser::new(lexer, file.clone());
+            let parser = Parser::new(lexer, file.clone());
             let ast = parser.parse();
             ast
         });

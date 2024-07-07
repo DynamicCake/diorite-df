@@ -2,6 +2,8 @@ use std::{fmt::Display, sync::Arc};
 
 use crate::{lexer::Token, span::Spanned};
 
+/// Represents a parse result that every parsing function should return
+/// All parsing functions are called by [Parser::parse](crate::parser::Parser::parse)
 #[derive(Debug)]
 pub struct ParseResult<T, E = Vec<UnexpectedToken>> {
     pub data: T,
@@ -22,7 +24,8 @@ impl<T, E> ParseResult<T, E> {
         }
     }
 
-    pub fn map_inner<R, F>(self, f: F) -> ParseResult<R, E>
+    /// Maps a [ParseResult<T>] to [ParseResult<R>] by applying a function to the data field
+    pub fn map_data<R, F>(self, f: F) -> ParseResult<R, E>
     where
         F: FnOnce(T) -> R,
     {
@@ -46,6 +49,7 @@ impl<T> ParseResult<T> {
     }
 }
 
+/// Created when an unexpected token is encountered
 #[derive(Debug)]
 pub struct UnexpectedToken {
     pub expected: ExpectedTokens,
@@ -69,6 +73,7 @@ impl UnexpectedToken {
         }
     }
 
+    /// Returns a more friendly error message
     pub fn expected_print(&self) -> String {
         if let Some(it) = &self.expected_name {
             format!("{} ({})", it, self.expected.to_string())
@@ -78,6 +83,7 @@ impl UnexpectedToken {
     }
 }
 
+/// Created when an unexpected end of file
 #[derive(Debug)]
 pub struct UnexpectedEOF {
     pub expected: Option<ExpectedTokens>,
@@ -93,6 +99,7 @@ impl UnexpectedEOF {
     }
 }
 
+/// Created when an invalid token is encountered
 #[derive(Debug)]
 pub struct LexerError {
     pub token: Spanned<()>,
@@ -104,6 +111,7 @@ impl LexerError {
     }
 }
 
+/// An immutable list of tokens
 #[derive(Debug, Clone)]
 pub struct ExpectedTokens {
     pub expected: Arc<[Token]>,
@@ -116,7 +124,7 @@ impl ExpectedTokens {
 }
 
 impl Display for ExpectedTokens {
-    // TODO Make this less scuffed, I am too lazy
+    // HACK: Make this less scuffed, I am too lazy
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let mut iter = self.expected.iter();
         let first = if let Some(it) = iter.next() {

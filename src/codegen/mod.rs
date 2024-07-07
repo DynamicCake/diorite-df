@@ -1,3 +1,4 @@
+//! Moule for the code generation step
 use std::sync::Arc;
 
 use crate::{dump::ActionDump, tree::Program};

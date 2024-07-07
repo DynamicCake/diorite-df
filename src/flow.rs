@@ -1,3 +1,6 @@
+//! Module for handling different ways to compile this language
+//! Probably will be moved to dioritec and therefore would not be documented
+
 #![allow(unused_imports, unused_variables)]
 use std::{
     fs::{self, File},

@@ -1,3 +1,5 @@
+/// NOTE: This is more of an artifact of the previous parsing system and it should be phased out
+///
 /// Used when a statement is malformed and continues until
 /// it finds another statement decleration like `paction` or `end`
 ///
@@ -17,6 +19,8 @@
 #[derive(Debug)]
 pub struct StatementRecovery;
 
+/// NOTE: This has the same case that StatementRecovery had, an artifact of the past
+///
 /// Used when there is an error when parsing a top level statement,
 /// this is commonly used when a func has an error.
 /// It looks for top level declarations like `pevent`

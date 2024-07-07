@@ -1,14 +1,14 @@
 use crate::{
     span::TryCalcThenWrap,
     tree::{
-        recovery::{StatementRecovery, TopLevelRecovery},
+        recovery::TopLevelRecovery,
         statement::{Statements, Wrapped},
         top::{Event, EventType, FuncDef, FuncParamDef, ProcDef},
         Iden, Parameters,
     },
 };
 
-use self::ext::{adv_stmt, adv_top, should_return, should_return_top};
+use self::ext::{adv_top, should_return_top};
 
 use super::*;
 

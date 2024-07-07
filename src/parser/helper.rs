@@ -2,6 +2,7 @@ use crate::{tree::recovery::{StatementRecovery, TopLevelRecovery}, error::syntax
 
 use super::{AdvanceUnexpected, Parser};
 
+/// [Parser::statement_recovery] that takes into account end of line errors
 pub fn recover_statement<'lex, T>(
     parser: &mut Parser<'lex>,
     err: AdvanceUnexpected,
@@ -16,7 +17,7 @@ pub fn recover_statement<'lex, T>(
         }
     }
 }
-
+/// [recover_statement] but for the top level instead
 pub fn recover_top_level<'lex, T>(
     parser: &mut Parser<'lex>,
     err: AdvanceUnexpected,
@@ -32,6 +33,7 @@ pub fn recover_top_level<'lex, T>(
     }
 }
 
+#[deprecated]
 pub fn handle_result_statement<'src, T, E>(
     ParseResult {
         data,
@@ -52,6 +54,7 @@ pub fn handle_result_statement<'src, T, E>(
     }
 }
 
+/// Puts ParseResults without errors into `Ok(T)` and the ones with errors into `Err(E)`
 pub fn should_return_func<'src, T, R>(
     result: ParseResult<Result<T, StatementRecovery>>,
 ) -> Result<T, ParseResult<Result<R, StatementRecovery>>> {
@@ -67,14 +70,15 @@ pub fn should_return_func<'src, T, R>(
             }
             it
         }
-        Err(err) => {
-            return Err(ParseResult::new(Err(err), error, at_eof));
+        Err(_err) => {
+            return Err(ParseResult::new(Err(StatementRecovery), error, at_eof));
         }
     };
 
     Ok(lit)
 }
 
+/// [should_return_func] but for top level
 pub fn should_return_top_func<'src, T, R>(
     result: ParseResult<Result<T, TopLevelRecovery>>,
 ) -> Result<T, ParseResult<Result<R, TopLevelRecovery>>> {

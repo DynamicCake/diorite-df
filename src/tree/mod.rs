@@ -1,3 +1,6 @@
+//! Provides structs to create a parse tree
+//! Not to be confused with
+
 use lasso::Spur;
 
 use crate::span::{Span, SpanEnd, SpanSize, SpanStart, TryCalcSpan, TrySpanEnd, TrySpanStart};

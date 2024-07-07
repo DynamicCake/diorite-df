@@ -120,6 +120,7 @@ pub enum Token {
     Invalid,
 }
 
+
 fn process_iden<'src>(lex: &mut Lexer<'src, Token>) -> Option<Spur> {
     let text = lex.slice();
     let res = if text.len() >= 2 && text.starts_with('\'') && text.ends_with('\'') {
@@ -155,7 +156,7 @@ fn process_number<'src>(lex: &mut Lexer<'src, Token>) -> Option<Spur> {
     Some(spur)
 }
 
-//by default the logos error type is (). You may want to replace it with a better one.
+// FIXME: For now this doesn't work
 fn comment<'src>(lexer: &mut Lexer<'src, Token>) -> Result<(), ()> {
     println!("Comment triggered!");
     #[derive(Logos, Debug)]
@@ -197,7 +198,8 @@ impl<'src> Token {
         Spanned::new(self, (span.start as u32)..(span.end as u32))
     }
 
-    // HACK Not sure if it is but get another pair of eyes on this
+    // HACK: Not sure if it is but get another pair of eyes on this
+
     /// When having `Expected: Whatever, Something`, it makes it so the inner contents aren't visible,
     /// This feels hacky and I don't really like it
     pub fn expected_print(&self) -> String {
@@ -215,12 +217,13 @@ impl<'src> Token {
     pub fn get_iden_inner(self) -> Spur {
         match self {
             Self::Iden(it) => return it.unwrap(),
-            it => panic!("Expected Iden recieved {:#?}", it),
+            it => panic!("Expected Iden, recieved {:#?}", it),
         }
     }
 }
 
 impl<'src> Token {
+    /// Statement starters
     pub const STATEMENT: [Token; 13] = [
         Token::PlayerAction,
         Token::EntityAction,
@@ -237,6 +240,7 @@ impl<'src> Token {
         Token::Repeat,
     ];
 
+    /// Statement starters and an end to allow for escape
     pub const STATEMENT_LOOP: [Token; 14] = [
         Token::PlayerAction,
         Token::EntityAction,
@@ -254,6 +258,7 @@ impl<'src> Token {
         Token::End,
     ];
 
+    /// Starting tokens that can appear in a loop body
     pub const IF_BODY_LOOP: [Token; 15] = [
         Token::PlayerAction,
         Token::EntityAction,
@@ -272,6 +277,7 @@ impl<'src> Token {
         Token::Else,
     ];
 
+    /// Starting tokens for if statements
     pub const IF_STATEMENT: [Token; 4] = [
         Token::IfPlayer,
         Token::IfEntity,
@@ -279,6 +285,7 @@ impl<'src> Token {
         Token::IfVar,
     ];
 
+    /// Starting tokens for simple (regular) statements 
     pub const SIMPLE_STATEMENT: [Token; 9] = [
         Token::PlayerAction,
         Token::EntityAction,
@@ -291,6 +298,7 @@ impl<'src> Token {
         Token::Repeat,
     ];
 
+    /// Starting tokens for top level tokens
     pub const TOP_LEVEL: [Token; 4] = [
         Token::FuncDef,
         Token::ProcDef,
@@ -298,10 +306,14 @@ impl<'src> Token {
         Token::EntityEvent,
     ];
 
+    /// Starting tokens for events
     pub const EVENT: [Token; 2] = [Token::PlayerEvent, Token::EntityEvent];
 
+    /// Acceptable arguement tokens for expressions?
+    #[deprecated]
     pub const EXPRESSION_ARG: [Token; 2] = [Token::Number(None), Token::String(None)];
 
+    /// Acceptable tokens for paramaters for a codeblock
     pub const POSSIBLE_PARAM: [Token; 3] =
         [Token::Number(None), Token::String(None), Token::Iden(None)];
 }

@@ -14,38 +14,45 @@ pub mod helper;
 pub mod stmt;
 pub mod top;
 
+/// Converts tokens from a file to a parse tree (not an abstract syntax tree)
 pub struct Parser<'lex> {
     /// The main token iterator
-    /// It is not advised to use this in functions called by `parse(&mut self)`
+    /// It is not advised to use this in functions called by [parse(mut self)](Parser::parse)
+    /// Use the helper methods instead
     toks: Peekable<SpannedIter<'lex, Token>>,
-    // source: &'src str,
-    /// Whenever an invalid token is replaced with `Token::Invalid`, a lexer error gets added
+    /// Whenever an invalid token is replaced with [Token::Invalid](crate::lexer::Token), a lexer error gets added
     lex_errs: Vec<LexerError>,
+    /// The file this parser belongs to
     file: Arc<str>,
 }
 
 pub struct ParsedFile {
+    /// The parse tree
     pub program: Program,
+    /// List of lexer errors caused by invalid tokens
     pub lex_errs: Vec<LexerError>,
+    /// List of unexpected token errors
     pub parse_errs: Vec<UnexpectedToken>,
+    /// Indicates weather an error happened at the end of file
+    /// It was found that this is better than putting eof errors in [parse_errs](ParsedFile::parse_errs)
     pub at_eof: Option<Box<UnexpectedEOF>>,
 }
 
 impl<'lex> Parser<'lex> {
     pub fn new(lexer: Lexer<'lex, Token>, file: Arc<str>) -> Self {
         Self {
-            // source: lexer.source(),
             toks: lexer.spanned().peekable(),
             lex_errs: Vec::new(),
             file,
         }
     }
 
+    /// Consume the token iterator and output a parsed file
     pub fn parse(mut self) -> ParsedFile {
         let mut stmts = Vec::new();
         let mut errors = Vec::new();
         loop {
-            // err is intentionally ignored to allow an empty file
+            // to allow an empty file
             if let Err(_err) = self.peek() {
                 break;
             }
@@ -73,10 +80,10 @@ impl<'lex> Parser<'lex> {
             parse_errs: errors,
             at_eof: None,
         }
-        // ParseResult::new(Program::new(stmts), errors, None)
     }
 
-    /// Only use if you are sure at compile time that this cannot fail
+    /// Advances the iterator and if it doesn't match, panic
+    /// Useful for the first iterator advancement
     pub fn next_assert(&mut self, expected: &[Token]) -> Spanned<Token> {
         if let Some(it) = self.toks.next() {
             let (token, span) = it;
@@ -114,11 +121,7 @@ impl<'lex> Parser<'lex> {
     }
 
     /// Used when you know what next token you expect
-    /// ```diroite
-    /// paction Name ()
-    ///    HERE ^^^^
-    /// ```
-    /// If you are 100% sure during compiler time use next_assert
+    /// If you are sure that the next token is the one you use [Self::next_assert]
     pub fn next_expect(
         &mut self,
         expected: &[Token],
@@ -151,6 +154,7 @@ impl<'lex> Parser<'lex> {
         }
     }
 
+    /// Get the next token without advancing the iterator 
     pub fn peek_expect(
         &mut self,
         expected: &[Token],
@@ -184,7 +188,7 @@ impl<'lex> Parser<'lex> {
         }
     }
 
-    /// Returns a reference to the next() Token without advancing the iterator.
+    /// Get a reference to the next token without advancing the iterator.
     /// On lexer error, it pushes it onto `self.lex_errs` and returns `Token::Invalid`
     pub fn peek(&mut self) -> Result<Spanned<&Token>, UnexpectedEOF> {
         if let Some(it) = self.toks.peek() {
@@ -234,7 +238,11 @@ pub enum AdvanceUnexpected {
     Eof(UnexpectedEOF),
 }
 
+/// Some macros to make writing the parser easier 
 mod ext {
+
+    /// Pass in `self` for the first paramater and the advancement function
+    /// If the function fails, it starts recovery
     macro_rules! adv_stmt {
         ($params:expr, $func:expr) => {
             match $func {
@@ -244,6 +252,7 @@ mod ext {
         };
     }
 
+    /// [adv_stmt] but for top level
     macro_rules! adv_top {
         ($params:expr, $func:expr) => {
             match $func {
@@ -253,6 +262,9 @@ mod ext {
         };
     }
 
+    /// If ok, produce value
+    /// If err, return from the function with the error
+    /// Now phased out and there really isn't a reason to use this
     macro_rules! ret_err {
         ($expr:expr) => {
             match $expr {
@@ -262,6 +274,8 @@ mod ext {
         };
     }
 
+    /// Run a [should_return_func](crate::parser::helper::should_return_func) and then return from
+    /// the function calling this if there is an error 
     macro_rules! should_return {
         ($expr:expr) => {
             match helper::should_return_func($expr) {
@@ -271,6 +285,7 @@ mod ext {
         };
     }
 
+    /// [should_return] but for the top level
     macro_rules! should_return_top {
         ($expr:expr) => {
             match helper::should_return_top_func($expr) {
