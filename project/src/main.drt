@@ -1,7 +1,0 @@
-proc DeezNuts
-    paction SendMessage (deez(nuts)) 
-end
-
-func e (name: text deez)
-end
-
