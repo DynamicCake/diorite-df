@@ -4,7 +4,6 @@ use serde::Deserialize;
 use serde::Serialize;
 use serde_json::Value;
 
-
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ActionDump {
@@ -416,8 +415,7 @@ pub struct CosmeticIcon {
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct Category {
-}
+pub struct Category {}
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]

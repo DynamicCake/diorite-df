@@ -1,5 +1,5 @@
 use super::*;
-use crate::error::syntax::{ParseResult, UnexpectedToken, UnexpectedEOF};
+use crate::error::syntax::{ParseResult, UnexpectedEOF, UnexpectedToken};
 use crate::span::CalcSpan;
 use crate::tree::recovery::StatementRecovery;
 use crate::{lexer::Token, tree::statement::Statement};

@@ -20,7 +20,7 @@ use crate::{
     error::cli::CliError,
 };
 
-pub async fn handle(args: Args) -> Result<(), CliError>{
+pub async fn handle(args: Args) -> Result<(), CliError> {
     match args.action {
         Action::New { name } => todo!(),
         Action::Init => todo!(),
@@ -34,13 +34,18 @@ pub async fn handle(args: Args) -> Result<(), CliError>{
         } => {
             let out = out.unwrap_or_else(|| file.clone());
             single(file, dump, out, tree).await?
-        },
+        }
         Action::Interactive => todo!(),
     };
     Ok(())
 }
 
-async fn single(file: PathBuf, actiondump: PathBuf, out: PathBuf, tree: bool) -> Result<String, CliError> {
+async fn single(
+    file: PathBuf,
+    actiondump: PathBuf,
+    out: PathBuf,
+    tree: bool,
+) -> Result<String, CliError> {
     let src = match fs::read_to_string(&file) {
         Ok(it) => it,
         Err(code) => return Err(CliError::CannotReadSource { file, code }),

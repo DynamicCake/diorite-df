@@ -1,8 +1,7 @@
 use enum_assoc::Assoc;
 use lasso::Spur;
 
-use crate::span::{Spanned, Span};
-
+use crate::span::{Span, Spanned};
 
 #[derive(Assoc)]
 #[func(pub const fn severe(&self) -> bool { false })]
@@ -17,12 +16,9 @@ pub enum SemanitcError {
     PotionNotFound(MissingInDumpError),
     #[assoc(severe = true)]
     SelectorNotFound(MissingInDumpError),
-    
     // action, tag, gamevalue, particle, sound, poition, selector
 }
 
 pub struct MissingInDumpError {
     token: Spanned<Spur>,
 }
-
-

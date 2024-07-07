@@ -1,4 +1,7 @@
-use crate::{tree::recovery::{StatementRecovery, TopLevelRecovery}, error::syntax::ParseResult};
+use crate::{
+    error::syntax::ParseResult,
+    tree::recovery::{StatementRecovery, TopLevelRecovery},
+};
 
 use super::{AdvanceUnexpected, Parser};
 

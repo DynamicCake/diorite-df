@@ -6,7 +6,8 @@ use serde::Serialize;
 use crate::{
     lexer::Token,
     span::{
-        CalcSpan, MaybeSpan, SpanEnd, SpanSize, SpanStart, Spanned, TryCalcSpan, TrySpanEnd, TrySpanStart
+        CalcSpan, MaybeSpan, SpanEnd, SpanSize, SpanStart, Spanned, TryCalcSpan, TrySpanEnd,
+        TrySpanStart,
     },
 };
 
@@ -132,7 +133,7 @@ pub struct IfStatement {
     pub params: Spanned<Wrapped<Expression>>,
     pub statements: Statements,
     pub else_block: Option<ElseBlock>,
-    pub end: Spanned<()>
+    pub end: Spanned<()>,
 }
 
 #[derive(Debug)]
@@ -155,7 +156,7 @@ pub struct RepeatLoop {
     pub tags: Option<Spanned<Tags>>,
     pub params: Spanned<Wrapped<Expression>>,
     pub statements: Statements,
-    pub end: Spanned<()>
+    pub end: Spanned<()>,
 }
 
 impl CalcSpan for RepeatLoop {
@@ -288,7 +289,7 @@ impl SpanEnd for Expression {
             Self::Literal(lit) => match lit {
                 StaticLiteral::String(lit) => lit.span.end,
                 StaticLiteral::Number(lit) => lit.span.end,
-            }
+            },
         };
         range
     }

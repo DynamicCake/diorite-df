@@ -9,7 +9,6 @@ mod data;
 pub struct CodeGenerator<'pro> {
     pub dump: Arc<ActionDump>,
     pub program: &'pro Program,
-    
 }
 
 impl<'pro> CodeGenerator<'pro> {
@@ -21,8 +20,3 @@ impl<'pro> CodeGenerator<'pro> {
         "".to_string()
     }
 }
-
-
-
-
-

@@ -24,7 +24,7 @@ pub enum Data<'src> {
     #[serde(rename = "part")]
     StyledText { data: StyledText<'src> },
     #[serde(rename = "bl_tag")]
-    BlockTag { data: BlockTag<'src>}
+    BlockTag { data: BlockTag<'src> },
 }
 
 #[derive(Serialize)]

@@ -186,7 +186,7 @@ impl<'lex> Parser<'lex> {
         // repeat
         let type_tok = self.next_assert(&[Token::Repeat]).to_empty();
 
-        // repeat While 
+        // repeat While
         let action = adv_stmt!(self, self.next_expect(&[Token::Iden(None)], Some("Action")))
             .map_inner(|it| Iden::new(it.get_iden_inner()));
 

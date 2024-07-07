@@ -3,10 +3,9 @@ use arrayvec::ArrayString;
 use serde::{Serialize, Serializer};
 use serde_json::Number;
 
-
 #[derive(Serialize)]
 pub struct GeneratedCode<'src> {
-    blocks: Vec<CodeBlock<'src>>
+    blocks: Vec<CodeBlock<'src>>,
 }
 
 #[derive(Serialize)]
@@ -58,7 +57,6 @@ pub struct Item<'src> {
 
 #[derive(Serialize, Debug, PartialEq)]
 pub struct DfNumber(#[serde(serialize_with = "fixed")] i64);
-
 
 // WARING: This implementation is very cursed, proceed with caution
 impl DfNumber {

@@ -6,11 +6,7 @@ use lasso::ThreadedRodeo;
 use logos::Logos;
 
 use crate::{
-    codegen::CodeGenerator,
-    dump::ActionDump,
-    lexer::Token,
-    parser::Parser,
-    semantic::Analyzer,
+    codegen::CodeGenerator, dump::ActionDump, lexer::Token, parser::Parser, semantic::Analyzer,
 };
 
 pub async fn compile(files: Vec<SourceFile>) -> () {

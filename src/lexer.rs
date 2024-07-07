@@ -120,7 +120,6 @@ pub enum Token {
     Invalid,
 }
 
-
 fn process_iden<'src>(lex: &mut Lexer<'src, Token>) -> Option<Spur> {
     let text = lex.slice();
     let res = if text.len() >= 2 && text.starts_with('\'') && text.ends_with('\'') {
@@ -285,7 +284,7 @@ impl<'src> Token {
         Token::IfVar,
     ];
 
-    /// Starting tokens for simple (regular) statements 
+    /// Starting tokens for simple (regular) statements
     pub const SIMPLE_STATEMENT: [Token; 9] = [
         Token::PlayerAction,
         Token::EntityAction,

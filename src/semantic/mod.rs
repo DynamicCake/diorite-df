@@ -16,6 +16,3 @@ impl<'pro> Analyzer<'pro> {
         "".to_string()
     }
 }
-
-
-

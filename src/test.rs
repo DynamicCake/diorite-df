@@ -29,7 +29,7 @@ fn iden_quotes() {
 
 #[test]
 fn unexpected() {
-    use crate::error::syntax::{UnexpectedToken, ExpectedTokens};
+    use crate::error::syntax::{ExpectedTokens, UnexpectedToken};
     use crate::lexer::Token;
     use std::sync::Arc;
 
@@ -37,8 +37,7 @@ fn unexpected() {
         ExpectedTokens::new(Arc::new([Token::Iden(None)])),
         Token::Colon.spanned(1..3),
         Some("les go".into()),
-        "test".into()
-    ).expected_print();
-
+        "test".into(),
+    )
+    .expected_print();
 }
-

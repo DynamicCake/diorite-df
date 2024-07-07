@@ -11,7 +11,6 @@ pub mod recovery;
 pub mod statement;
 pub mod top;
 
-
 #[derive(Debug)]
 pub struct Program {
     pub top_statements: Vec<TopLevel>,

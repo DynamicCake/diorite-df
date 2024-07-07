@@ -31,8 +31,8 @@ pub enum Action {
         #[arg(long)]
         tree: bool,
         #[arg(short, long, default_value = "actiondump.json")]
-        dump: PathBuf
+        dump: PathBuf,
     },
     #[command(name = "interactive")]
-    Interactive
+    Interactive,
 }

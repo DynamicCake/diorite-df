@@ -154,7 +154,7 @@ impl<'lex> Parser<'lex> {
         }
     }
 
-    /// Get the next token without advancing the iterator 
+    /// Get the next token without advancing the iterator
     pub fn peek_expect(
         &mut self,
         expected: &[Token],
@@ -238,7 +238,7 @@ pub enum AdvanceUnexpected {
     Eof(UnexpectedEOF),
 }
 
-/// Some macros to make writing the parser easier 
+/// Some macros to make writing the parser easier
 mod ext {
 
     /// Pass in `self` for the first paramater and the advancement function
@@ -275,7 +275,7 @@ mod ext {
     }
 
     /// Run a [should_return_func](crate::parser::helper::should_return_func) and then return from
-    /// the function calling this if there is an error 
+    /// the function calling this if there is an error
     macro_rules! should_return {
         ($expr:expr) => {
             match helper::should_return_func($expr) {
