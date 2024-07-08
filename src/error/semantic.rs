@@ -1,7 +1,7 @@
 use enum_assoc::Assoc;
 use lasso::Spur;
 
-use crate::span::{Span, Spanned};
+use crate::common::span::{Span, Spanned};
 
 #[derive(Assoc)]
 #[func(pub const fn severe(&self) -> bool { false })]

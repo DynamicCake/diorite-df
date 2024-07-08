@@ -1,6 +1,6 @@
 use super::*;
+use crate::common::span::CalcSpan;
 use crate::error::syntax::{ParseResult, UnexpectedEOF, UnexpectedToken};
-use crate::span::CalcSpan;
 use crate::tree::recovery::StatementRecovery;
 use crate::{lexer::Token, tree::statement::Statement};
 

@@ -1,6 +1,6 @@
 use std::{fmt::Display, sync::Arc};
 
-use crate::{lexer::Token, span::Spanned};
+use crate::{common::span::Spanned, lexer::Token};
 
 /// Represents a parse result that every parsing function should return
 /// All parsing functions are called by [Parser::parse](crate::parser::Parser::parse)

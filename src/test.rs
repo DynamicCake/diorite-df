@@ -126,9 +126,11 @@ Welcome to my Plot!
     let rodeo = Arc::new(ThreadedRodeo::new());
     let lexer = Token::lexer_with_extras(src, rodeo.clone());
     lexer.collect::<Vec<_>>(); // consume
-    assert!(rodeo.contains(r#"=====
+    assert!(rodeo.contains(
+        r#"=====
 Welcome to my Plot!
-====="#));
+====="#
+    ));
 }
 
 #[test]
@@ -143,4 +145,3 @@ fn lexer_styled() {
     lexer.collect::<Vec<_>>(); // consume
     assert!(rodeo.contains("<white>balls")); // This is better than &fballs fight me
 }
-

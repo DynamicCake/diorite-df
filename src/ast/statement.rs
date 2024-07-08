@@ -1,19 +1,17 @@
 use std::sync::Arc;
 
-use lasso::{Spur, ThreadedRodeo};
+use lasso::ThreadedRodeo;
 use serde::Serialize;
-use span::Span;
 
 use crate::{
-    common::{
-        span::{
-            CalcSpan, MaybeSpan, SpanEnd, SpanSize, SpanStart, Spanned, TryCalcSpan, TrySpanEnd,
-            TrySpanStart,
-        },
-        *,
-    },
     lexer::Token,
+    span::{
+        CalcSpan, MaybeSpan, SpanEnd, SpanSize, SpanStart, Spanned, TryCalcSpan, TrySpanEnd,
+        TrySpanStart,
+    },
 };
+
+use super::*;
 
 #[derive(Debug, PartialEq)]
 pub struct Selection {
@@ -242,6 +240,25 @@ impl SpanEnd for IdenPair {
 impl CalcSpan for IdenPair {
     fn calculate_span(&self) -> Span {
         self.start()..self.end()
+    }
+}
+
+#[derive(Debug, PartialEq)]
+pub struct Wrapped<T> {
+    pub open: Spanned<()>,
+    pub tags: MaybeSpan<Parameters<T>>,
+    pub close: Spanned<()>,
+}
+
+impl<T> Wrapped<T> {
+    pub fn new(open: Spanned<()>, tags: MaybeSpan<Parameters<T>>, close: Spanned<()>) -> Self {
+        Self { open, tags, close }
+    }
+}
+
+impl<T> CalcSpan for Wrapped<T> {
+    fn calculate_span(&self) -> Span {
+        self.open.span.start..self.close.span.end
     }
 }
 

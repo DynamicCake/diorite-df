@@ -1,10 +1,9 @@
 use crate::{
-    span::TryCalcThenWrap,
+    common::{span::TryCalcThenWrap, Iden, Parameters, Wrapped},
     tree::{
         recovery::TopLevelRecovery,
-        statement::{Statements, Wrapped},
+        statement::Statements,
         top::{Event, EventType, FuncDef, FuncParamDef, ProcDef},
-        Iden, Parameters,
     },
 };
 
@@ -152,11 +151,11 @@ impl<'lex> Parser<'lex> {
             }
             let close = adv_top!(self, self.next_expect(&[Token::CloseParen], None)).to_empty();
 
-            Wrapped {
+            Wrapped::new(
                 open,
-                tags: Parameters::new(params).try_calculate_span_wrap(),
+                Parameters::new(params).try_calculate_span_wrap(),
                 close,
-            }
+            )
         };
 
         let ParseResult {

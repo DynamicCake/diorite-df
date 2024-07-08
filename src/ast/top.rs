@@ -1,8 +1,8 @@
-use crate::common::span::{SpanEnd, SpanSize, SpanStart, Spanned};
+use crate::span::{SpanEnd, SpanSize, SpanStart, Spanned};
 
 use super::recovery::TopLevelRecovery;
 use super::statement::*;
-use crate::common::*;
+use super::*;
 
 #[derive(Debug, PartialEq)]
 pub enum TopLevel {

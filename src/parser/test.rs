@@ -10,7 +10,6 @@ use lasso::ThreadedRodeo;
 use logos::Lexer;
 use std::sync::Arc;
 
-
 type ParseResult = Result<(), ParseFileErrors>;
 
 #[derive(Debug)]
@@ -35,7 +34,6 @@ fn parse_string(src: &str) -> ParseResult {
         })
     }
 }
-
 
 #[test]
 fn sanity() -> ParseResult {
@@ -99,7 +97,7 @@ fn nest_if() -> ParseResult {
             end
             gaction JankCheck ()
         end
-        "#
+        "#,
     )
 }
 
@@ -111,7 +109,6 @@ fn items() -> ParseResult {
             paction GiveItem (item('{Count:1b,id:"minecraft:diamond_sword"}'))
             gaction JankCheck ()
         end
-        "#
+        "#,
     )
 }
-

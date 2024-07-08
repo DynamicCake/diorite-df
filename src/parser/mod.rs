@@ -3,10 +3,10 @@ use std::sync::Arc;
 
 use logos::{Lexer, SpannedIter};
 
+use crate::common::span::{SpanSize, Spanned};
 use crate::error::syntax::{
     ExpectedTokens, LexerError, ParseResult, UnexpectedEOF, UnexpectedToken,
 };
-use crate::span::{SpanSize, Spanned};
 use crate::tree::Program;
 use crate::{lexer::Token, tree::top::TopLevel};
 

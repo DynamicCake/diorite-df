@@ -3,7 +3,7 @@ use std::sync::Arc;
 use lasso::{Spur, ThreadedRodeo};
 use logos::{Lexer, Logos};
 
-use crate::span::{Span, Spanned};
+use crate::common::span::{Span, Spanned};
 
 #[derive(Logos, Clone, Debug)]
 #[logos(skip r"[ \t\n\f]+", extras = Arc<ThreadedRodeo>)]

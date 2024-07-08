@@ -8,6 +8,7 @@
 mod args;
 
 pub mod codegen;
+pub mod common;
 pub mod compile;
 pub mod diagnostics;
 pub mod dump;
@@ -16,7 +17,6 @@ pub mod flow;
 pub mod lexer;
 pub mod parser;
 pub mod semantic;
-pub mod span;
 pub mod test;
 pub mod tree;
 

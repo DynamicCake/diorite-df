@@ -1,12 +1,12 @@
 use self::ext::*;
 
 use super::*;
+use crate::common::span::CalcThenWrap;
 use crate::error::syntax::UnexpectedToken;
-use crate::span::CalcThenWrap;
 use crate::tree::recovery::StatementRecovery;
 
 use crate::tree::statement::{ElseBlock, RepeatLoop, Statements};
-use crate::tree::Iden;
+use crate::common::Iden;
 use crate::{
     lexer::Token,
     tree::statement::{IfStatement, SimpleStatement},
