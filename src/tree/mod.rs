@@ -1,6 +1,12 @@
 //! Provides structs to create a parse tree
 //! Not to be confused with
 
+pub mod prelude {
+    pub use crate::tree::Program;
+    pub use crate::tree::{recovery::*, statement::*, top::*};
+    pub use crate::common::prelude::*;
+}
+
 use lasso::Spur;
 
 use crate::common::span::{
@@ -24,4 +30,3 @@ impl Program {
         Self { top_statements }
     }
 }
-

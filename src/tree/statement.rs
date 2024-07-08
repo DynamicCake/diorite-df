@@ -1,19 +1,10 @@
 use std::sync::Arc;
+use crate::{lexer::Token, tree::prelude::*};
 
 use lasso::{Spur, ThreadedRodeo};
 use serde::Serialize;
 use span::Span;
 
-use crate::{
-    common::{
-        span::{
-            CalcSpan, MaybeSpan, SpanEnd, SpanSize, SpanStart, Spanned, TryCalcSpan, TrySpanEnd,
-            TrySpanStart,
-        },
-        *,
-    },
-    lexer::Token,
-};
 
 #[derive(Debug, PartialEq)]
 pub struct Selection {

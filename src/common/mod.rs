@@ -10,18 +10,12 @@ use self::span::{
     TrySpanStart,
 };
 
+pub mod prelude {
+    pub use crate::common::span::*;
+    pub use crate::common::*;
+}
+
 pub mod span;
-
-#[derive(Debug, PartialEq)]
-pub struct Program {
-    pub top_statements: Vec<TopLevel>,
-}
-
-impl Program {
-    pub fn new(top_statements: Vec<TopLevel>) -> Self {
-        Self { top_statements }
-    }
-}
 
 #[derive(Debug, PartialEq)]
 pub struct Parameters<T> {
