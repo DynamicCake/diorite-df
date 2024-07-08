@@ -60,7 +60,6 @@ pub enum Token {
     #[regex(r#"\$"([^"\\]*(?:\\.[^"\\]*)*)""#, process_styled_text)]
     StyledText(Option<Spur>),
 
-    /*
     #[token("svar")]
     SaveVar,
     #[token("gvar")]
@@ -81,7 +80,7 @@ pub enum Token {
     Potion,
     #[token("gval")]
     GameValue,
-    */
+
     #[token("paction")]
     PlayerAction,
     #[token("eaction")]
@@ -96,7 +95,7 @@ pub enum Token {
     CallProcess,
     #[token("select")]
     Select,
-    #[token("setvar")]
+    #[token("var")]
     SetVar,
 
     #[token("ifplayer")]

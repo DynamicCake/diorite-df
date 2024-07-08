@@ -4,7 +4,7 @@ use crate::{lexer::Token, span::Spanned};
 
 /// Represents a parse result that every parsing function should return
 /// All parsing functions are called by [Parser::parse](crate::parser::Parser::parse)
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct ParseResult<T, E = Vec<UnexpectedToken>> {
     pub data: T,
     pub error: E,
@@ -50,7 +50,7 @@ impl<T> ParseResult<T> {
 }
 
 /// Created when an unexpected token is encountered
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct UnexpectedToken {
     pub expected: ExpectedTokens,
     pub received: Spanned<Token>,
@@ -84,7 +84,7 @@ impl UnexpectedToken {
 }
 
 /// Created when an unexpected end of file
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct UnexpectedEOF {
     pub expected: Option<ExpectedTokens>,
     pub expected_name: Option<String>,
@@ -100,7 +100,7 @@ impl UnexpectedEOF {
 }
 
 /// Created when an invalid token is encountered
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct LexerError {
     pub token: Spanned<()>,
 }
@@ -112,7 +112,7 @@ impl LexerError {
 }
 
 /// An immutable list of tokens
-#[derive(Debug, Clone)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct ExpectedTokens {
     pub expected: Arc<[Token]>,
 }

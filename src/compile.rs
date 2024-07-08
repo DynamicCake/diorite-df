@@ -1,4 +1,4 @@
-//! Set of functions to show how to compile
+//! Set of functions for different ways of compiling
 
 use std::sync::Arc;
 
@@ -20,8 +20,7 @@ pub async fn compile(files: Vec<SourceFile>) -> () {
         let rodeo = rodeo.clone();
         let handle = tokio::spawn(async move {
             let lexer = Token::lexer_with_extras(&src, rodeo);
-            let parser = Parser::new(lexer, file.clone());
-            let ast = parser.parse();
+            let ast = Parser::parse(lexer, file.clone());
             ast
         });
         handles.push(handle);
@@ -33,7 +32,7 @@ pub async fn compile(files: Vec<SourceFile>) -> () {
         trees.push(handle.await.expect("Thread failed to execute"));
     }
 
-    let _rodeo = Arc::try_unwrap(rodeo).expect("Somehow, the Arc has escaped this scope");
+    let _rodeo = Arc::try_unwrap(rodeo).expect("The Arc `rodeo` has escaped this scope");
     // gonna need this for codegen
     // let rodeo = rodeo.into_resolver();
 }
@@ -41,8 +40,7 @@ pub async fn compile(files: Vec<SourceFile>) -> () {
 pub async fn compile_single(file: SourceFile, dump: ActionDump) -> String {
     let rodeo = Arc::new(ThreadedRodeo::new());
     let lexer = Token::lexer_with_extras(&file.source, rodeo);
-    let parser = Parser::new(lexer, file.file);
-    let ast = parser.parse();
+    let ast = Parser::parse(lexer, file.file);
 
     let dump = Arc::new(dump);
     let checker = Analyzer::new(dump.clone(), &ast.program);

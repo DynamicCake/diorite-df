@@ -13,7 +13,7 @@ use crate::{
 
 use super::*;
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct Selection {
     pub open: Spanned<()>,
     pub selection: Option<Spanned<Spur>>,
@@ -26,7 +26,7 @@ impl CalcSpan for Selection {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct Tags {
     pub open: Spanned<()>,
     pub tags: MaybeSpan<Parameters<IdenPair>>,
@@ -49,7 +49,7 @@ impl CalcSpan for Tags {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct Statements {
     pub items: Vec<Statement>,
 }
@@ -98,7 +98,7 @@ impl TryCalcSpan for Statements {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum Statement {
     Simple(Spanned<SimpleStatement>),
     If(Spanned<IfStatement>),
@@ -106,7 +106,7 @@ pub enum Statement {
     Recovery,
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct SimpleStatement {
     pub type_tok: Spanned<ActionType>,
     pub action: Spanned<Iden>,
@@ -123,7 +123,7 @@ impl SimpleStatement {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct IfStatement {
     pub type_tok: Spanned<IfActionType>,
     pub not: Option<Spanned<()>>,
@@ -136,7 +136,7 @@ pub struct IfStatement {
     pub end: Spanned<()>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct ElseBlock {
     pub else_tok: Spanned<()>,
     pub statements: Statements,
@@ -148,7 +148,7 @@ impl CalcSpan for IfStatement {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct RepeatLoop {
     pub type_tok: Spanned<()>,
     pub action: Spanned<Iden>,
@@ -165,7 +165,7 @@ impl CalcSpan for RepeatLoop {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum IfActionType {
     Player,
     Entity,
@@ -187,7 +187,7 @@ impl TryInto<IfActionType> for Token {
     }
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, PartialEq, Serialize)]
 #[serde(rename_all = "snake_case")]
 pub enum ActionType {
     PlayerAction,
@@ -218,7 +218,7 @@ impl TryInto<ActionType> for Token {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct IdenPair {
     pub key: Spanned<Spur>,
     pub colon: Spanned<()>,
@@ -243,7 +243,7 @@ impl CalcSpan for IdenPair {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct Wrapped<T> {
     pub open: Spanned<()>,
     pub tags: MaybeSpan<Parameters<T>>,
@@ -262,7 +262,7 @@ impl<T> CalcSpan for Wrapped<T> {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum Expression {
     Literal(StaticLiteral),
     Expr(ExprLiteral),
@@ -295,13 +295,13 @@ impl SpanEnd for Expression {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct ExprLiteral {
     pub literal_type: Spanned<Iden>,
     pub args: Spanned<Wrapped<ExprValue>>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum ExprValue {
     Iden(Spanned<Iden>),
     Number(Spanned<NumberLiteral>),
@@ -331,7 +331,7 @@ impl SpanEnd for ExprValue {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum StaticLiteral {
     String(Spanned<StringLiteral>),
     Number(Spanned<NumberLiteral>),
@@ -367,7 +367,7 @@ impl TrySpanEnd for StaticLiteral {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum ExprLitType {
     Unknown(Spur),
     SaveVar,

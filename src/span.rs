@@ -7,7 +7,7 @@ pub type Span<S = SpanSize> = core::ops::Range<S>;
 pub type SpanSize = u32;
 
 /// Adds span data to (usually) a token by adding a start and end byte stored with byte indexes
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Spanned<T> {
     pub data: T,
     pub span: Span,
@@ -42,7 +42,7 @@ impl<T> Spanned<T> {
 /// Usually used when a list of tokens is 0.
 /// A [Span] isn't used here because having 0 be the distance between start and end doesn't show
 /// any highlighting to the LSP user
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct MaybeSpan<T> {
     pub data: T,
     pub span: Option<Span>,

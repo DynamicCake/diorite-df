@@ -16,7 +16,7 @@
 ///             |----------recovery---------|
 /// |-------------event-declaration-------------|
 /// ```
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct StatementRecovery;
 
 /// NOTE: This has the same case that StatementRecovery had, an artifact of the past
@@ -39,5 +39,5 @@ pub struct StatementRecovery;
 /// paction Join
 /// // ...
 /// ```
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct TopLevelRecovery;

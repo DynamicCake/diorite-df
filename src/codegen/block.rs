@@ -125,15 +125,6 @@ impl TryFrom<&str> for DfNumber {
     }
 }
 
-#[test]
-fn parse_int() {
-    use crate::codegen::block::DfNumber;
-
-    let number = "123.2";
-    let number: DfNumber = number.try_into().unwrap();
-    assert_eq!(number, DfNumber::new(-123200).unwrap())
-}
-
 #[derive(Serialize)]
 #[serde(rename_all = "snake_case")]
 pub enum BlockType {

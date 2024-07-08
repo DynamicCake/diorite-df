@@ -50,12 +50,10 @@ async fn single(
         Ok(it) => it,
         Err(code) => return Err(CliError::CannotReadSource { file, code }),
     };
-
     let actiondump = match fs::read_to_string(actiondump) {
         Ok(it) => it,
         Err(code) => return Err(CliError::CannotReadActionDump { file, code }),
     };
-
     let parsed = match serde_json::from_str(&actiondump) {
         Ok(it) => it,
         Err(error) => return Err(CliError::MalformedActionDump { file, error }),

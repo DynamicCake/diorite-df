@@ -11,7 +11,7 @@ pub mod recovery;
 pub mod statement;
 pub mod top;
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct Program {
     pub top_statements: Vec<TopLevel>,
 }
@@ -22,7 +22,7 @@ impl Program {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct Parameters<T> {
     pub items: Vec<T>,
 }
@@ -107,7 +107,7 @@ impl<T> Parameters<T> {
 
 // StringLiteral
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct StringLiteral {
     inner: Spur,
 }
@@ -120,7 +120,7 @@ impl StringLiteral {
 
 // NumberLiteral
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct NumberLiteral {
     inner: Spur,
 }
@@ -133,7 +133,7 @@ impl NumberLiteral {
 
 // Iden
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct Iden {
     pub name: Spur,
 }

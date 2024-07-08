@@ -13,8 +13,6 @@
           rust-analyzer
           rustfmt
         ];
-
-        env = { RUST_BACKTRACE = "full"; };
       };
     };
 }

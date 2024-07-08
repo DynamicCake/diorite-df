@@ -12,6 +12,7 @@ use crate::{lexer::Token, tree::top::TopLevel};
 
 pub mod helper;
 pub mod stmt;
+mod test;
 pub mod top;
 
 /// Converts tokens from a file to a parse tree (not an abstract syntax tree)
@@ -26,6 +27,7 @@ pub struct Parser<'lex> {
     file: Arc<str>,
 }
 
+#[derive(Debug, PartialEq)]
 pub struct ParsedFile {
     /// The parse tree
     pub program: Program,
@@ -38,8 +40,17 @@ pub struct ParsedFile {
     pub at_eof: Option<Box<UnexpectedEOF>>,
 }
 
+impl ParsedFile {
+    pub fn is_successful(&self) -> bool {
+        self.lex_errs.is_empty() && self.parse_errs.is_empty() && self.at_eof.is_none()
+    }
+}
+
 impl<'lex> Parser<'lex> {
-    pub fn new(lexer: Lexer<'lex, Token>, file: Arc<str>) -> Self {
+    pub fn parse(lexer: Lexer<'lex, Token>, file: Arc<str>) -> ParsedFile {
+        Self::new(lexer, file).parse_self()
+    }
+    fn new(lexer: Lexer<'lex, Token>, file: Arc<str>) -> Self {
         Self {
             toks: lexer.spanned().peekable(),
             lex_errs: Vec::new(),
@@ -48,7 +59,7 @@ impl<'lex> Parser<'lex> {
     }
 
     /// Consume the token iterator and output a parsed file
-    pub fn parse(mut self) -> ParsedFile {
+    fn parse_self(mut self) -> ParsedFile {
         let mut stmts = Vec::new();
         let mut errors = Vec::new();
         loop {

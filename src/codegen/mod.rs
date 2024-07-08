@@ -5,6 +5,7 @@ use crate::{dump::ActionDump, tree::Program};
 
 mod block;
 mod data;
+mod test;
 
 pub struct CodeGenerator<'pro> {
     pub dump: Arc<ActionDump>,

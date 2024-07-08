@@ -4,7 +4,7 @@ use super::recovery::TopLevelRecovery;
 use super::statement::*;
 use super::*;
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum TopLevel {
     Event(Event),
     FuncDef(FuncDef),
@@ -13,7 +13,7 @@ pub enum TopLevel {
 }
 
 // Function
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct FuncDef {
     pub type_tok: Spanned<()>,
     pub name: Spanned<Iden>,
@@ -22,7 +22,7 @@ pub struct FuncDef {
     pub end_tok: Spanned<()>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct FuncParamDef {
     pub name: Spanned<Iden>,
     pub colon: Spanned<()>,
@@ -47,7 +47,7 @@ impl SpanEnd for FuncParamDef {
 }
 
 // Process
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct ProcDef {
     pub type_tok: Spanned<()>,
     pub name: Spanned<Iden>,
@@ -56,7 +56,7 @@ pub struct ProcDef {
 }
 
 // Event
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct Event {
     pub type_tok: Spanned<EventType>,
     pub name: Spanned<Iden>,
@@ -80,7 +80,7 @@ impl Event {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum EventType {
     Player,
     Entity,
