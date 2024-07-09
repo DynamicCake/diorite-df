@@ -1,3 +1,5 @@
+use crate::common::prelude::*;
+
 /// A fancy [Range](`core::ops::Range<SpanSize>`) with a size of [SpanSize]
 /// Don't be afraid to clone this as it is only 8 bytes
 pub type Span<S = SpanSize> = core::ops::Range<S>;
@@ -130,4 +132,18 @@ where
         let span = self.try_calculate_span();
         MaybeSpan::new(self, span)
     }
+}
+
+pub struct Referenced<T> {
+    pub spanned: Spanned<T>,
+    pub file: ProjectFile,
+}
+
+impl<T> Referenced<T> {
+    pub fn new(spanned: Spanned<T>, file: ProjectFile) -> Self { Self { spanned, file } }
+}
+
+pub struct Reference {
+    pub span: Span,
+    pub file: ProjectFile,
 }

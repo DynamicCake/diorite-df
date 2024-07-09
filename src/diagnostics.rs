@@ -1,3 +1,5 @@
+//! Unfinished module for generating pretty errors
+
 use std::sync::Arc;
 
 use ariadne::{Color, Label, Report, ReportKind};

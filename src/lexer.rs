@@ -1,3 +1,5 @@
+//! Basically contains the token struct
+
 use std::sync::Arc;
 
 use lasso::{Spur, ThreadedRodeo};

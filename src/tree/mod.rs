@@ -1,5 +1,4 @@
-//! Provides structs to create a parse tree
-//! Not to be confused with
+//! Provides structs to create a parse tree to be used [crate::parser]
 
 pub mod prelude {
     pub use crate::tree::Program;

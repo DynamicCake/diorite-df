@@ -1,21 +1,19 @@
-//! Provides structs to create a parse tree
-//! Not to be confused with
+//! Provides useful structs to be used in parse tree and ast
 
 use lasso::Spur;
 
+use crate::common::prelude::*;
 use crate::tree::top::TopLevel;
 
-use self::span::{
-    CalcSpan, MaybeSpan, Span, SpanEnd, SpanSize, SpanStart, Spanned, TryCalcSpan, TrySpanEnd,
-    TrySpanStart,
-};
+pub mod project;
+pub mod span;
 
 pub mod prelude {
+    pub use crate::common::project::*;
     pub use crate::common::span::*;
     pub use crate::common::*;
+    pub use crate::lexer::*;
 }
-
-pub mod span;
 
 #[derive(Debug, PartialEq)]
 pub struct Parameters<T> {

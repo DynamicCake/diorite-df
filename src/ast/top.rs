@@ -1,15 +1,10 @@
-use crate::span::{SpanEnd, SpanSize, SpanStart, Spanned};
-
-use super::recovery::TopLevelRecovery;
-use super::statement::*;
-use super::*;
+use super::prelude::*;
 
 #[derive(Debug, PartialEq)]
 pub enum TopLevel {
     Event(Event),
     FuncDef(FuncDef),
     ProcDef(ProcDef),
-    Recovery(TopLevelRecovery),
 }
 
 // Function

@@ -1,3 +1,5 @@
+//! Crates a new parse tree using the [crate::tree] module
+
 use std::iter::Peekable;
 use std::sync::Arc;
 

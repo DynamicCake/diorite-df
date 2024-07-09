@@ -7,6 +7,7 @@
 
 mod args;
 
+pub mod ast;
 pub mod codegen;
 pub mod common;
 pub mod compile;
@@ -34,6 +35,6 @@ async fn main() -> Result<(), Box<dyn Error + 'static>> {
         eprintln!("{}{}", "Error: ".red(), err.to_string().red());
     };
 
-    println!("Ran!");
+    println!("Finished running the program");
     Ok(())
 }
