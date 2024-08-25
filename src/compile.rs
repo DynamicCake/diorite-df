@@ -1,15 +1,15 @@
 //! Set of functions for different ways of compiling
 
-use std::sync::Arc;
+use std::{path::Path, sync::Arc};
 
 use lasso::ThreadedRodeo;
 use logos::Logos;
 
 use crate::{
-    codegen::CodeGenerator, dump::ActionDump, lexer::Token, parser::Parser, semantic::Analyzer,
+    codegen::CodeGenerator, dump::ActionDump, lexer::Token, parser::Parser, project::ProjectFile, semantic::Analyzer
 };
 
-pub async fn compile(files: Vec<SourceFile>) -> () {
+pub async fn compile(files: Vec<ProjectFile>) -> () {
     let mut handles = Vec::with_capacity(files.len());
     let rodeo = Arc::new(ThreadedRodeo::new());
 
@@ -37,25 +37,14 @@ pub async fn compile(files: Vec<SourceFile>) -> () {
     // let rodeo = rodeo.into_resolver();
 }
 
-pub async fn compile_single(file: SourceFile, dump: ActionDump) -> String {
+pub async fn compile_single(file: ProjectFile, dump: ActionDump) -> String {
     let rodeo = Arc::new(ThreadedRodeo::new());
     let lexer = Token::lexer_with_extras(&file.source, rodeo);
     let ast = Parser::parse(lexer, file.file);
 
-    let dump = Arc::new(dump);
-    let checker = Analyzer::new(dump.clone(), &ast.program);
+    let checker = Analyzer::resolve(&dump, &ast.program);
 
-    let codegen = CodeGenerator::new(dump, &ast.program);
+    let codegen = CodeGenerator::new(&dump, &ast.program);
     codegen.generate()
 }
 
-pub struct SourceFile {
-    source: Arc<str>,
-    file: Arc<str>,
-}
-
-impl SourceFile {
-    pub fn new(source: Arc<str>, file: Arc<str>) -> Self {
-        Self { source, file }
-    }
-}

@@ -1,4 +1,4 @@
-use std::{fmt::Display, sync::Arc};
+use std::{fmt::Display, path::Path, sync::Arc};
 
 use crate::{common::span::Spanned, lexer::Token};
 
@@ -55,7 +55,7 @@ pub struct UnexpectedToken {
     pub expected: ExpectedTokens,
     pub received: Spanned<Token>,
     pub expected_name: Option<Arc<str>>,
-    pub file: Arc<str>,
+    pub file: Arc<Path>,
 }
 
 impl UnexpectedToken {
@@ -63,7 +63,7 @@ impl UnexpectedToken {
         expected: ExpectedTokens,
         received: Spanned<Token>,
         expected_name: Option<Arc<str>>,
-        file: Arc<str>,
+        file: Arc<Path>,
     ) -> Self {
         Self {
             expected,

@@ -1,157 +1,58 @@
 //! Provides useful structs to be used in parse tree and ast
 
+use std::collections::HashSet;
+
 use lasso::Spur;
+use span::Referenced;
 
-use crate::common::prelude::*;
-use crate::tree::top::TopLevel;
-
+pub mod data;
 pub mod project;
 pub mod span;
 
 pub mod prelude {
+    pub use crate::common::data::*;
     pub use crate::common::project::*;
     pub use crate::common::span::*;
     pub use crate::common::*;
     pub use crate::lexer::*;
 }
 
-#[derive(Debug, PartialEq)]
-pub struct Parameters<T> {
-    pub items: Vec<T>,
+#[derive(Debug)]
+pub struct Starter(pub Referenced<Spur>);
+
+impl std::hash::Hash for Starter {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.0.spanned.data.hash(state);
+    }
 }
 
-impl<T> TryCalcSpan for Parameters<T>
-where
-    T: SpanStart,
-    T: SpanEnd,
-{
-    fn try_calculate_span(&self) -> Option<Span> {
-        match self.items.first() {
-            Some(first) => {
-                let first = first.start();
-                let last = self
-                    .items
-                    .last()
-                    .expect("If first exists, last exists")
-                    .end();
-                Some(first..last)
-            }
-            None => None,
+impl Starter {
+    pub fn new(value: Referenced<Spur>) -> Self {
+        Self(value)
+    }
+}
+
+impl PartialEq for Starter {
+    fn eq(&self, other: &Self) -> bool {
+        self.0.spanned.data == other.0.spanned.data
+    }
+}
+
+
+pub struct StarterSet {
+    pub player_event: HashSet<Starter>,
+    pub entity_event: HashSet<Starter>,
+    pub function: HashSet<Starter>,
+    pub process: HashSet<Starter>,
+}
+
+impl StarterSet {
+    pub fn new() -> Self {
+        Self {
+            player_event: HashSet::new(),
+            entity_event: HashSet::new(),
+            function: HashSet::new(),
+            process: HashSet::new(),
         }
-    }
-}
-
-impl<T> TrySpanStart for Parameters<T>
-where
-    T: TrySpanStart,
-{
-    fn try_start(&self) -> Option<SpanSize> {
-        for span in self.items.iter() {
-            let span = span.try_start();
-            if let Some(span) = span {
-                return Some(span);
-            }
-        }
-        None
-    }
-}
-
-impl<T> TrySpanEnd for Parameters<T>
-where
-    T: TrySpanEnd,
-{
-    fn try_end(&self) -> Option<SpanSize> {
-        for span in self.items.iter().rev() {
-            let span = span.try_end();
-            if let Some(span) = span {
-                return Some(span);
-            }
-        }
-        None
-    }
-}
-
-impl<T> TryCalcSpan for Parameters<Parameters<T>>
-where
-    T: TrySpanStart,
-    T: TrySpanEnd,
-{
-    fn try_calculate_span(&self) -> Option<Span> {
-        match self.items.first() {
-            Some(first) => {
-                let first = first.try_start()?;
-                let last = self
-                    .items
-                    .last()
-                    .expect("If first exists, last exists")
-                    .try_end()?;
-                Some(first..last)
-            }
-            None => None,
-        }
-    }
-}
-
-impl<T> Parameters<T> {
-    pub fn new(items: Vec<T>) -> Self {
-        Self { items }
-    }
-}
-
-#[derive(Debug, PartialEq)]
-pub struct Wrapped<T> {
-    pub open: Spanned<()>,
-    pub tags: MaybeSpan<Parameters<T>>,
-    pub close: Spanned<()>,
-}
-
-impl<T> Wrapped<T> {
-    pub fn new(open: Spanned<()>, tags: MaybeSpan<Parameters<T>>, close: Spanned<()>) -> Self {
-        Self { open, tags, close }
-    }
-}
-
-impl<T> CalcSpan for Wrapped<T> {
-    fn calculate_span(&self) -> Span {
-        self.open.span.start..self.close.span.end
-    }
-}
-
-// StringLiteral
-
-#[derive(Debug, PartialEq)]
-pub struct StringLiteral {
-    inner: Spur,
-}
-
-impl StringLiteral {
-    pub fn new(inner: Spur) -> Self {
-        Self { inner }
-    }
-}
-
-// NumberLiteral
-
-#[derive(Debug, PartialEq)]
-pub struct NumberLiteral {
-    inner: Spur,
-}
-
-impl NumberLiteral {
-    pub fn new(inner: Spur) -> Self {
-        Self { inner }
-    }
-}
-
-// Iden
-
-#[derive(Debug, PartialEq)]
-pub struct Iden {
-    pub name: Spur,
-}
-
-impl Iden {
-    pub fn new(name: Spur) -> Self {
-        Self { name }
     }
 }

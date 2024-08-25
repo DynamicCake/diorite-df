@@ -1,19 +1,19 @@
 //! Moule for the code generation step
 use std::sync::Arc;
 
-use crate::{dump::ActionDump, tree::Program};
+use crate::{common::prelude::{CheckedProgram, ProgramFile}, dump::ActionDump};
 
 mod block;
 mod data;
 mod test;
 
-pub struct CodeGenerator<'pro> {
-    pub dump: Arc<ActionDump>,
-    pub program: &'pro Program,
+pub struct CodeGenerator<'a> {
+    pub dump: &'a ActionDump,
+    pub program: &'a ProgramFile<CheckedProgram>,
 }
 
-impl<'pro> CodeGenerator<'pro> {
-    pub fn new(dump: Arc<ActionDump>, program: &'pro Program) -> Self {
+impl<'a> CodeGenerator<'a> {
+    pub fn new(dump: &'a ActionDump, program: &'a ProgramFile<CheckedProgram>) -> Self {
         Self { dump, program }
     }
 

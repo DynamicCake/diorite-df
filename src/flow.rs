@@ -17,7 +17,7 @@ use crate::{
     args::{Action, Args},
     compile::{self, compile_single, SourceFile},
     diagnostics,
-    error::cli::CliError,
+    error::cli::CliError, project::ProjectFile,
 };
 
 pub async fn handle(args: Args) -> Result<(), CliError> {
@@ -60,12 +60,15 @@ async fn single(
     };
 
     let result = compile_single(
-        SourceFile::new(
+        ProjectFile::new(
             src.into(),
-            file.file_name()
-                .expect("File open should have been opened before and therefore exists")
-                .to_string_lossy()
-                .into(),
+            // This is only a file name because there is no project and it would be annoying to see
+            // the whole path
+            Path::new(
+                file.file_name()
+                    .expect("File open should have been opened before and therefore exists"),
+            )
+            .into(),
         ),
         parsed,
     )

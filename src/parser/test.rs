@@ -8,7 +8,7 @@ use crate::{
 };
 use lasso::ThreadedRodeo;
 use logos::Lexer;
-use std::sync::Arc;
+use std::{path::Path, sync::Arc};
 
 type ParseResult = Result<(), ParseFileErrors>;
 
@@ -23,7 +23,7 @@ struct ParseFileErrors {
 fn parse_string(src: &str) -> ParseResult {
     let rodeo = Arc::new(ThreadedRodeo::new());
     let lexer = Lexer::with_extras(src, rodeo);
-    let file = Parser::parse(lexer, "[test]".into());
+    let file = Parser::parse(lexer, Path::new("[test]").into());
     if file.is_successful() {
         Ok(())
     } else {

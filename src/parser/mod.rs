@@ -1,15 +1,19 @@
 //! Crates a new parse tree using the [crate::tree] module
 
+use std::collections::HashMap;
+use std::hash::{BuildHasher, DefaultHasher, Hash, Hasher, RandomState};
 use std::iter::Peekable;
+use std::mem::transmute;
+use std::path::Path;
 use std::sync::Arc;
 
 use logos::{Lexer, SpannedIter};
 
-use crate::common::span::{SpanSize, Spanned};
+use crate::common::prelude::*;
 use crate::error::syntax::{
     ExpectedTokens, LexerError, ParseResult, UnexpectedEOF, UnexpectedToken,
 };
-use crate::tree::Program;
+use crate::project::Program;
 use crate::{lexer::Token, tree::top::TopLevel};
 
 pub mod helper;
@@ -26,13 +30,14 @@ pub struct Parser<'lex> {
     /// Whenever an invalid token is replaced with [Token::Invalid](crate::lexer::Token), a lexer error gets added
     lex_errs: Vec<LexerError>,
     /// The file this parser belongs to
-    file: Arc<str>,
+    file: Spur,
 }
 
 #[derive(Debug, PartialEq)]
 pub struct ParsedFile {
-    /// The parse tree
-    pub program: Program,
+    /// The parse tree made from the parser
+    /// To avoid future confusion, diorite (as of now) does not have an ast only a parse tree
+    pub program: Program<UncheckedProgram>,
     /// List of lexer errors caused by invalid tokens
     pub lex_errs: Vec<LexerError>,
     /// List of unexpected token errors
@@ -49,10 +54,24 @@ impl ParsedFile {
 }
 
 impl<'lex> Parser<'lex> {
-    pub fn parse(lexer: Lexer<'lex, Token>, file: Arc<str>) -> ParsedFile {
-        Self::new(lexer, file).parse_self()
+    pub fn parse(lexer: Lexer<'lex, Token>, file: Arc<Path>) -> ParsedFile {
+        let src: &str = lexer.source();
+
+        let hash = {
+            // Not so random now huh
+            // This will be changed when I find a suitable hashing algorithm
+            let s: RandomState = unsafe {
+                let nuh_uh: (u64, u64) = (69, 420);
+                transmute(nuh_uh)
+            };
+            let mut hasher = s.build_hasher();
+            src.hash(&mut hasher);
+            hasher.finish()
+        };
+
+        Self::new(lexer, file).parse_self(hash)
     }
-    fn new(lexer: Lexer<'lex, Token>, file: Arc<str>) -> Self {
+    fn new(lexer: Lexer<'lex, Token>, file: Arc<Path>) -> Self {
         Self {
             toks: lexer.spanned().peekable(),
             lex_errs: Vec::new(),
@@ -61,7 +80,7 @@ impl<'lex> Parser<'lex> {
     }
 
     /// Consume the token iterator and output a parsed file
-    fn parse_self(mut self) -> ParsedFile {
+    fn parse_self(mut self, hash: u64) -> ParsedFile {
         let mut stmts = Vec::new();
         let mut errors = Vec::new();
         loop {
@@ -80,7 +99,7 @@ impl<'lex> Parser<'lex> {
 
             if let Some(at_eof) = at_eof {
                 return ParsedFile {
-                    program: Program::new(stmts),
+                    program: Program::new(stmts, hash),
                     lex_errs: self.lex_errs,
                     parse_errs: errors,
                     at_eof: Some(at_eof),
@@ -88,7 +107,7 @@ impl<'lex> Parser<'lex> {
             }
         }
         ParsedFile {
-            program: Program::new(stmts),
+            program: Program::new(stmts, hash),
             lex_errs: self.lex_errs,
             parse_errs: errors,
             at_eof: None,
@@ -254,7 +273,7 @@ pub enum AdvanceUnexpected {
 /// Some macros to make writing the parser easier
 mod ext {
 
-    /// Pass in `self` for the first paramater and the advancement function
+    /// Pass in `self` for the first parameter and the advancement function
     /// If the function fails, it starts recovery
     macro_rules! adv_stmt {
         ($params:expr, $func:expr) => {

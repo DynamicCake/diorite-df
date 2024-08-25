@@ -8,6 +8,7 @@
 mod args;
 
 pub mod codegen;
+pub mod project;
 pub mod common;
 pub mod compile;
 pub mod diagnostics;

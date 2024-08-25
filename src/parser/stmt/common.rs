@@ -1,11 +1,9 @@
-use crate::common::{span::*, *};
+use crate::common::prelude::*;
 use crate::tree::recovery::StatementRecovery;
 
 use super::ext::*;
 use super::*;
-use crate::lexer::Token;
-use crate::tree::statement::*;
-use crate::tree::*;
+use crate::tree::prelude::*;
 
 impl Parser<'_> {
     /// Must start with a `[`

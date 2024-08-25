@@ -9,7 +9,8 @@ use crate::common::prelude::*;
 ///
 /// the `severe()` function returns true it is impossible to compile with this error.
 /// Do note that that you usually don't want to put errors in the ignore list
-pub enum SemanitcError {
+pub enum SemanticError {
+    /// Only thing that makes no data mutation sharing across threads impossible
     #[assoc(severe = true)]
     DuplicateLineStarter(DuplicateLineStarter),
     #[assoc(severe = true)]
@@ -42,6 +43,5 @@ pub struct DuplicateLineStarter {
 }
 
 pub struct SelectorNotFound {
-    pub offener: Referenced<Spur>
+    pub offener: Referenced<Spur>,
 }
-
