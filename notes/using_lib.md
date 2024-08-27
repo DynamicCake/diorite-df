@@ -33,16 +33,35 @@ async fn single(
     };
 
     // Create project using project files
-    let project = Project::create_project(
+    let project = match Project::create_project(
         Arc::try_unwrap(rodeo).expect("rodeo arc escaped scope"),
         vec![file],
         actiondump.into(),
     )
-    .await;
+    .await
+    // Handle the errors
+    {
+        Ok(it) => it,
+        Err(err) => match err {
+            ProjectCreationError::ActionDump(e) => {
+                return Err(match e {
+                    ActionDumpReadError::Io(path, e) => CliError::CannotReadActionDump {
+                        file: path,
+                        code: e,
+                    },
+                    ActionDumpReadError::Parse(path, e) => CliError::MalformedActionDump {
+                        file: path,
+                        error: e,
+                    },
+                })
+            }
+            e => panic!("Unexpected: {e:#?}")
+        },
+    };
 
-    // Things should be done parsed here and the next thing to do is analysis
+    println!("{:#?}", project.files.parsed[0].resolution);
 
-    // TODO: Create project analysis and codegen
+    // Things should be done parsing here and the next thing to do is analysis
     Ok(todo!())
 }
 ```

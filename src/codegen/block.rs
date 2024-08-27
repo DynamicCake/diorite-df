@@ -58,7 +58,8 @@ pub struct Item<'src> {
 #[derive(Serialize, Debug, PartialEq)]
 pub struct DfNumber(#[serde(serialize_with = "fixed")] i64);
 
-// WARING: This implementation is very cursed, proceed with caution
+// WARNING: This implementation is very cursed, proceed with caution
+// I might use the `fixed` crate
 impl DfNumber {
     pub fn new(value: i64) -> Result<Self, ()> {
         Ok(Self(value))

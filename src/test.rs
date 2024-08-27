@@ -1,14 +1,6 @@
 //! Tests for modules without mod.rs like [crate::lexer]
 
 // Lexer
-
-use std::sync::Arc;
-
-use lasso::{Reader, Spur, ThreadedRodeo};
-use logos::{Lexer, Logos};
-
-use crate::lexer::Token;
-
 // Asserts that the next token is a certain token
 macro_rules! next_eq {
     ($lexer:expr, $tok:expr) => {
@@ -18,6 +10,10 @@ macro_rules! next_eq {
 
 #[test]
 fn lexer_test_basic() {
+    use crate::common::prelude::*;
+    use lasso::ThreadedRodeo;
+    use logos::Logos;
+    use std::sync::Arc;
     let src = r#"
         paction eaction gaction
         control callf callp
@@ -109,12 +105,16 @@ fn lexer_string() {
     let rodeo = Arc::new(ThreadedRodeo::new());
     let src = "\"world\"";
     let lexer = Token::lexer_with_extras(src, rodeo.clone());
-    lexer.collect::<Vec<_>>(); // consume
+    let _ = lexer.collect::<Vec<_>>(); // consume
     assert!(rodeo.contains("world"));
 }
 
 #[test]
 fn lexer_multiline() {
+    use crate::common::prelude::*;
+    use lasso::ThreadedRodeo;
+    use logos::Logos;
+    use std::sync::Arc;
     // Yes, it should be formatted like that
     let src = r#"
         paction Join
@@ -125,7 +125,7 @@ Welcome to my Plot!
     "#;
     let rodeo = Arc::new(ThreadedRodeo::new());
     let lexer = Token::lexer_with_extras(src, rodeo.clone());
-    lexer.collect::<Vec<_>>(); // consume
+    let _ = lexer.collect::<Vec<_>>(); // consume
     assert!(rodeo.contains(
         r#"=====
 Welcome to my Plot!
@@ -135,6 +135,11 @@ Welcome to my Plot!
 
 #[test]
 fn lexer_styled() {
+    use crate::common::prelude::*;
+    use lasso::ThreadedRodeo;
+    use logos::Logos;
+    use std::sync::Arc;
+
     let src = r#"
         paction Join
             paction SendMessage ($"<white>balls")
@@ -142,6 +147,6 @@ fn lexer_styled() {
     "#;
     let rodeo = Arc::new(ThreadedRodeo::new());
     let lexer = Token::lexer_with_extras(src, rodeo.clone());
-    lexer.collect::<Vec<_>>(); // consume
+    let _ = lexer.collect::<Vec<_>>(); // consume
     assert!(rodeo.contains("<white>balls")); // This is better than &fballs fight me
 }

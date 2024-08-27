@@ -1,32 +1,23 @@
-use core::panic;
-use std::{borrow::Cow, hash::DefaultHasher, marker::PhantomData};
-
 use crate::{
     common::prelude::*,
     dump::ActionDump,
     parser::{ParsedFile, Parser},
-    semantic::{AnalysisResult, Analyzer},
-    tree::top::TopLevel,
 };
 
 use std::{
-    hash::{BuildHasher, Hash, Hasher, RandomState},
-    mem::transmute,
+    hash::{Hash, Hasher},
     path::Path,
     sync::Arc,
 };
 
-use lasso::{Interner, IntoResolver, Resolver, RodeoResolver, Spur, ThreadedRodeo};
+use lasso::{RodeoResolver, Spur, ThreadedRodeo};
 use logos::{Lexer, Logos};
-use path_clean::clean;
-use rustc_hash::{FxBuildHasher, FxHasher};
+use rustc_hash::FxHasher;
 use tokio::{
     fs::{read_to_string, File},
     io::{self, AsyncReadExt},
-    sync::broadcast::error,
 };
 
-use crate::common::prelude::*;
 
 #[derive(thiserror::Error, Debug)]
 pub enum ProjectFileResolveError {
@@ -42,18 +33,20 @@ pub enum ProjectFileResolveError {
 }
 
 /// Immutable resources used for the project not including the source
+#[derive(Debug)]
 pub struct ProjectResources {
     pub rodeo: RodeoResolver,
     pub project_root: Spur,
     pub actiondump: ActionDump,
 }
 
+#[derive(Debug)]
 pub struct Project<T: ProjectFiles> {
-    resources: Arc<ProjectResources>,
+    pub resources: Arc<ProjectResources>,
     /// The files that the project has
-    files: T,
+    pub files: T,
     /// A hash comprised of the project metadata and all the source files
-    hash: u64,
+    pub hash: u64,
 }
 
 impl Project<ParsedProjectFiles> {
@@ -117,7 +110,7 @@ impl Project<ParsedProjectFiles> {
         let files = ParsedProjectFiles::new(trees);
 
         Ok(Self {
-            resources: todo!(),
+            resources: Arc::new(resources),
             files,
             hash,
         })
@@ -194,7 +187,7 @@ impl ProjectFile<RawFile> {
             return Err(ProjectFileCreationError::BaseNotAbsolute);
         }
         let path = if let Ok(it) = canonical.strip_prefix(Path::new(resolver.resolve(&root))) {
-            if let Some(it) = path.to_str() {
+            if let Some(it) = it.to_str() {
                 it
             } else {
                 return Err(ProjectFileCreationError::NotUTF8);
@@ -298,12 +291,12 @@ pub trait ProjectFiles {}
 /// A program state with a parse tree
 #[derive(Debug)]
 pub struct ParsedProjectFiles {
-    files: Vec<ProjectFile<TreeFile>>,
+    pub parsed: Vec<ProjectFile<TreeFile>>,
 }
 
 impl ParsedProjectFiles {
     pub fn new(files: Vec<ProjectFile<TreeFile>>) -> Self {
-        Self { files }
+        Self { parsed: files }
     }
 }
 impl ProjectFiles for ParsedProjectFiles {}

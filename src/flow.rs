@@ -13,13 +13,15 @@ use std::{
 };
 
 use ariadne::Source;
-use lasso::ThreadedRodeo;
+use lasso::{Resolver, ThreadedRodeo};
 
 use crate::{
     args::{Action, Args},
     diagnostics,
     error::cli::CliError,
-    project::{Project, ProjectFile, ProjectFileCreationError},
+    project::{
+        ActionDumpReadError, Project, ProjectCreationError, ProjectFile, ProjectFileCreationError,
+    },
 };
 
 pub async fn handle(args: Args) -> Result<(), CliError> {
@@ -35,7 +37,7 @@ pub async fn handle(args: Args) -> Result<(), CliError> {
             dump,
         } => {
             let out = out.unwrap_or_else(|| file.clone());
-            single(file, dump, out, tree).await?
+            single(file, dump, out).await?
         }
         Action::Interactive => todo!(),
     };
@@ -43,26 +45,28 @@ pub async fn handle(args: Args) -> Result<(), CliError> {
 }
 
 async fn single(
-    mut src_file: PathBuf,
+    src_file: PathBuf,
     actiondump: PathBuf,
     out: PathBuf,
-    // Temporarily here for debugging purpouses lol
-    tree: bool,
 ) -> Result<String, CliError> {
     let rodeo = Arc::new(ThreadedRodeo::new());
-    src_file.pop();
-    let root = if let Some(it) = src_file.to_str() {
+    let src_file = src_file.canonicalize().unwrap();
+    let src = rodeo.get_or_intern(src_file.file_name().unwrap().to_str().unwrap());
+
+    let mut dir = src_file;
+    dir.pop();
+    let root = if let Some(it) = dir.to_str() {
         it
     } else {
-        return Err(CliError::NonUtf8File(src_file.into()));
+        return Err(CliError::NonUtf8File(dir.into()));
     };
 
-    let file = match ProjectFile::new(&src_file, rodeo.get_or_intern(root), rodeo.clone()).await {
+    let file = match ProjectFile::new(Path::new(rodeo.resolve(&src)), rodeo.get_or_intern(root), rodeo.clone()).await {
         Ok(it) => it,
         Err(err) => match err {
             ProjectFileCreationError::Io(e) => {
                 return Err(CliError::CannotReadSource {
-                    file: src_file.into(),
+                    file: dir.into(),
                     code: e,
                 })
             }
@@ -72,15 +76,35 @@ async fn single(
         },
     };
 
-    let project = Project::create_project(
+    let project = match Project::create_project(
         Arc::try_unwrap(rodeo).expect("rodeo arc escaped scope"),
         vec![file],
         actiondump.into(),
     )
-    .await;
+    .await
+    {
+        Ok(it) => it,
+        Err(err) => match err {
+            ProjectCreationError::ActionDump(e) => {
+                return Err(match e {
+                    ActionDumpReadError::Io(path, e) => CliError::CannotReadActionDump {
+                        file: path,
+                        code: e,
+                    },
+                    ActionDumpReadError::Parse(path, e) => CliError::MalformedActionDump {
+                        file: path,
+                        error: e,
+                    },
+                })
+            }
+            e => panic!("Unexpected: {e:#?}")
+        },
+    };
+
+    println!("{:#?}", project.files.parsed[0].resolution);
 
     // TODO: Create project analysis and codegen
-    Ok(todo!())
+    todo!()
 }
 
 fn interactive() -> Result<String, io::Error> {

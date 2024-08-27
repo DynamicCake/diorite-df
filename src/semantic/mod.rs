@@ -1,10 +1,7 @@
 //! Crates a new parse tree using the [crate::ast] module
 
-use std::sync::Arc;
-
 use crate::common::prelude::*;
-use crate::parser::ParsedFile;
-use crate::project::{ParsedProjectFiles, ProjectFile, TreeFile};
+use crate::project::{ProjectFile, TreeFile};
 use crate::{dump::ActionDump, error::semantic::SemanticError};
 
 pub struct Analyzer<'a> {
