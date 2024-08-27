@@ -61,7 +61,7 @@ async fn single(
         return Err(CliError::NonUtf8File(dir.into()));
     };
 
-    let file = match ProjectFile::new(Path::new(rodeo.resolve(&src)), rodeo.get_or_intern(root), rodeo.clone()).await {
+    let file = match ProjectFile::read(Path::new(rodeo.resolve(&src)), rodeo.get_or_intern(root), rodeo.clone()).await {
         Ok(it) => it,
         Err(err) => match err {
             ProjectFileCreationError::Io(e) => {

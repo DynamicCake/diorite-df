@@ -5,17 +5,17 @@ use crate::common::span::CalcThenWrap;
 use crate::error::syntax::UnexpectedToken;
 use crate::tree::recovery::StatementRecovery;
 
-use crate::tree::statement::{ElseBlock, RepeatLoop, Statements};
+use crate::tree::statement::{TreeElseBlock, TreeRepeatLoop, TreeStatements};
 use crate::common::prelude::*;
 use crate::{
     lexer::Token,
-    tree::statement::{IfStatement, SimpleStatement},
+    tree::statement::{TreeIfStatement, TreeSimpleStatement},
 };
 
 impl<'lex> Parser<'lex> {
     pub fn regular_statement(
         &mut self,
-    ) -> ParseResult<Result<SimpleStatement, StatementRecovery>, Vec<UnexpectedToken>> {
+    ) -> ParseResult<Result<TreeSimpleStatement, StatementRecovery>, Vec<UnexpectedToken>> {
         // paction
         let type_tok = self
             .next_assert(&Token::SIMPLE_STATEMENT)
@@ -55,7 +55,7 @@ impl<'lex> Parser<'lex> {
             Err(err) => return helper::recover_statement(self, err),
         };
 
-        ParseResult::ok(Ok(SimpleStatement {
+        ParseResult::ok(Ok(TreeSimpleStatement {
             type_tok,
             action,
             selection,
@@ -64,7 +64,7 @@ impl<'lex> Parser<'lex> {
         }))
     }
 
-    pub fn if_statement(&mut self) -> ParseResult<Result<IfStatement, StatementRecovery>> {
+    pub fn if_statement(&mut self) -> ParseResult<Result<TreeIfStatement, StatementRecovery>> {
         // ifplayer
         let type_tok = self
             .next_assert(&Token::IF_STATEMENT)
@@ -151,9 +151,9 @@ impl<'lex> Parser<'lex> {
                 };
                 error.append(&mut errs);
 
-                Some(ElseBlock {
+                Some(TreeElseBlock {
                     else_tok: else_tok.to_empty(),
-                    statements: Statements::new(data),
+                    statements: TreeStatements::new(data),
                 })
             }
             _ => panic!("should be covered by next expect"),
@@ -166,14 +166,14 @@ impl<'lex> Parser<'lex> {
 
         // NOTE See the part where statements get parsed, you might want to return that error vec
         ParseResult::new(
-            Ok(IfStatement {
+            Ok(TreeIfStatement {
                 type_tok,
                 not,
                 action,
                 selection,
                 tags,
                 params,
-                statements: Statements::new(statements),
+                statements: TreeStatements::new(statements),
                 else_block,
                 end,
             }),
@@ -182,7 +182,7 @@ impl<'lex> Parser<'lex> {
         )
     }
 
-    pub fn repeat(&mut self) -> ParseResult<Result<RepeatLoop, StatementRecovery>> {
+    pub fn repeat(&mut self) -> ParseResult<Result<TreeRepeatLoop, StatementRecovery>> {
         // repeat
         let type_tok = self.next_assert(&[Token::Repeat]).to_empty();
 
@@ -236,13 +236,13 @@ impl<'lex> Parser<'lex> {
         let end = adv_stmt!(self, self.next_expect(&[Token::End], None)).to_empty();
 
         ParseResult::new(
-            Ok(RepeatLoop {
+            Ok(TreeRepeatLoop {
                 type_tok,
                 action,
                 selection,
                 tags,
                 params,
-                statements: Statements::new(statements),
+                statements: TreeStatements::new(statements),
                 end,
             }),
             error,

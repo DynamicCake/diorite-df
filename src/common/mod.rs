@@ -7,10 +7,12 @@ use span::Referenced;
 
 pub mod data;
 pub mod span;
+pub mod tree;
 
 pub mod prelude {
     pub use crate::common::data::*;
     pub use crate::common::span::*;
+    pub use crate::common::tree::*;
     pub use crate::common::*;
     pub use crate::lexer::*;
 }

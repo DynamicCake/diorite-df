@@ -2,7 +2,7 @@
 
 pub mod prelude {
     pub use crate::common::prelude::*;
-    pub use crate::tree::{recovery::*, statement::*, top::*};
+    pub use crate::ast::{statement::*, top::*};
 }
 
 use std::marker::PhantomData;
@@ -14,19 +14,18 @@ use crate::{common::span::{
     TrySpanStart,
 }, semantic::Analyzer};
 
-use self::top::TreeTopLevel;
+use self::top::AstTopLevel;
 
-pub mod recovery;
 pub mod statement;
 pub mod top;
 
 #[derive(Debug, PartialEq)]
-pub struct TreeRoot {
-    pub top_statements: Vec<TreeTopLevel>,
+pub struct AstRoot {
+    pub top_statements: Vec<AstTopLevel>,
 }
 
-impl TreeRoot {
-    pub fn new(top_statements: Vec<TreeTopLevel>) -> Self {
+impl AstRoot {
+    pub fn new(top_statements: Vec<AstTopLevel>) -> Self {
         Self { top_statements }
     }
 }

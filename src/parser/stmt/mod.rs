@@ -2,7 +2,7 @@ use super::*;
 use crate::common::span::CalcSpan;
 use crate::error::syntax::{ParseResult, UnexpectedEOF, UnexpectedToken};
 use crate::tree::recovery::StatementRecovery;
-use crate::{lexer::Token, tree::statement::Statement};
+use crate::{lexer::Token, tree::statement::TreeStatement};
 
 pub mod common;
 pub mod kind;
@@ -10,8 +10,8 @@ pub mod kind;
 use super::Parser;
 
 impl<'lex> Parser<'lex> {
-    pub fn statements(&mut self, in_else: bool) -> ParseResult<Vec<Statement>> {
-        let mut statements: Vec<Statement> = Vec::new();
+    pub fn statements(&mut self, in_else: bool) -> ParseResult<Vec<TreeStatement>> {
+        let mut statements: Vec<TreeStatement> = Vec::new();
         let mut errors = Vec::new();
 
         loop {
@@ -41,7 +41,7 @@ impl<'lex> Parser<'lex> {
                                 Ok(it) => {
                                     statements.push(it);
                                 }
-                                Err(_err) => statements.push(Statement::Recovery),
+                                Err(_err) => statements.push(TreeStatement::Recovery),
                             };
                             // Because it is in a loop, a break will happen if at_eof is some
                             if let Some(at_eof) = at_eof {
@@ -60,7 +60,7 @@ impl<'lex> Parser<'lex> {
                         }
                     }
 
-                    statements.push(Statement::Recovery);
+                    statements.push(TreeStatement::Recovery);
                     if let Some(at_eof) = self.statement_recovery() {
                         return ParseResult::new(statements, errors, Some(at_eof));
                     }
@@ -73,7 +73,7 @@ impl<'lex> Parser<'lex> {
 
     fn statement(
         &mut self,
-    ) -> ParseResult<Result<Statement, StatementRecovery>, Vec<UnexpectedToken>> {
+    ) -> ParseResult<Result<TreeStatement, StatementRecovery>, Vec<UnexpectedToken>> {
         let decl_token = match self.peek_expect(&Token::STATEMENT, Some("statements")) {
             Ok(it) => it.data.to_owned().spanned(it.span),
             Err(err) => match err {
@@ -111,7 +111,7 @@ impl<'lex> Parser<'lex> {
                     Ok(it) => {
                         let span = it.calc_span();
                         ParseResult::new(
-                            Ok(Statement::Simple(Spanned::new(it, span))),
+                            Ok(TreeStatement::Simple(Spanned::new(it, span))),
                             error,
                             at_eof,
                         )
@@ -129,7 +129,7 @@ impl<'lex> Parser<'lex> {
                 match data {
                     Ok(it) => {
                         let span = it.calculate_span();
-                        ParseResult::new(Ok(Statement::If(Spanned::new(it, span))), error, at_eof)
+                        ParseResult::new(Ok(TreeStatement::If(Spanned::new(it, span))), error, at_eof)
                     }
                     Err(err) => ParseResult::new(Err(err), error, at_eof),
                 }
@@ -145,7 +145,7 @@ impl<'lex> Parser<'lex> {
                     Ok(it) => {
                         let span = it.calculate_span();
                         ParseResult::new(
-                            Ok(Statement::Repeat(Spanned::new(it, span))),
+                            Ok(TreeStatement::Repeat(Spanned::new(it, span))),
                             error,
                             at_eof,
                         )

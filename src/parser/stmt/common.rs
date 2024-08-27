@@ -7,7 +7,7 @@ use crate::tree::prelude::*;
 
 impl Parser<'_> {
     /// Must start with a `[`
-    pub fn tags(&mut self) -> ParseResult<Result<Tags, StatementRecovery>> {
+    pub fn tags(&mut self) -> ParseResult<Result<TreeTags, StatementRecovery>> {
         // [
         let open = self.next_assert(&[Token::OpenBracket]).to_empty();
 
@@ -17,11 +17,11 @@ impl Parser<'_> {
         // [ key: value ]
         let close = adv_stmt!(self, self.next_expect(&[Token::CloseBracket], None)).to_empty();
 
-        ParseResult::ok(Ok(Tags::new(open, tags, close)))
+        ParseResult::ok(Ok(TreeTags::new(open, tags, close)))
     }
 
     /// Must start with an iden
-    pub fn pair_list(&mut self) -> ParseResult<Result<Parameters<IdenPair>, StatementRecovery>> {
+    pub fn pair_list(&mut self) -> ParseResult<Result<Parameters<TreeIdenPair>, StatementRecovery>> {
         let mut pairs = Vec::new();
 
         // Allow [] to happen
@@ -76,7 +76,7 @@ impl Parser<'_> {
     }
 
     /// Must start with an iden
-    pub fn iden_pair(&mut self) -> ParseResult<Result<IdenPair, StatementRecovery>> {
+    pub fn iden_pair(&mut self) -> ParseResult<Result<TreeIdenPair, StatementRecovery>> {
         // key
         let key = self
             .next_assert(&[Token::Iden(None)])
@@ -89,11 +89,11 @@ impl Parser<'_> {
         let value = adv_stmt!(self, self.next_expect(&[Token::Iden(None)], None))
             .map_inner(|it| it.get_iden_inner());
 
-        ParseResult::ok(Ok(IdenPair { key, colon, value }))
+        ParseResult::ok(Ok(TreeIdenPair { key, colon, value }))
     }
 
     /// Must start with a `<`
-    pub fn selector(&mut self) -> ParseResult<Result<Selection, StatementRecovery>> {
+    pub fn selector(&mut self) -> ParseResult<Result<TreeSelection, StatementRecovery>> {
         // <
         let open = self.next_assert(&[Token::OpenComp]);
 
@@ -107,7 +107,7 @@ impl Parser<'_> {
                     AdvanceUnexpected::Token(it) => {
                         match it.received.data {
                             // This allows <>
-                            Token::CloseComp => ParseResult::ok(Ok(Selection {
+                            Token::CloseComp => ParseResult::ok(Ok(TreeSelection {
                                 open: open.to_empty(),
                                 selection: None,
                                 close: Spanned::<()>::empty(it.received.span),
@@ -129,7 +129,7 @@ impl Parser<'_> {
         // < default >
         let close = adv_stmt!(self, self.next_expect(&[Token::CloseComp], None));
 
-        ParseResult::ok(Ok(Selection {
+        ParseResult::ok(Ok(TreeSelection {
             open: open.to_empty(),
             selection: Some(selection.map_inner(|it| it.get_iden_inner())),
             close: close.to_empty(),
@@ -137,11 +137,11 @@ impl Parser<'_> {
     }
 
     // Must start with '('
-    pub fn call_params(&mut self) -> ParseResult<Result<Wrapped<Expression>, StatementRecovery>> {
+    pub fn call_params(&mut self) -> ParseResult<Result<Wrapped<TreeExpression>, StatementRecovery>> {
         // (
         let open = self.next_assert(&[Token::OpenParen]);
 
-        let mut items: Vec<Expression> = Vec::new();
+        let mut items: Vec<TreeExpression> = Vec::new();
 
         // Allowing ()
         // () or ( 1      ...
@@ -197,9 +197,9 @@ impl Parser<'_> {
             // and parsing
             let item = match next.data {
                 Token::String(_) | Token::Number(_) => {
-                    Expression::Literal(should_return!(self.literal()))
+                    TreeExpression::Literal(should_return!(self.literal()))
                 }
-                Token::Iden(_) => Expression::Expr(should_return!(self.expression())),
+                Token::Iden(_) => TreeExpression::Expr(should_return!(self.expression())),
                 _ => panic!("Should be covered by peek expect"),
             };
 
@@ -247,7 +247,7 @@ impl Parser<'_> {
         ParseResult::ok(Ok(Wrapped::new(open.to_empty(), params, close.to_empty())))
     }
 
-    pub fn expression(&mut self) -> ParseResult<Result<ExprLiteral, StatementRecovery>> {
+    pub fn expression(&mut self) -> ParseResult<Result<TreeExprLiteral, StatementRecovery>> {
         // loc
         let kind = self
             .next_assert(&[Token::Iden(None)])
@@ -256,7 +256,7 @@ impl Parser<'_> {
         // loc(
         let open = adv_stmt!(self, self.next_expect(&[Token::OpenParen], None));
 
-        let mut items: Vec<ExprValue> = Vec::new();
+        let mut items: Vec<TreeExprValue> = Vec::new();
 
         // loc(   check for ')', string or number
         let next = adv_stmt!(
@@ -275,7 +275,7 @@ impl Parser<'_> {
                     Parameters::new(items).try_calculate_span_wrap(),
                     next.to_empty(),
                 );
-                return ParseResult::ok(Ok(ExprLiteral::new(kind, wrapped.calculate_span_wrap())));
+                return ParseResult::ok(Ok(TreeExprLiteral::new(kind, wrapped.calculate_span_wrap())));
             }
             Token::Number(_) | Token::Iden(_) => {}
             _ => panic!("Should have been caught by peek_expect"),
@@ -342,19 +342,19 @@ impl Parser<'_> {
 
         let params = Parameters::new(items).try_calculate_span_wrap();
 
-        ParseResult::ok(Ok(ExprLiteral::new(
+        ParseResult::ok(Ok(TreeExprLiteral::new(
             kind,
             Wrapped::new(open.to_empty(), params, close.to_empty()).calculate_span_wrap(),
         )))
     }
 
-    pub fn literal(&mut self) -> ParseResult<Result<StaticLiteral, StatementRecovery>> {
+    pub fn literal(&mut self) -> ParseResult<Result<TreeStaticLiteral, StatementRecovery>> {
         let lit = self.next_assert(&[Token::String(None), Token::Number(None)]);
         let lit = match lit.data {
-            Token::String(it) => StaticLiteral::String(lit.map_inner(|_| {
+            Token::String(it) => TreeStaticLiteral::String(lit.map_inner(|_| {
                 StringLiteral::new(it.expect("Lexer dosen't produce empty Strings"))
             })),
-            Token::Number(it) => StaticLiteral::Number(lit.map_inner(|_| {
+            Token::Number(it) => TreeStaticLiteral::Number(lit.map_inner(|_| {
                 NumberLiteral::new(it.expect("Lexer dosen't produce empty Strings"))
             })),
             _ => panic!("Should be covered by next assert"),
@@ -362,13 +362,13 @@ impl Parser<'_> {
         ParseResult::ok(Ok(lit))
     }
 
-    pub fn expr_value(&mut self) -> ParseResult<Result<ExprValue, StatementRecovery>> {
+    pub fn expr_value(&mut self) -> ParseResult<Result<TreeExprValue, StatementRecovery>> {
         let lit = self.next_assert(&[Token::Iden(None), Token::Number(None)]);
         let lit = match lit.data {
-            Token::Iden(it) => ExprValue::Iden(
+            Token::Iden(it) => TreeExprValue::Iden(
                 lit.map_inner(|_| Iden::new(it.expect("Lexer dosen't produce empty Strings"))),
             ),
-            Token::Number(it) => ExprValue::Number(lit.map_inner(|_| {
+            Token::Number(it) => TreeExprValue::Number(lit.map_inner(|_| {
                 NumberLiteral::new(it.expect("Lexer dosen't produce empty Strings"))
             })),
             _ => panic!("Should be covered by next assert"),

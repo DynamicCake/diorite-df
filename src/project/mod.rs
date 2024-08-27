@@ -18,7 +18,6 @@ use tokio::{
     io::{self, AsyncReadExt},
 };
 
-
 #[derive(thiserror::Error, Debug)]
 pub enum ProjectFileResolveError {
     /// The path: Spur cannot be found in the rodeo
@@ -170,7 +169,17 @@ pub struct ProjectFile<S: FileResolution> {
 }
 
 impl ProjectFile<RawFile> {
-    pub async fn new(
+    /// Marked unsafe because there is no guarantee that the paths are correct
+    /// Please hash the file correctly
+    pub unsafe fn raw(src: Spur, path: Spur, hash: u64, root: Spur) -> Self {
+        Self {
+            src,
+            path,
+            hash,
+            resolution: RawFile { root },
+        }
+    }
+    pub async fn read(
         path: &Path,
         root: Spur,
         resolver: Arc<ThreadedRodeo>,

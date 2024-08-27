@@ -1,70 +1,53 @@
-use crate::tree::prelude::*;
+use crate::ast::prelude::*;
 
 #[derive(Debug, PartialEq)]
-pub enum TreeTopLevel {
-    Event(TreeEvent),
-    FuncDef(TreeFuncDef),
-    ProcDef(TreeProcDef),
-    Recovery(TopLevelRecovery),
+pub enum AstTopLevel {
+    Event(AstEvent),
+    FuncDef(AstFuncDef),
+    ProcDef(AstProcDef),
 }
 
 // Function
 #[derive(Debug, PartialEq)]
-pub struct TreeFuncDef {
+pub struct AstFuncDef {
     pub type_tok: Spanned<()>,
     pub name: Spanned<Iden>,
-    pub params: Wrapped<TreeFuncParamDef>,
-    pub statements: TreeStatements,
+    pub params: Wrapped<AstFuncParamDef>,
+    pub statements: AstStatements,
     pub end_tok: Spanned<()>,
 }
 
 #[derive(Debug, PartialEq)]
-pub struct TreeFuncParamDef {
+pub struct AstFuncParamDef {
     pub name: Spanned<Iden>,
     pub colon: Spanned<()>,
     pub data_type: Spanned<Iden>,
     pub description: Option<Spanned<Iden>>,
 }
 
-impl SpanStart for TreeFuncParamDef {
-    fn start(&self) -> SpanSize {
-        self.name.span.start
-    }
-}
-
-impl SpanEnd for TreeFuncParamDef {
-    fn end(&self) -> SpanSize {
-        let desc = &self.description;
-        match desc {
-            Some(it) => it.span.end,
-            None => self.data_type.span.end,
-        }
-    }
-}
-
 // Process
 #[derive(Debug, PartialEq)]
-pub struct TreeProcDef {
+pub struct AstProcDef {
     pub type_tok: Spanned<()>,
     pub name: Spanned<Iden>,
-    pub statements: TreeStatements,
+    pub statements: AstStatements,
     pub end_tok: Spanned<()>,
 }
 
 // Event
 #[derive(Debug, PartialEq)]
-pub struct TreeEvent {
+pub struct AstEvent {
     pub type_tok: Spanned<EventType>,
     pub name: Spanned<Iden>,
-    pub statements: TreeStatements,
+    pub statements: AstStatements,
     pub end_tok: Spanned<()>,
 }
 
-impl TreeEvent {
+impl AstEvent {
     pub fn new(
         type_tok: Spanned<EventType>,
         name: Spanned<Iden>,
-        statements: TreeStatements,
+        statements: AstStatements,
         end_tok: Spanned<()>,
     ) -> Self {
         Self {
@@ -75,3 +58,4 @@ impl TreeEvent {
         }
     }
 }
+

@@ -10,7 +10,6 @@ mod args;
 pub mod codegen;
 pub mod project;
 pub mod common;
-pub mod compile;
 pub mod diagnostics;
 pub mod dump;
 pub mod error;
@@ -20,6 +19,7 @@ pub mod parser;
 pub mod semantic;
 pub mod test;
 pub mod tree;
+pub mod ast;
 
 use std::{env::set_var, error::Error};
 
@@ -35,6 +35,5 @@ async fn main() -> Result<(), Box<dyn Error + 'static>> {
         eprintln!("{}{}", "Error: ".red(), err.to_string().red());
     };
 
-    println!("Finished running the program");
     Ok(())
 }

@@ -2,8 +2,8 @@ use crate::{
     common::prelude::*,
     tree::{
         recovery::TopLevelRecovery,
-        statement::Statements,
-        top::{Event, EventType, FuncDef, FuncParamDef, ProcDef},
+        statement::TreeStatements,
+        top::{TreeEvent, TreeFuncDef, TreeFuncParamDef, TreeProcDef},
     },
 };
 
@@ -13,19 +13,19 @@ use super::*;
 
 impl<'lex> Parser<'lex> {
     /// It is guaranteed that the next token will be a top level declaration token
-    pub(super) fn top_level(&mut self) -> ParseResult<TopLevel> {
+    pub(super) fn top_level(&mut self) -> ParseResult<TreeTopLevel> {
         // Find first token
         let token = match self.peek_expect(&Token::TOP_LEVEL, Some("top level decleration token")) {
             Ok(it) => it,
             Err(err) => {
                 return match err {
                     AdvanceUnexpected::Token(err) => ParseResult::new(
-                        TopLevel::Recovery(TopLevelRecovery),
+                        TreeTopLevel::Recovery(TopLevelRecovery),
                         vec![err],
                         self.top_recovery(),
                     ),
                     AdvanceUnexpected::Eof(err) => ParseResult::new(
-                        TopLevel::Recovery(TopLevelRecovery),
+                        TreeTopLevel::Recovery(TopLevelRecovery),
                         Vec::new(),
                         Some(Box::new(err)),
                     ),
@@ -41,8 +41,8 @@ impl<'lex> Parser<'lex> {
                     at_eof,
                 } = self.event();
                 let data = match data {
-                    Ok(it) => TopLevel::Event(it),
-                    Err(err) => TopLevel::Recovery(err),
+                    Ok(it) => TreeTopLevel::Event(it),
+                    Err(err) => TreeTopLevel::Recovery(err),
                 };
                 ParseResult::new(data, error, at_eof)
             }
@@ -53,8 +53,8 @@ impl<'lex> Parser<'lex> {
                     at_eof,
                 } = self.process();
                 let data = match data {
-                    Ok(it) => TopLevel::ProcDef(it),
-                    Err(err) => TopLevel::Recovery(err),
+                    Ok(it) => TreeTopLevel::ProcDef(it),
+                    Err(err) => TreeTopLevel::Recovery(err),
                 };
                 ParseResult::new(data, error, at_eof)
             }
@@ -65,8 +65,8 @@ impl<'lex> Parser<'lex> {
                     at_eof,
                 } = self.function();
                 let data = match data {
-                    Ok(it) => TopLevel::FuncDef(it),
-                    Err(err) => TopLevel::Recovery(err),
+                    Ok(it) => TreeTopLevel::FuncDef(it),
+                    Err(err) => TreeTopLevel::Recovery(err),
                 };
                 ParseResult::new(data, error, at_eof)
             }
@@ -82,7 +82,7 @@ impl<'lex> Parser<'lex> {
         top
     }
 
-    fn process(&mut self) -> ParseResult<Result<ProcDef, TopLevelRecovery>> {
+    fn process(&mut self) -> ParseResult<Result<TreeProcDef, TopLevelRecovery>> {
         let type_tok = self.next_assert(&[Token::ProcDef]).to_empty();
         let name = adv_top!(self, self.next_expect(&[Token::Iden(None)], None))
             .map_inner(|it| Iden::new(it.get_iden_inner()));
@@ -99,10 +99,10 @@ impl<'lex> Parser<'lex> {
         let end = adv_top!(self, self.next_expect(&[Token::End], None)).to_empty();
 
         ParseResult::new(
-            Ok(ProcDef {
+            Ok(TreeProcDef {
                 type_tok,
                 name,
-                statements: Statements::new(data),
+                statements: TreeStatements::new(data),
                 end_tok: end,
             }),
             error,
@@ -110,7 +110,7 @@ impl<'lex> Parser<'lex> {
         )
     }
 
-    fn function(&mut self) -> ParseResult<Result<FuncDef, TopLevelRecovery>> {
+    fn function(&mut self) -> ParseResult<Result<TreeFuncDef, TopLevelRecovery>> {
         let type_tok = self.next_assert(&[Token::FuncDef]).to_empty();
         let name = adv_top!(self, self.next_expect(&[Token::Iden(None)], None))
             .map_inner(|it| Iden::new(it.get_iden_inner()));
@@ -170,11 +170,11 @@ impl<'lex> Parser<'lex> {
         let end = adv_top!(self, self.next_expect(&[Token::End], None)).to_empty();
 
         ParseResult::new(
-            Ok(FuncDef {
+            Ok(TreeFuncDef {
                 type_tok,
                 name,
                 params,
-                statements: Statements::new(data),
+                statements: TreeStatements::new(data),
                 end_tok: end,
             }),
             error,
@@ -182,7 +182,7 @@ impl<'lex> Parser<'lex> {
         )
     }
 
-    fn params(&mut self) -> ParseResult<Result<FuncParamDef, TopLevelRecovery>> {
+    fn params(&mut self) -> ParseResult<Result<TreeFuncParamDef, TopLevelRecovery>> {
         let name = self
             .next_assert(&[Token::Iden(None)])
             .map_inner(|it| Iden::new(it.get_iden_inner()));
@@ -203,7 +203,7 @@ impl<'lex> Parser<'lex> {
         };
 
         // .map_inner(|it| Iden::new(it.get_iden_inner()));
-        ParseResult::ok(Ok(FuncParamDef {
+        ParseResult::ok(Ok(TreeFuncParamDef {
             name,
             colon,
             data_type,
@@ -214,7 +214,7 @@ impl<'lex> Parser<'lex> {
     /// Represents an event delceration
     /// `pevent Join (statements) end`
     /// If the compiler result data is None, then it can be treated as malformed
-    fn event(&mut self) -> ParseResult<Result<Event, TopLevelRecovery>, Vec<UnexpectedToken>> {
+    fn event(&mut self) -> ParseResult<Result<TreeEvent, TopLevelRecovery>, Vec<UnexpectedToken>> {
         let definition = self.next_assert(&Token::EVENT);
 
         let type_tok = match definition.data {
@@ -243,10 +243,10 @@ impl<'lex> Parser<'lex> {
 
         let end = adv_top!(self, self.next_expect(&[Token::End], None)).to_empty();
 
-        let event = Event::new(
+        let event = TreeEvent::new(
             Spanned::new(type_tok, definition.span),
             name.map_inner(|it| Iden::new(it.get_iden_inner())),
-            Statements::new(stmts),
+            TreeStatements::new(stmts),
             end,
         );
 

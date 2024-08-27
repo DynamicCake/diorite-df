@@ -16,7 +16,7 @@ use crate::error::syntax::{
     ExpectedTokens, LexerError, ParseResult, UnexpectedEOF, UnexpectedToken,
 };
 use crate::tree::TreeRoot;
-use crate::{lexer::Token, tree::top::TopLevel};
+use crate::{lexer::Token, tree::top::TreeTopLevel};
 
 pub mod helper;
 pub mod stmt;
