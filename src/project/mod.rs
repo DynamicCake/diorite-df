@@ -1,11 +1,10 @@
-use std::{
-    hash::{DefaultHasher, SipHasher},
-    marker::PhantomData,
-};
+use core::panic;
+use std::{borrow::Cow, hash::DefaultHasher, marker::PhantomData};
 
 use crate::{
     common::prelude::*,
     dump::ActionDump,
+    parser::{ParsedFile, Parser},
     semantic::{AnalysisResult, Analyzer},
     tree::top::TopLevel,
 };
@@ -17,43 +16,17 @@ use std::{
     sync::Arc,
 };
 
-use lasso::{RodeoResolver, Spur};
+use lasso::{Interner, IntoResolver, Resolver, RodeoResolver, Spur, ThreadedRodeo};
+use logos::{Lexer, Logos};
 use path_clean::clean;
+use rustc_hash::{FxBuildHasher, FxHasher};
+use tokio::{
+    fs::{read_to_string, File},
+    io::{self, AsyncReadExt},
+    sync::broadcast::error,
+};
 
 use crate::common::prelude::*;
-
-/*
-#[derive(Debug, Hash, PartialEq, Eq, Clone, Copy)]
-pub struct ProjectFile(Spur);
-impl ProjectFile {
-    /// Creates a new project file
-    /// See [ProjectFileResolveError] for ways this function can fail
-    pub fn new(
-        path: Spur,
-        resolver: Arc<ProjectResources>,
-    ) -> Result<Self, ProjectFileResolveError> {
-        let name = resolver
-            .rodeo
-            .try_resolve(&path)
-            .ok_or_else(|| ProjectFileResolveError::CannotResolve)?;
-        let resolved_path = Path::new(name);
-
-        if resolved_path.is_relative() {
-            return Err(ProjectFileResolveError::Relative);
-        }
-
-        let full = clean(resolver.project_root.join(resolved_path));
-        if !full.starts_with(resolved_path) {
-            return Err(ProjectFileResolveError::NotInProject);
-        }
-        Ok(Self(path))
-    }
-
-    pub fn path(self) -> Spur {
-        self.0
-    }
-}
-*/
 
 #[derive(thiserror::Error, Debug)]
 pub enum ProjectFileResolveError {
@@ -70,44 +43,118 @@ pub enum ProjectFileResolveError {
 
 /// Immutable resources used for the project not including the source
 pub struct ProjectResources {
-    rodeo: RodeoResolver,
-    project_root: Box<Path>,
+    pub rodeo: RodeoResolver,
+    pub project_root: Spur,
+    pub actiondump: ActionDump,
 }
 
-pub struct Project {
-    resources: ProjectResources,
-    projects: Vec<Program>,
+pub struct Project<T: ProjectFiles> {
+    resources: Arc<ProjectResources>,
+    /// The files that the project has
+    files: T,
+    /// A hash comprised of the project metadata and all the source files
     hash: u64,
 }
 
-impl Project<UncheckedProgram> {
-    pub fn new(resources: ProjectResources, programs: Vec<Program<UncheckedProgram>>) -> Self {
-        let hash = {
-            // Not so random now huh
-            // This will be changed when I find a suitable hashing algorithm
-            let s: RandomState = unsafe {
-                let nuh_uh: (u64, u64) = (420, 69);
-                transmute(nuh_uh)
-            };
-            let mut hasher = s.build_hasher();
-            for program in &programs {
-                program.hash.hash(&mut hasher);
-            }
-            hasher.finish()
-        };
-        Self {
-            resources,
-            projects: programs,
-            hash,
+impl Project<ParsedProjectFiles> {
+    pub async fn create_project(
+        rodeo: ThreadedRodeo,
+        files: Vec<ProjectFile<RawFile>>,
+        actiondump_path: Box<Path>,
+    ) -> Result<Project<ParsedProjectFiles>, ProjectCreationError> {
+        // Start the action dump reading early
+        let actiondump = tokio::spawn(Self::get_actiondump(actiondump_path));
+
+        // Hash files
+        let mut hasher = FxHasher::default();
+        for file in &files {
+            file.hash.hash(&mut hasher);
         }
+        let hash = hasher.finish();
+
+        let mut handles = Vec::new();
+        let rodeo = Arc::new(rodeo);
+        let mut root: Option<Spur> = None;
+        for file in files {
+            if let Some(root) = root {
+                if root != file.resolution.root {
+                    return Err(ProjectCreationError::RootsDoNotMatch(
+                        root,
+                        file.resolution.root,
+                    ));
+                }
+            } else {
+                root = Some(file.resolution.root);
+            }
+            let rodeo = rodeo.clone();
+            let handle = tokio::spawn(async move {
+                let src = rodeo.resolve(&file.src);
+                let lexer = Token::lexer_with_extras(&src, rodeo.clone());
+                let ast = Parser::parse(lexer, file.path);
+                file.to_parsed(ast)
+            });
+            handles.push(handle);
+        }
+        let root = if let Some(it) = root {
+            it
+        } else {
+            return Err(ProjectCreationError::NoFilesInputed);
+        };
+
+        // Async clojures are unstable
+        let mut trees = Vec::new();
+        for handle in handles {
+            trees.push(handle.await.expect("Thread failed to execute"));
+        }
+
+        let rodeo = Arc::try_unwrap(rodeo).expect("The Arced ThreadedRodeo has escaped this scope");
+        let actiondump = actiondump
+            .await
+            .expect("Task cannot panic or be canceled")
+            .map_err(|e| ProjectCreationError::ActionDump(e))?;
+
+        let resources = ProjectResources::new(rodeo.into_resolver(), root, actiondump);
+        let files = ParsedProjectFiles::new(trees);
+
+        Ok(Self {
+            resources: todo!(),
+            files,
+            hash,
+        })
+    }
+
+    async fn get_actiondump(path: Box<Path>) -> Result<ActionDump, ActionDumpReadError> {
+        let dump = match read_to_string(&path).await {
+            Ok(t) => t,
+            Err(e) => return Err(ActionDumpReadError::Io(path, e)),
+        };
+        // I *could* make this a match statement, but I wont
+        let dump = serde_json::from_str(&dump).map_err(|e| ActionDumpReadError::Parse(path, e))?;
+        Ok(dump)
     }
 }
 
+#[derive(Debug, thiserror::Error)]
+pub enum ActionDumpReadError {
+    #[error("Io error when reading actiondump at {0} with error {1}")]
+    Io(Box<Path>, io::Error),
+    #[error("Parse error at {0} with error {1}")]
+    Parse(Box<Path>, serde_json::Error),
+}
+
+#[derive(Debug)]
+pub enum ProjectCreationError {
+    RootsDoNotMatch(Spur, Spur),
+    NoFilesInputed,
+    ActionDump(ActionDumpReadError),
+}
+
 impl ProjectResources {
-    pub fn new(rodeo: RodeoResolver, path: Box<Path>) -> Self {
+    pub fn new(rodeo: RodeoResolver, project_root: Spur, actiondump: ActionDump) -> Self {
         Self {
             rodeo,
-            project_root: path,
+            project_root,
+            actiondump,
         }
     }
 
@@ -115,68 +162,152 @@ impl ProjectResources {
         &self.rodeo
     }
 
-    pub fn project_root(&self) -> &Path {
-        &self.project_root
+    pub fn project_root(&self) -> Spur {
+        self.project_root
     }
 }
 
-pub struct ProjectFile {
+#[derive(Debug)]
+pub struct ProjectFile<S: FileResolution> {
     pub src: Spur,
     /// Relative path of the file from the project root
-    pub file: Spur,
+    pub path: Spur,
+    pub hash: u64,
+    pub resolution: S,
 }
 
-impl ProjectFile {
-    pub fn new(src: Spur, file: Spur) -> Self {
-        Self { src, file }
+impl ProjectFile<RawFile> {
+    pub async fn new(
+        path: &Path,
+        root: Spur,
+        resolver: Arc<ThreadedRodeo>,
+    ) -> Result<Self, ProjectFileCreationError> {
+        // Open and verify
+        let mut file = File::open(path)
+            .await
+            .map_err(|e| ProjectFileCreationError::Io(e))?;
+
+        let canonical = path
+            .canonicalize()
+            .map_err(|e| ProjectFileCreationError::Io(e))?;
+        if !canonical.is_absolute() {
+            return Err(ProjectFileCreationError::BaseNotAbsolute);
+        }
+        let path = if let Ok(it) = canonical.strip_prefix(Path::new(resolver.resolve(&root))) {
+            if let Some(it) = path.to_str() {
+                it
+            } else {
+                return Err(ProjectFileCreationError::NotUTF8);
+            }
+        } else {
+            return Err(ProjectFileCreationError::NotInRoot);
+        };
+
+        // Read file
+        let mut src = String::new();
+        file.read_to_string(&mut src)
+            .await
+            .map_err(|e| ProjectFileCreationError::Io(e))?;
+
+        // Obtain hash
+        let mut hasher = FxHasher::default();
+        src.hash(&mut hasher);
+        let hash = hasher.finish();
+
+        let src = resolver.get_or_intern(src);
+        let path = resolver.get_or_intern(path);
+        Ok(Self {
+            src,
+            path,
+            hash,
+            resolution: RawFile { root },
+        })
+    }
+
+    pub fn to_parsed(self, parsed_file: ParsedFile) -> ProjectFile<TreeFile> {
+        ProjectFile {
+            src: self.src,
+            path: self.path,
+            hash: self.hash,
+            resolution: TreeFile::new(parsed_file),
+        }
     }
 }
 
-#[derive(Debug, PartialEq)]
-pub struct Program {
-    pub top_statements: Vec<TopLevel>,
+#[derive(Debug, thiserror::Error)]
+pub enum ProjectFileCreationError {
+    #[error("{0}")]
+    Io(io::Error),
+    #[error("File path is not in project root")]
+    NotInRoot,
+    #[error("Project root path not absolute")]
+    BaseNotAbsolute,
+    #[error("File path is not utf-8")]
+    NotUTF8,
 }
 
-/// Used for the type state pattern with [Program]
-pub trait ProgramState {}
-
-/// A program state with source code only and file info
+/// Program for the AST
 #[derive(Debug, PartialEq)]
-pub struct SourceProgram;
-impl ProgramState for SourceProgram {}
-
-/// A program state with a parse tree
-#[derive(Debug, PartialEq)]
-pub struct UncheckedProgram {}
-impl ProgramState for UncheckedProgram {}
-
-/// This means the program has been checked for a single thread
-/// There still hasn't been starter conflict verification
-#[derive(Debug, PartialEq)]
-pub struct CheckedAloneProgram;
-impl ProgramState for CheckedAloneProgram {}
-
-#[derive(Debug, PartialEq)]
-pub struct CheckedProgram;
-impl ProgramState for CheckedProgram {}
+pub struct ResolvedRoot {
+    pub top_statements: (),
+}
 
 // Files
 
-pub trait FileState {}
+pub trait FileResolution {}
 
+// None
 #[derive(Debug, PartialEq)]
-pub struct RawFile;
-impl FileState for RawFile {}
-
-#[derive(Debug, PartialEq)]
-pub struct ParsedFile {
-    program: Program,
+pub struct RawFile {
+    pub root: Spur,
 }
-impl FileState for ParsedFile {}
+impl FileResolution for RawFile {}
 
+// Lexing
+#[derive(Debug)]
+pub struct TokenizedFile<'src> {
+    lexer: Lexer<'src, Token>,
+}
+impl FileResolution for TokenizedFile<'_> {}
+
+// Parsing
+#[derive(Debug, PartialEq)]
+pub struct TreeFile {
+    program: ParsedFile,
+}
+
+/// This is named like (Parse)TreeFile because ParsedFile also refers to
+/// parse tree + errors that is returned from parser
+impl TreeFile {
+    pub fn new(program: ParsedFile) -> Self {
+        Self { program }
+    }
+}
+impl FileResolution for TreeFile {}
+
+// Semantic Checking
 #[derive(Debug, PartialEq)]
 pub struct AnalyzedFile {
-    program: Program,
+    program: CheckedProjectFiles,
+}
+impl FileResolution for AnalyzedFile {}
+
+/// Used for the type state pattern with project
+pub trait ProjectFiles {}
+
+/// A program state with a parse tree
+#[derive(Debug)]
+pub struct ParsedProjectFiles {
+    files: Vec<ProjectFile<TreeFile>>,
 }
 
-impl FileState for AnalyzedFile {}
+impl ParsedProjectFiles {
+    pub fn new(files: Vec<ProjectFile<TreeFile>>) -> Self {
+        Self { files }
+    }
+}
+impl ProjectFiles for ParsedProjectFiles {}
+
+#[derive(Debug, PartialEq)]
+pub struct CheckedProjectFiles;
+impl ProjectFiles for CheckedProjectFiles {}

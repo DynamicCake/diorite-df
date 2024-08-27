@@ -1,5 +1,7 @@
 use std::{fmt::Display, path::Path, sync::Arc};
 
+use lasso::Spur;
+
 use crate::{common::span::Spanned, lexer::Token};
 
 /// Represents a parse result that every parsing function should return
@@ -55,7 +57,7 @@ pub struct UnexpectedToken {
     pub expected: ExpectedTokens,
     pub received: Spanned<Token>,
     pub expected_name: Option<Arc<str>>,
-    pub file: Arc<Path>,
+    pub file: Spur,
 }
 
 impl UnexpectedToken {
@@ -63,7 +65,7 @@ impl UnexpectedToken {
         expected: ExpectedTokens,
         received: Spanned<Token>,
         expected_name: Option<Arc<str>>,
-        file: Arc<Path>,
+        file: Spur,
     ) -> Self {
         Self {
             expected,

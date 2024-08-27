@@ -20,3 +20,15 @@ pub mod recovery;
 pub mod statement;
 pub mod top;
 
+#[derive(Debug, PartialEq)]
+pub struct TreeRoot {
+    pub top_statements: Vec<TopLevel>,
+}
+
+impl TreeRoot {
+    pub fn new(top_statements: Vec<TopLevel>) -> Self {
+        Self { top_statements }
+    }
+}
+
+

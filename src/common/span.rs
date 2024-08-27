@@ -137,15 +137,15 @@ where
 #[derive(Debug)]
 pub struct Referenced<T> {
     pub spanned: Spanned<T>,
-    pub file: ProjectFile,
+    pub file_path: Spur,
 }
 
 impl<T> Referenced<T> {
-    pub fn new(spanned: Spanned<T>, file: ProjectFile) -> Self { Self { spanned, file } }
+    pub fn new(spanned: Spanned<T>, file: Spur) -> Self { Self { spanned, file_path: file } }
 }
 
 #[derive(Debug)]
 pub struct Reference {
     pub span: Span,
-    pub file: ProjectFile,
+    pub file_path: Spur,
 }

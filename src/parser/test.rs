@@ -6,7 +6,7 @@ use crate::{
     error::syntax::{LexerError, UnexpectedEOF, UnexpectedToken},
     parser::Parser,
 };
-use lasso::ThreadedRodeo;
+use lasso::{Interner, ThreadedRodeo};
 use logos::Lexer;
 use std::{path::Path, sync::Arc};
 
@@ -22,8 +22,8 @@ struct ParseFileErrors {
 /// Transform source to [ParseResult]
 fn parse_string(src: &str) -> ParseResult {
     let rodeo = Arc::new(ThreadedRodeo::new());
-    let lexer = Lexer::with_extras(src, rodeo);
-    let file = Parser::parse(lexer, Path::new("[test]").into());
+    let lexer = Lexer::with_extras(src, rodeo.clone());
+    let file = Parser::parse(lexer, rodeo.get_or_intern("[test]"));
     if file.is_successful() {
         Ok(())
     } else {

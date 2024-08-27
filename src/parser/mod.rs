@@ -8,12 +8,14 @@ use std::path::Path;
 use std::sync::Arc;
 
 use logos::{Lexer, SpannedIter};
+use lasso::Spur;
+use rustc_hash::FxHasher;
 
 use crate::common::prelude::*;
 use crate::error::syntax::{
     ExpectedTokens, LexerError, ParseResult, UnexpectedEOF, UnexpectedToken,
 };
-use crate::project::Program;
+use crate::tree::TreeRoot;
 use crate::{lexer::Token, tree::top::TopLevel};
 
 pub mod helper;
@@ -30,20 +32,25 @@ pub struct Parser<'lex> {
     /// Whenever an invalid token is replaced with [Token::Invalid](crate::lexer::Token), a lexer error gets added
     lex_errs: Vec<LexerError>,
     /// The file this parser belongs to
-    file: Spur,
+    path: Spur,
 }
 
 #[derive(Debug, PartialEq)]
 pub struct ParsedFile {
     /// The parse tree made from the parser
-    /// To avoid future confusion, diorite (as of now) does not have an ast only a parse tree
-    pub program: Program<UncheckedProgram>,
+    /// Unfortunately having only a parse tree is not possible as some other things need to be
+    /// transformed like `loc(10, 0, -10)` which could become invalid
+    pub root: TreeRoot,
     /// List of lexer errors caused by invalid tokens
     pub lex_errs: Vec<LexerError>,
     /// List of unexpected token errors
     pub parse_errs: Vec<UnexpectedToken>,
     /// Indicates weather an error happened at the end of file
     /// It was found that this is better than putting eof errors in [parse_errs](ParsedFile::parse_errs)
+    /// Because:
+    /// 1. there can only be one EOF error
+    /// 2. It stops the parsers from attempting recovery by checking if it is some
+    /// 3. [parse_errs](ParsedFile::parse_errs) no longer needs to be an Vec<enum>
     pub at_eof: Option<Box<UnexpectedEOF>>,
 }
 
@@ -54,33 +61,24 @@ impl ParsedFile {
 }
 
 impl<'lex> Parser<'lex> {
-    pub fn parse(lexer: Lexer<'lex, Token>, file: Arc<Path>) -> ParsedFile {
+    pub fn parse(lexer: Lexer<'lex, Token>, file: Spur) -> ParsedFile {
         let src: &str = lexer.source();
+        let mut hasher = FxHasher::default();
+        src.hash(&mut hasher);
+        let hash = hasher.finish();
 
-        let hash = {
-            // Not so random now huh
-            // This will be changed when I find a suitable hashing algorithm
-            let s: RandomState = unsafe {
-                let nuh_uh: (u64, u64) = (69, 420);
-                transmute(nuh_uh)
-            };
-            let mut hasher = s.build_hasher();
-            src.hash(&mut hasher);
-            hasher.finish()
-        };
-
-        Self::new(lexer, file).parse_self(hash)
+        Self::new(lexer, file).parse_self()
     }
-    fn new(lexer: Lexer<'lex, Token>, file: Arc<Path>) -> Self {
+    pub fn new(lexer: Lexer<'lex, Token>, file: Spur) -> Self {
         Self {
             toks: lexer.spanned().peekable(),
             lex_errs: Vec::new(),
-            file,
+            path: file,
         }
     }
 
     /// Consume the token iterator and output a parsed file
-    fn parse_self(mut self, hash: u64) -> ParsedFile {
+    fn parse_self(mut self) -> ParsedFile {
         let mut stmts = Vec::new();
         let mut errors = Vec::new();
         loop {
@@ -99,7 +97,7 @@ impl<'lex> Parser<'lex> {
 
             if let Some(at_eof) = at_eof {
                 return ParsedFile {
-                    program: Program::new(stmts, hash),
+                    root: TreeRoot::new(stmts),
                     lex_errs: self.lex_errs,
                     parse_errs: errors,
                     at_eof: Some(at_eof),
@@ -107,7 +105,7 @@ impl<'lex> Parser<'lex> {
             }
         }
         ParsedFile {
-            program: Program::new(stmts, hash),
+            root: TreeRoot::new(stmts),
             lex_errs: self.lex_errs,
             parse_errs: errors,
             at_eof: None,
@@ -130,7 +128,7 @@ impl<'lex> Parser<'lex> {
                             expected: ExpectedTokens::new(expected.into()),
                             received: token.spanned(span),
                             expected_name: None,
-                            file: self.file.clone(),
+                            file: self.path.clone(),
                         }
                     )
                 };
@@ -170,7 +168,7 @@ impl<'lex> Parser<'lex> {
                         expected: ExpectedTokens::new(expected.into()),
                         received: token.spanned(span),
                         expected_name: expected_name.map(|str| str.into()),
-                        file: self.file.clone(),
+                        file: self.path.clone(),
                     }))
                 };
             } else {
@@ -202,7 +200,7 @@ impl<'lex> Parser<'lex> {
                         expected: ExpectedTokens::new(expected.into()),
                         received: token.clone().spanned(span.clone()),
                         expected_name: msg.map(|str| str.into()),
-                        file: self.file.clone(),
+                        file: self.path.clone(),
                     }))
                 };
             } else {
