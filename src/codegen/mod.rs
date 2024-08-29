@@ -9,11 +9,11 @@ mod test;
 
 pub struct CodeGenerator<'a> {
     pub dump: &'a ActionDump,
-    pub program: &'a ProjectFile<AnalyzedFile>,
+    pub program: &'a ProjectFile<AnalyzedFile<'a>>,
 }
 
 impl<'a> CodeGenerator<'a> {
-    pub fn new(dump: &'a ActionDump, program: &'a ProjectFile<AnalyzedFile>) -> Self {
+    pub fn new(dump: &'a ActionDump, program: &'a ProjectFile<AnalyzedFile<'a>>) -> Self {
         Self { dump, program }
     }
 

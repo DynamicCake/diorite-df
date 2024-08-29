@@ -6,11 +6,11 @@ use clap::{Parser, Subcommand};
 #[command(author, version, about, long_about = None)]
 pub struct Args {
     #[command(subcommand)]
-    pub action: Action,
+    pub action: CliAction,
 }
 
 #[derive(Subcommand)]
-pub enum Action {
+pub enum CliAction {
     New {
         name: String,
     },

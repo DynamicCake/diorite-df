@@ -16,7 +16,7 @@ use ariadne::Source;
 use lasso::{Resolver, ThreadedRodeo};
 
 use crate::{
-    args::{Action, Args},
+    args::{CliAction, Args},
     diagnostics,
     error::cli::CliError,
     project::{
@@ -26,11 +26,11 @@ use crate::{
 
 pub async fn handle(args: Args) -> Result<(), CliError> {
     match args.action {
-        Action::New { name } => todo!(),
-        Action::Init => todo!(),
-        Action::Build { target } => todo!(),
-        Action::Send { target, all } => todo!(),
-        Action::Single {
+        CliAction::New { name } => todo!(),
+        CliAction::Init => todo!(),
+        CliAction::Build { target } => todo!(),
+        CliAction::Send { target, all } => todo!(),
+        CliAction::Single {
             file,
             tree,
             out,
@@ -39,7 +39,7 @@ pub async fn handle(args: Args) -> Result<(), CliError> {
             let out = out.unwrap_or_else(|| file.clone());
             single(file, dump, out).await?
         }
-        Action::Interactive => todo!(),
+        CliAction::Interactive => todo!(),
     };
     Ok(())
 }

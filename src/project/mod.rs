@@ -298,11 +298,11 @@ impl FileResolution for TreeFile {}
 
 // Semantic Checking
 #[derive(Debug)]
-pub struct AnalyzedFile {
+pub struct AnalyzedFile<'resources> {
     starters: StarterSet,
-    programs: CheckedProjectFiles,
+    programs: CheckedProjectFiles<'resources>,
 }
-impl FileResolution for AnalyzedFile {}
+impl FileResolution for AnalyzedFile<'_> {}
 
 /// Used for the type state pattern with project
 pub trait ProjectFiles {}
@@ -334,7 +334,7 @@ impl ParsedProjectFiles {
 impl ProjectFiles for ParsedProjectFiles {}
 
 #[derive(Debug, PartialEq)]
-pub struct CheckedProjectFiles {
-    pub programs: Vec<AstRoot>,
+pub struct CheckedProjectFiles<'d> {
+    pub programs: Vec<AstRoot<'d>>,
 }
-impl ProjectFiles for CheckedProjectFiles {}
+impl ProjectFiles for CheckedProjectFiles<'_> {}

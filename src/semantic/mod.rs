@@ -12,39 +12,36 @@ use crate::{dump::ActionDump, error::semantic::SemanticError};
 use futures::{stream, StreamExt};
 use lasso::{Resolver, RodeoResolver, Spur};
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct Analyzer<'d> {
-    dump: Arc<ActionDump>,
-    resolver: Arc<RodeoResolver>,
+    dump: &'d ActionDump,
+    resolver: &'d RodeoResolver,
 }
 
-pub struct AnalysisResult {
+pub struct AnalysisResult<'d> {
     errors: Vec<SemanticError>,
-    program: Project<CheckedProjectFiles>,
+    program: Project<CheckedProjectFiles<'d>>,
     starters: StarterSet,
 }
 
-impl Analyzer {
+impl<'d> Analyzer<'d> {
     pub async fn verify(
-        resolver: Arc<RodeoResolver>,
+        &'d self,
         program: Project<ParsedProjectFiles>,
-        dump: Arc<ActionDump>,
-    ) -> Option<AnalysisResult> {
+    ) -> Option<AnalysisResult<'d>> {
         let errs = &program.files;
         if errs.eof_errs.is_empty() || errs.parse_errs.is_empty() || errs.lex_errs.is_empty() {
             return None;
         }
-        if let Some(n) = Self::new(resolver, dump) {
-            return Some(n.resolve_self(program).await);
-        }
-        None
+        let res = self.resolve_self(program).await;
+        return Some(res);
     }
 
-    fn new(resolver: Arc<RodeoResolver>, dump: Arc<ActionDump>) -> Option<Self> {
-        Some(Self { resolver, dump })
+    fn new(resolver: &'d RodeoResolver, dump: &'d ActionDump) -> Self {
+        Self { resolver, dump }
     }
 
-    async fn resolve_self(self, program: Project<ParsedProjectFiles>) -> AnalysisResult {
+    async fn resolve_self(&'d self, program: Project<ParsedProjectFiles>) -> AnalysisResult<'d> {
         let mut starters = StarterSet::new();
         let mut starter_collisions = Vec::new();
         let programs_len = program.files.parsed.len();
@@ -59,7 +56,7 @@ impl Analyzer {
         });
 
         let stream = stream::iter(program.files.parsed)
-            .map(|file| self.clone().resolve_file(file.resolution.root, file.path));
+            .map(|file| self.resolve_file(file.resolution.root, file.path));
 
         let mut errors: Vec<SemanticError> = Vec::new();
         let roots: Vec<_> = stream.buffered(programs_len).collect().await;
@@ -75,8 +72,8 @@ impl Analyzer {
         }
     }
 
-    async fn resolve_file(&self, root: TreeRoot, file: Spur) -> AstRoot {
-        let mut ast_top: Vec<AstTopLevel> = Vec::with_capacity(root.top_statements.len());
+    async fn resolve_file(&'d self, root: TreeRoot, file: Spur) -> AstRoot<'d> {
+        let mut ast_top: Vec<AstTopLevel<'d>> = Vec::with_capacity(root.top_statements.len());
         for top in root.top_statements {
             ast_top.push(AstTopLevel::Event(match top {
                 TreeTopLevel::Event(e) => {
@@ -89,7 +86,7 @@ impl Analyzer {
                         type_tok: e.type_tok,
                         name: e.name,
                         action,
-                        statements: self.clone().statements(e.statements, file).await,
+                        statements: self.statements(e.statements, file).await,
                         end_tok: e.end_tok,
                     }
                 }
@@ -101,7 +98,7 @@ impl Analyzer {
         todo!()
     }
 
-    async fn statements(self, top: TreeStatements, file: Spur) -> AstStatements {
+    async fn statements(&self, top: TreeStatements, file: Spur) -> AstStatements<'d> {
         todo!()
     }
 }

@@ -1,19 +1,19 @@
 use crate::{ast::prelude::*, dump::Action};
 
 #[derive(Debug, PartialEq)]
-pub enum AstTopLevel {
-    Event(AstEvent),
-    FuncDef(AstFuncDef),
-    ProcDef(AstProcDef),
+pub enum AstTopLevel<'d> {
+    Event(AstEvent<'d>),
+    FuncDef(AstFuncDef<'d>),
+    ProcDef(AstProcDef<'d>),
 }
 
 // Function
 #[derive(Debug, PartialEq)]
-pub struct AstFuncDef {
+pub struct AstFuncDef<'d> {
     pub type_tok: Spanned<()>,
     pub name: Spanned<Iden>,
     pub params: Wrapped<AstFuncParamDef>,
-    pub statements: AstStatements,
+    pub statements: AstStatements<'d>,
     pub end_tok: Spanned<()>,
 }
 
@@ -27,10 +27,10 @@ pub struct AstFuncParamDef {
 
 // Process
 #[derive(Debug, PartialEq)]
-pub struct AstProcDef {
+pub struct AstProcDef<'d> {
     pub type_tok: Spanned<()>,
     pub name: Spanned<Iden>,
-    pub statements: AstStatements,
+    pub statements: AstStatements<'d>,
     pub end_tok: Spanned<()>,
 }
 
@@ -39,7 +39,7 @@ pub struct AstProcDef {
 pub struct AstEvent<'d> {
     pub type_tok: Spanned<EventType>,
     pub name: Spanned<Iden>,
-    pub statements: AstStatements,
+    pub statements: AstStatements<'d>,
     pub end_tok: Spanned<()>,
     pub action: Option<&'d Action>,
 }
@@ -48,7 +48,7 @@ impl<'d> AstEvent<'d> {
     pub fn new(
         type_tok: Spanned<EventType>,
         name: Spanned<Iden>,
-        statements: AstStatements,
+        statements: AstStatements<'d>,
         end_tok: Spanned<()>,
         action: Option<&'d Action>,
     ) -> Self {
@@ -61,4 +61,3 @@ impl<'d> AstEvent<'d> {
         }
     }
 }
-
