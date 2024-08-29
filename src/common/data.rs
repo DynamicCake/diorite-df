@@ -130,7 +130,7 @@ impl NumberLiteral {
 
 // Iden
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct Iden {
     pub name: Spur,
 }

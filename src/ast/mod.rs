@@ -2,7 +2,7 @@
 
 pub mod prelude {
     pub use crate::common::prelude::*;
-    pub use crate::ast::{statement::*, top::*};
+    pub use crate::ast::{AstRoot, statement::*, top::*};
 }
 
 use std::marker::PhantomData;

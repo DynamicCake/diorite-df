@@ -7,8 +7,8 @@ use std::mem::transmute;
 use std::path::Path;
 use std::sync::Arc;
 
-use logos::{Lexer, SpannedIter};
 use lasso::Spur;
+use logos::{Lexer, SpannedIter};
 use rustc_hash::FxHasher;
 
 use crate::common::prelude::*;
@@ -136,7 +136,10 @@ impl<'lex> Parser<'lex> {
                 let span = (span.start as SpanSize)..(span.end as SpanSize);
                 panic!(
                     "Unexpected Error: {:#?}",
-                    LexerError::new(Spanned::<()>::empty(span))
+                    LexerError::new(Referenced::<()>::empty(
+                        Spanned::<()>::empty(span),
+                        self.path
+                    ))
                 )
             }
         } else {
@@ -172,8 +175,10 @@ impl<'lex> Parser<'lex> {
                     }))
                 };
             } else {
-                self.lex_errs
-                    .push(LexerError::new(Spanned::<()>::empty(span.clone())));
+                self.lex_errs.push(LexerError::new(Referenced::<()>::empty(
+                    Spanned::<()>::empty(span.clone()),
+                    self.path,
+                )));
                 Ok(Token::Invalid.spanned(span))
             }
         } else {
@@ -206,8 +211,10 @@ impl<'lex> Parser<'lex> {
             } else {
                 let span = (span.start as SpanSize)..(span.end as SpanSize);
                 // This clone has minimal overhead as it is only cloning a Range<usize>
-                self.lex_errs
-                    .push(LexerError::new(Spanned::<()>::empty(span.clone())));
+                self.lex_errs.push(LexerError::new(Referenced::<()>::empty(
+                    Spanned::<()>::empty(span.clone()),
+                    self.path,
+                )));
                 Ok(Spanned::new(&Token::Invalid, span.clone()))
             }
         } else {
@@ -229,8 +236,10 @@ impl<'lex> Parser<'lex> {
                 Ok(spanned)
             } else {
                 let span = (span.start as SpanSize)..(span.end as SpanSize);
-                self.lex_errs
-                    .push(LexerError::new(Spanned::<()>::empty(span.clone())));
+                self.lex_errs.push(LexerError::new(Referenced::<()>::empty(
+                    Spanned::<()>::empty(span.clone()),
+                    self.path,
+                )));
                 Ok(Spanned::new(&Token::Invalid, span.clone()))
             }
         } else {

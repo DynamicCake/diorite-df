@@ -38,8 +38,8 @@ pub struct MissingInDumpError {
 }
 
 pub struct DuplicateLineStarter {
-    pub original: Reference,
-    pub doppelganger: Reference,
+    pub original: Referenced<()>,
+    pub doppelganger: Referenced<()>,
 }
 
 pub struct SelectorNotFound {

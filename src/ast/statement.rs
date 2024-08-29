@@ -96,7 +96,8 @@ pub struct AstIdenPair {
 }
 
 #[derive(Debug, PartialEq)]
-pub enum AstExpression {
+pub struct AstExpression {
+
     // This needs to be done differently
 }
 

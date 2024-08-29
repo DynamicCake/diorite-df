@@ -2,6 +2,7 @@
 
 use std::collections::HashSet;
 
+use data::Iden;
 use lasso::Spur;
 use span::Referenced;
 
@@ -17,28 +18,30 @@ pub mod prelude {
     pub use crate::lexer::*;
 }
 
-#[derive(Debug)]
-pub struct Starter(pub Referenced<Spur>);
+#[derive(Debug, Clone)]
+pub struct Starter(pub Referenced<Iden>);
 
 impl std::hash::Hash for Starter {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
-        self.0.spanned.data.hash(state);
+        self.0.spanned.data.name.hash(state);
     }
 }
 
 impl Starter {
-    pub fn new(value: Referenced<Spur>) -> Self {
+    pub fn new(value: Referenced<Iden>) -> Self {
         Self(value)
     }
 }
 
 impl PartialEq for Starter {
     fn eq(&self, other: &Self) -> bool {
-        self.0.spanned.data == other.0.spanned.data
+        self.0.spanned.data.name == other.0.spanned.data.name
     }
 }
 
+impl Eq for Starter {}
 
+#[derive(Debug)]
 pub struct StarterSet {
     pub player_event: HashSet<Starter>,
     pub entity_event: HashSet<Starter>,

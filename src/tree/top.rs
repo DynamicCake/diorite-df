@@ -1,4 +1,6 @@
-use crate::tree::prelude::*;
+use crate::{error::semantic::DuplicateLineStarter, tree::prelude::*};
+use lasso::Spur;
+use std::collections::HashSet;
 
 #[derive(Debug, PartialEq)]
 pub enum TreeTopLevel {
@@ -6,6 +8,38 @@ pub enum TreeTopLevel {
     FuncDef(TreeFuncDef),
     ProcDef(TreeProcDef),
     Recovery(TopLevelRecovery),
+}
+
+impl TreeTopLevel {
+    pub fn add_starter(
+        &self,
+        file: Spur,
+        starters: &mut StarterSet,
+    ) -> Result<(), DuplicateLineStarter> {
+        let starter = |hashset: &mut HashSet<Starter>, name: &Spanned<Iden>| {
+            let thing = Starter::new(Referenced::new(name.to_owned(), file));
+            if hashset.contains(&thing) {
+                let thing = thing.clone();
+                let replaced = hashset.replace(thing.clone()).expect("Should be some");
+                Err(DuplicateLineStarter {
+                    original: replaced.0.to_empty(),
+                    doppelganger: thing.0.to_empty(),
+                })
+            } else {
+                hashset.insert(thing);
+                Ok(())
+            }
+        };
+        match self {
+            TreeTopLevel::Event(it) => match it.type_tok.data {
+                EventType::Player => starter(&mut starters.player_event, &it.name),
+                EventType::Entity => starter(&mut starters.entity_event, &it.name),
+            },
+            TreeTopLevel::FuncDef(it) => starter(&mut starters.function, &it.name),
+            TreeTopLevel::ProcDef(it) => starter(&mut starters.process, &it.name),
+            TreeTopLevel::Recovery(_) => panic!("What is a TreeTopLevel::Recovery doing here"),
+        }
+    }
 }
 
 // Function

@@ -1,4 +1,4 @@
-use crate::ast::prelude::*;
+use crate::{ast::prelude::*, dump::Action};
 
 #[derive(Debug, PartialEq)]
 pub enum AstTopLevel {
@@ -36,25 +36,28 @@ pub struct AstProcDef {
 
 // Event
 #[derive(Debug, PartialEq)]
-pub struct AstEvent {
+pub struct AstEvent<'d> {
     pub type_tok: Spanned<EventType>,
     pub name: Spanned<Iden>,
     pub statements: AstStatements,
     pub end_tok: Spanned<()>,
+    pub action: Option<&'d Action>,
 }
 
-impl AstEvent {
+impl<'d> AstEvent<'d> {
     pub fn new(
         type_tok: Spanned<EventType>,
         name: Spanned<Iden>,
         statements: AstStatements,
         end_tok: Spanned<()>,
+        action: Option<&'d Action>,
     ) -> Self {
         Self {
             type_tok,
             name,
             statements,
             end_tok,
+            action,
         }
     }
 }

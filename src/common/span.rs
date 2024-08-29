@@ -1,18 +1,31 @@
+use std::fmt::Write;
+
 use crate::{common::prelude::*, project::ProjectFile};
 
 /// A fancy [Range](`core::ops::Range<SpanSize>`) with a size of [SpanSize]
 /// Don't be afraid to clone this as it is only 8 bytes
 pub type Span<S = SpanSize> = core::ops::Range<S>;
 
-/// The span size that `Span`s use
+/// The span size that [Span]s use
 /// This shouldn't change as it is big enough for 4GB files
 pub type SpanSize = u32;
 
 /// Adds span data to (usually) a token by adding a start and end byte stored with byte indexes
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Clone, PartialEq)]
 pub struct Spanned<T> {
     pub data: T,
     pub span: Span,
+}
+
+/// This manual implementation makes it less nested and easier to read
+/// Although `Spanned (0..1, <Whatever>)` may look strange but is better than looking for the span
+impl<T: std::fmt::Debug> std::fmt::Debug for Spanned<T> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_fmt(format_args!(
+            "Spanned ({1:?}, {0:#?})",
+            self.data, self.span
+        ))
+    }
 }
 
 impl<T> Spanned<T> {
@@ -134,18 +147,29 @@ where
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct Referenced<T> {
     pub spanned: Spanned<T>,
     pub file_path: Spur,
 }
 
 impl<T> Referenced<T> {
-    pub fn new(spanned: Spanned<T>, file: Spur) -> Self { Self { spanned, file_path: file } }
-}
-
-#[derive(Debug)]
-pub struct Reference {
-    pub span: Span,
-    pub file_path: Spur,
+    pub fn new(spanned: Spanned<T>, file_path: Spur) -> Self {
+        Self {
+            spanned,
+            file_path
+        }
+    }
+    pub fn empty(spanned: Spanned<()>, file_path: Spur) -> Referenced<()> {
+        Referenced {
+            spanned,
+            file_path
+        }
+    }
+    pub fn to_empty(self) -> Referenced<()> {
+        Referenced {
+            spanned: self.spanned.to_empty(),
+            file_path: self.file_path,
+        }
+    }
 }

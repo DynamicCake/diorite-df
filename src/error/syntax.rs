@@ -2,7 +2,7 @@ use std::{fmt::Display, path::Path, sync::Arc};
 
 use lasso::Spur;
 
-use crate::{common::span::Spanned, lexer::Token};
+use crate::{common::span::{Referenced, Spanned}, lexer::Token};
 
 /// Represents a parse result that every parsing function should return
 /// All parsing functions are called by [Parser::parse](crate::parser::Parser::parse)
@@ -104,11 +104,11 @@ impl UnexpectedEOF {
 /// Created when an invalid token is encountered
 #[derive(Debug, PartialEq)]
 pub struct LexerError {
-    pub token: Spanned<()>,
+    pub token: Referenced<()>,
 }
 
 impl LexerError {
-    pub fn new(token: Spanned<()>) -> Self {
+    pub fn new(token: Referenced<()>) -> Self {
         Self { token }
     }
 }

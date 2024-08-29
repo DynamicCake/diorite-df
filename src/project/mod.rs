@@ -1,12 +1,16 @@
 use crate::{
+    ast::AstRoot,
     common::prelude::*,
     dump::ActionDump,
+    error::syntax::{LexerError, UnexpectedEOF, UnexpectedToken},
     parser::{ParsedFile, Parser},
+    tree::TreeRoot,
 };
 
 use std::{
     hash::{Hash, Hasher},
     path::Path,
+    string::ParseError,
     sync::Arc,
 };
 
@@ -16,6 +20,7 @@ use rustc_hash::FxHasher;
 use tokio::{
     fs::{read_to_string, File},
     io::{self, AsyncReadExt},
+    sync::Mutex,
 };
 
 #[derive(thiserror::Error, Debug)]
@@ -82,8 +87,8 @@ impl Project<ParsedProjectFiles> {
             let handle = tokio::spawn(async move {
                 let src = rodeo.resolve(&file.src);
                 let lexer = Token::lexer_with_extras(&src, rodeo.clone());
-                let ast = Parser::parse(lexer, file.path);
-                file.to_parsed(ast)
+                let tree = Parser::parse(lexer, file.path);
+                (tree, file)
             });
             handles.push(handle);
         }
@@ -95,8 +100,18 @@ impl Project<ParsedProjectFiles> {
 
         // Async clojures are unstable
         let mut trees = Vec::new();
+        let mut lex_errs = Vec::new();
+        let mut parse_errs = Vec::new();
+        let mut eof_errs = Vec::new();
         for handle in handles {
-            trees.push(handle.await.expect("Thread failed to execute"));
+            let (mut tree, file) = handle.await.expect("Thread failed to execute");
+            lex_errs.append(&mut tree.lex_errs);
+            parse_errs.append(&mut tree.parse_errs);
+            if let Some(eof) = tree.at_eof {
+                eof_errs.push(*eof);
+            }
+            let file = file.to_parsed(tree.root);
+            trees.push(file);
         }
 
         let rodeo = Arc::try_unwrap(rodeo).expect("The Arced ThreadedRodeo has escaped this scope");
@@ -106,7 +121,7 @@ impl Project<ParsedProjectFiles> {
             .map_err(|e| ProjectCreationError::ActionDump(e))?;
 
         let resources = ProjectResources::new(rodeo.into_resolver(), root, actiondump);
-        let files = ParsedProjectFiles::new(trees);
+        let files = ParsedProjectFiles::new(trees, lex_errs, parse_errs, eof_errs);
 
         Ok(Self {
             resources: Arc::new(resources),
@@ -226,7 +241,7 @@ impl ProjectFile<RawFile> {
         })
     }
 
-    pub fn to_parsed(self, parsed_file: ParsedFile) -> ProjectFile<TreeFile> {
+    pub fn to_parsed(self, parsed_file: TreeRoot) -> ProjectFile<TreeFile> {
         ProjectFile {
             src: self.src,
             path: self.path,
@@ -246,12 +261,6 @@ pub enum ProjectFileCreationError {
     BaseNotAbsolute,
     #[error("File path is not utf-8")]
     NotUTF8,
-}
-
-/// Program for the AST
-#[derive(Debug, PartialEq)]
-pub struct ResolvedRoot {
-    pub top_statements: (),
 }
 
 // Files
@@ -275,22 +284,23 @@ impl FileResolution for TokenizedFile<'_> {}
 // Parsing
 #[derive(Debug, PartialEq)]
 pub struct TreeFile {
-    program: ParsedFile,
+    pub root: TreeRoot,
 }
 
 /// This is named like (Parse)TreeFile because ParsedFile also refers to
 /// parse tree + errors that is returned from parser
 impl TreeFile {
-    pub fn new(program: ParsedFile) -> Self {
-        Self { program }
+    pub fn new(program: TreeRoot) -> Self {
+        Self { root: program }
     }
 }
 impl FileResolution for TreeFile {}
 
 // Semantic Checking
-#[derive(Debug, PartialEq)]
+#[derive(Debug)]
 pub struct AnalyzedFile {
-    program: CheckedProjectFiles,
+    starters: StarterSet,
+    programs: CheckedProjectFiles,
 }
 impl FileResolution for AnalyzedFile {}
 
@@ -300,16 +310,31 @@ pub trait ProjectFiles {}
 /// A program state with a parse tree
 #[derive(Debug)]
 pub struct ParsedProjectFiles {
+    pub lex_errs: Vec<LexerError>,
+    pub parse_errs: Vec<UnexpectedToken>,
+    pub eof_errs: Vec<UnexpectedEOF>,
     pub parsed: Vec<ProjectFile<TreeFile>>,
 }
 
 impl ParsedProjectFiles {
-    pub fn new(files: Vec<ProjectFile<TreeFile>>) -> Self {
-        Self { parsed: files }
+    pub fn new(
+        files: Vec<ProjectFile<TreeFile>>,
+        lex_errs: Vec<LexerError>,
+        parse_errs: Vec<UnexpectedToken>,
+        eof_errs: Vec<UnexpectedEOF>,
+    ) -> Self {
+        Self {
+            parsed: files,
+            lex_errs,
+            parse_errs,
+            eof_errs,
+        }
     }
 }
 impl ProjectFiles for ParsedProjectFiles {}
 
 #[derive(Debug, PartialEq)]
-pub struct CheckedProjectFiles;
+pub struct CheckedProjectFiles {
+    pub programs: Vec<AstRoot>,
+}
 impl ProjectFiles for CheckedProjectFiles {}
