@@ -3,9 +3,14 @@
 
 use core::fmt;
 
+use lasso::RodeoResolver;
+use lasso::Spur;
 use serde::Deserialize;
 use serde::Serialize;
 use serde_json::Value;
+
+use crate::common::span::Referenced;
+use crate::error::semantic::ActionReference;
 
 #[derive(Default, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -21,6 +26,37 @@ pub struct ActionDump {
     pub potions: Vec<Potion>,
     pub cosmetics: Vec<Cosmetic>,
     pub shops: Vec<Shop>,
+}
+
+impl ActionDump {
+    pub fn search_action<'d>(&'d self, name: &str, block: &str) -> Option<&'d Action> {
+        self.actions
+            .iter()
+            .find(|action| action.name == name && action.codeblock_name == block)
+    }
+
+    pub fn search_action_spur<'d>(
+        &'d self,
+        resolver: &'d RodeoResolver,
+        name: Spur,
+        block: &str,
+    ) -> Option<&'d Action> {
+        self.search_action(resolver.resolve(&name), block)
+    }
+
+    pub fn suggest_actions<'d>(
+        &'d self,
+        reference: &Referenced<ActionReference>,
+        resolver: &'d RodeoResolver,
+    ) -> Vec<&'d Action> {
+        let mut res = Vec::new();
+        for action in &self.actions {
+            if action.name == resolver.resolve(&reference.spanned.data.name) {
+                res.push(action)
+            }
+        }
+        res
+    }
 }
 
 impl fmt::Debug for ActionDump {
@@ -66,6 +102,16 @@ pub struct Action {
     pub sub_action_blocks: Vec<String>,
 }
 
+impl Action {
+    pub fn suggest_tags<'d>(&'d self, inputted: &str) -> Vec<&'d Tag> {
+        let mut res = Vec::new();
+        for action in &self.tags {
+            // TODO: Implement, not so important so nothing for now
+        }
+        res
+    }
+}
+
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Tag {
@@ -74,6 +120,17 @@ pub struct Tag {
     pub default_option: String,
     pub slot: i64,
 }
+
+impl Tag {
+    pub fn suggest_tag_values<'d>(&'d self, inputted: &str) -> Vec<&'d Choice> {
+        let mut res = Vec::new();
+        for action in &self.options {
+            // TODO: Implement, not so important so nothing for now
+        }
+        res
+    }
+}
+
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", rename = "option")]

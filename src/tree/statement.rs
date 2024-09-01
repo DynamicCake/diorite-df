@@ -21,7 +21,7 @@ impl CalcSpan for TreeSelection {
 #[derive(Debug, PartialEq)]
 pub struct TreeTags {
     pub open: Spanned<()>,
-    pub tags: MaybeSpan<Parameters<TreeIdenPair>>,
+    pub inner_tags: MaybeSpan<Parameters<TreeIdenPair>>,
     pub close: Spanned<()>,
 }
 
@@ -31,7 +31,7 @@ impl TreeTags {
         tags: MaybeSpan<Parameters<TreeIdenPair>>,
         close: Spanned<()>,
     ) -> Self {
-        Self { open, tags, close }
+        Self { open, inner_tags: tags, close }
     }
 }
 

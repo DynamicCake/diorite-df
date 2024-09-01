@@ -3,9 +3,9 @@ use std::sync::Arc;
 
 use crate::{common::prelude::*, dump::ActionDump, project::{AnalyzedFile, ProjectFile}};
 
-mod block;
-mod data;
-mod test;
+pub mod block;
+pub mod data;
+pub mod test;
 
 pub struct CodeGenerator<'a> {
     pub dump: &'a ActionDump,

@@ -4,7 +4,9 @@ use serde::Serialize;
 
 use crate::lexer::Token;
 
-#[derive(Debug, PartialEq)]
+use super::ast::BlockType;
+
+#[derive(Debug, PartialEq, Clone)]
 pub enum EventType {
     Player,
     Entity,
@@ -32,7 +34,18 @@ impl TryInto<IfActionType> for Token {
     }
 }
 
-#[derive(Debug, PartialEq, Serialize)]
+impl Into<BlockType> for IfActionType {
+    fn into(self) -> BlockType {
+        match self {
+            IfActionType::Player => BlockType::IfPlayer,
+            IfActionType::Entity => BlockType::IfEntity,
+            IfActionType::Game => BlockType::IfGame,
+            IfActionType::Var => BlockType::IfVar,
+        }
+    }
+}
+
+#[derive(Debug, PartialEq, Serialize, Clone)]
 #[serde(rename_all = "snake_case")]
 pub enum ActionType {
     PlayerAction,
@@ -43,6 +56,21 @@ pub enum ActionType {
     CallProcess,
     Select,
     Var,
+}
+
+impl Into<BlockType> for ActionType {
+    fn into(self) -> BlockType {
+        match self {
+            ActionType::PlayerAction => BlockType::PlayerAction,
+            ActionType::EntityAction => BlockType::EntityAction,
+            ActionType::GameAction => BlockType::GameAction,
+            ActionType::Control => BlockType::Control,
+            ActionType::CallFunction => BlockType::CallFunction,
+            ActionType::CallProcess => BlockType::StartProcess,
+            ActionType::Select => BlockType::SelectObject,
+            ActionType::Var => BlockType::SetVariable,
+        }
+    }
 }
 
 impl TryInto<ActionType> for Token {

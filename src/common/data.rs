@@ -132,11 +132,11 @@ impl NumberLiteral {
 
 #[derive(Debug, PartialEq, Clone)]
 pub struct Iden {
-    pub name: Spur,
+    pub inner: Spur,
 }
 
 impl Iden {
     pub fn new(name: Spur) -> Self {
-        Self { name }
+        Self { inner: name }
     }
 }

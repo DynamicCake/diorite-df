@@ -1,10 +1,10 @@
+use ast::{BlockType, DfNumber};
 use serde::Serialize;
+use crate::common::prelude::*;
 
-use super::block::{BlockType, DfNumber};
-
-#[derive(Serialize)]
+#[derive(Serialize, PartialEq)]
 #[serde(tag = "id")]
-pub enum Data<'src> {
+pub enum ChestValue<'src> {
     #[serde(rename = "var")]
     Variable { data: Variable<'src> },
     #[serde(rename = "pot")]
@@ -27,7 +27,7 @@ pub enum Data<'src> {
     BlockTag { data: BlockTag<'src> },
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, PartialEq)]
 pub struct BlockTag<'src> {
     option: &'src str,
     tag: &'src str,
@@ -35,31 +35,31 @@ pub struct BlockTag<'src> {
     block: BlockType,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, PartialEq)]
 pub struct StyledText<'src> {
     name: &'src str,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, PartialEq)]
 pub struct Text<'src> {
     name: &'src str,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, PartialEq)]
 pub struct Vec3D {
     x: DfNumber,
     y: DfNumber,
     z: DfNumber,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, PartialEq)]
 #[serde(rename = "camelCase")]
 pub struct Location {
     is_block: bool,
     loc: LocationData,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, PartialEq)]
 #[serde(rename = "camelCase")]
 pub struct LocationData {
     x: DfNumber,
@@ -69,44 +69,34 @@ pub struct LocationData {
     yaw: DfNumber,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, PartialEq)]
 pub struct Sound<'src> {
     sound: &'src str,
     pitch: DfNumber,
     vol: DfNumber,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, PartialEq)]
 pub struct Variable<'src> {
     pub name: &'src str,
     pub scope: VariableScope,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, PartialEq)]
 pub struct Potion<'src> {
     pub pot: &'src str,
     pub dur: u8,
     pub amp: u8,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, PartialEq)]
 pub struct GameValue<'src> {
     #[serde(rename = "type")]
     kind: &'src str,
-    target: ValueSelector,
+    target: GValSelector,
 }
 
-#[derive(Serialize)]
-pub enum ValueSelector {
-    Selection,
-    Default,
-    Killer,
-    Damager,
-    Shooter,
-    Victim,
-}
-
-#[derive(Serialize)]
+#[derive(Serialize, PartialEq)]
 pub struct Particle<'src> {
     particle: &'src str,
     cluster: ParticleCluster,
@@ -116,7 +106,7 @@ pub struct Particle<'src> {
 }
 
 // This could be smaller if this was a union but eh
-#[derive(Serialize)]
+#[derive(Serialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct ParticleData<'src> {
     x: Option<DfNumber>,
@@ -131,33 +121,10 @@ pub struct ParticleData<'src> {
     material: Option<&'src str>,
 }
 
-#[derive(Serialize)]
-struct Color(u16);
-
-impl Color {
-    pub fn new(r: u8, g: u8, b: u8) -> Color {
-        Self(
-            (r as u16 & 0b1111_1111)
-                | ((g as u16 & 0b1111_1111) << 5)
-                | ((b as u16 & 0b1111_1111) << 10),
-        )
-    }
-}
-
-#[derive(Serialize)]
+#[derive(Serialize, PartialEq)]
 pub struct ParticleCluster {
     horizontal: DfNumber,
     verticle: DfNumber,
     amount: u16,
 }
 
-#[derive(Serialize)]
-#[serde(rename_all = "snake_case")]
-pub enum VariableScope {
-    Line,
-    Local,
-    #[serde(rename = "unsaved")]
-    Game,
-    #[serde(rename = "saved")]
-    Global,
-}
