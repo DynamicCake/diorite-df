@@ -3,6 +3,7 @@ use core::panic;
 use std::sync::Arc;
 
 use crate::ast::prelude::*;
+use crate::codegen::data::{ChestLocation, LocationData};
 use crate::common::prelude::*;
 use crate::dump::Action;
 use crate::error::semantic::{
@@ -62,6 +63,7 @@ impl<'d> Analyzer<'d> {
                     }));
                 };
 
+                // So is this
                 let value =
                     if let Some(it) = key.options.iter().find(|value| value.name == value_str) {
                         it
@@ -93,6 +95,77 @@ impl<'d> Analyzer<'d> {
         }
     }
 
+    pub(super) fn action_params(
+        &'d self,
+        params: Spanned<Wrapped<TreeExpression>>,
+        file: Spur,
+    ) -> Result<Spanned<Wrapped<AstExpression>>, Vec<SemanticError<'d>>> {
+        let Spanned {
+            data: params_outer,
+            span: param_outer_span,
+        } = params;
+        let MaybeSpan {
+            data: params_inner,
+            span: param_inner_span,
+        } = params_outer.tags;
+
+        let mut params = Vec::new();
+        let mut errs: Vec<SemanticError<'d>> = Vec::new();
+        for expr in params_inner.items {
+            params.push(match expr {
+                TreeExpression::Literal(lit) => match lit {
+                    TreeStaticLiteral::String(str) => {
+                        str.map_inner(|str| AstExpression::Text(AstText { name: str.inner }))
+                    }
+                    TreeStaticLiteral::Number(num) => {
+                        let Spanned {
+                            data: num_inner,
+                            ref span,
+                        } = num;
+                        let num = match DfNumber::try_from(self.resolver.resolve(&num_inner.inner))
+                        {
+                            Ok(it) => it,
+                            Err(err) => {
+                                errs.push(SemanticError::from_num(
+                                    Referenced::new(
+                                        Spanned::new(num_inner.inner, num.span.clone()),
+                                        file,
+                                    ),
+                                    err,
+                                ));
+                                DfNumber::new(0)
+                            }
+                        };
+
+                        Spanned::new(AstExpression::Number(AstNumber { name: num }), span.clone())
+                    }
+                },
+                TreeExpression::Expr(expr) => {
+                    let TreeExprLiteral { literal_type, args } = expr;
+                    let type_str = self.resolver.resolve(&literal_type.data.inner);
+                    match type_str {
+                        "loc" => {
+
+                            let loc = LocationData {
+                                x: todo!(),
+                                y: todo!(),
+                                z: todo!(),
+                                pitch: todo!(),
+                                yaw: todo!(),
+                            };
+                            AstExpression::Location(ChestLocation {
+                                is_block: (),
+                                loc,
+                            })
+                        }
+                    }
+                    todo!()
+                }
+            });
+        }
+
+        todo!()
+    }
     // Warning: This function's is very messy and the names are horrible, maybe rename later™?
     pub(super) fn selectors(
         &'d self,

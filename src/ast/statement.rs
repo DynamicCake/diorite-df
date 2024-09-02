@@ -99,114 +99,119 @@ pub struct AstIdenPair<'d> {
     pub tag: &'d Tag,
     pub choice: &'d Choice,
 }
-
 #[derive(Debug, PartialEq)]
 pub enum AstExpression {
-    Variable { data: Variable },
-    Potion { data: Potion },
-    GameValue { data: GameValue },
-    Particle { data: Particle },
-    Sound { data: Sound },
-    Location { data: Location },
-    Vector { data: Vec3D },
-    Text { data: Text },
-    StyledText { data: StyledText },
-    BlockTag { data: BlockTag },
+    Variable(AstVariable),
+    Potion(AstPotion),
+    GameValue(AstGameValue),
+    Particle(AstParticle),
+    Sound(AstSound),
+    Location(AstLocation),
+    Vector(AstVec3D),
+    Text(AstText),
+    Number(AstNumber),
+    StyledText(AstStyledText),
+    BlockTag(AstBlockTag),
 }
 
 #[derive(Debug, PartialEq)]
-pub struct BlockTag {
-    option: Spur,
-    tag: Spur,
-    action: Spur,
-    block: BlockType,
+pub struct AstBlockTag {
+    pub option: Spur,
+    pub tag: Spur,
+    pub action: Spur,
+    pub block: BlockType,
 }
 
 #[derive(Debug, PartialEq)]
-pub struct StyledText {
-    name: Spur,
+pub struct AstStyledText {
+    pub name: Spur,
 }
 
 #[derive(Debug, PartialEq)]
-pub struct Text {
-    name: Spur,
+pub struct AstText {
+    pub name: Spur,
 }
 
 #[derive(Debug, PartialEq)]
-pub struct Vec3D {
-    x: DfNumber,
-    y: DfNumber,
-    z: DfNumber,
+pub struct AstNumber {
+    pub name: DfNumber,
 }
 
 #[derive(Debug, PartialEq)]
-pub struct Location {
-    is_block: bool,
-    loc: LocationData,
+pub struct AstVec3D {
+    pub x: DfNumber,
+    pub y: DfNumber,
+    pub z: DfNumber,
+}
+
+#[derive(Debug, PartialEq)]
+pub struct AstLocation {
+    pub is_block: bool,
+    pub loc: LocationData,
 }
 
 #[derive(Debug, PartialEq)]
 pub struct LocationData {
-    x: DfNumber,
-    y: DfNumber,
-    z: DfNumber,
-    pitch: DfNumber,
-    yaw: DfNumber,
+    pub x: f64,
+    pub y: f64,
+    pub z: f64,
+    pub pitch: f32,
+    pub yaw: f32,
 }
 
 #[derive(Debug, PartialEq)]
-pub struct Sound {
-    sound: Spur,
-    pitch: DfNumber,
-    vol: DfNumber,
+pub struct AstSound {
+    pub sound: Spur,
+    pub pitch: f32,
+    pub vol: f32,
 }
 
 #[derive(Debug, PartialEq)]
-pub struct Variable {
-    pub name: Spur,
+pub struct AstVariable {
+    pub name: Spanned<Spur>,
     pub scope: VariableScope,
 }
 
 #[derive(Debug, PartialEq)]
-pub struct Potion {
+pub struct AstPotion {
     pub pot: Spur,
     pub dur: u8,
     pub amp: u8,
 }
 
 #[derive(Debug, PartialEq)]
-pub struct GameValue {
-    kind: Spur,
-        target: GValSelector
+pub struct AstGameValue {
+    pub kind: Spur,
+    pub target: GValSelector,
 }
 
 #[derive(Debug, PartialEq)]
-pub struct Particle {
-    particle: Spur,
-    cluster: ParticleCluster,
+pub struct AstParticle {
+    pub particle: Spur,
+    pub cluster: ParticleCluster,
     // ParticleData is very big and inflates the Data enum by around 2 times
     // Some allocation can't really hurt
-    data: Box<ParticleData>,
+    pub data: Box<ParticleData>,
 }
 
 // This could be smaller if this was a union but eh
 #[derive(Debug, PartialEq)]
 pub struct ParticleData {
-    x: Option<DfNumber>,
-    y: Option<DfNumber>,
-    z: Option<DfNumber>,
-    size: Option<DfNumber>,
-    size_variation: Option<u8>,
-    color: Option<Color>,
-    color_variation: Option<u8>,
-    roll: Option<DfNumber>,
-    motion_variation: Option<u8>,
-    material: Option<Spur>,
+    pub x: Option<f32>,
+    pub y: Option<f32>,
+    pub z: Option<f32>,
+    pub size: Option<f32>,
+    pub size_variation: Option<u8>,
+    pub color: Option<Color>,
+    pub color_variation: Option<u8>,
+    pub roll: Option<f32>,
+    pub motion_variation: Option<u8>,
+    pub material: Option<Spur>,
 }
 
 #[derive(Debug, PartialEq)]
 pub struct ParticleCluster {
-    horizontal: DfNumber,
-    verticle: DfNumber,
-    amount: u16,
+    pub horizontal: f32,
+    pub verticle: f32,
+    pub amount: u16,
 }

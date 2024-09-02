@@ -14,9 +14,9 @@ pub enum SemanticError<'d> {
     #[assoc(severe = true)]
     DuplicateLineStarter(DuplicateLineStarter),
     #[assoc(severe = true)]
-    NumberTooPrecise(),
+    NumberTooPrecise(Referenced<Spur>),
     #[assoc(severe = true)]
-    NumberOutOfBounds(),
+    NumberOutOfBounds(Referenced<Spur>),
 
     EventNotFound(ActionNotFoundError<'d>),
     ActionNotFound(ActionNotFoundError<'d>),
@@ -33,6 +33,17 @@ pub enum SemanticError<'d> {
     /// Great inconvenience is placed apon the developers on the code when it isn't UTF-8
     #[assoc(severe = true)]
     NonUtf8FileName(Spur),
+}
+
+impl<'d> SemanticError<'d> {
+    pub fn from_num(num: Referenced<Spur>, err: DfNumberParseError) -> SemanticError<'d> {
+        match err {
+            DfNumberParseError::TooBig => SemanticError::NumberOutOfBounds(num),
+            DfNumberParseError::TooPercise => SemanticError::NumberTooPrecise(num),
+            DfNumberParseError::UnexpectedChar => panic!("Unexpected character {:#?}", num),
+            DfNumberParseError::EmptyInput => panic!("Empty input {:#?}", num)
+        }
+    }
 }
 
 pub struct ActionReference {

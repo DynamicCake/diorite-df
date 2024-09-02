@@ -6,125 +6,132 @@ use crate::common::prelude::*;
 #[serde(tag = "id")]
 pub enum ChestValue<'src> {
     #[serde(rename = "var")]
-    Variable { data: Variable<'src> },
+    Variable { data: ChestVariable<'src> },
     #[serde(rename = "pot")]
-    Potion { data: Potion<'src> },
+    Potion { data: ChestPotion<'src> },
     #[serde(rename = "g_val")]
-    GameValue { data: GameValue<'src> },
+    GameValue { data: ChestGameValue<'src> },
     #[serde(rename = "part")]
-    Particle { data: Particle<'src> },
+    Particle { data: ChestParticle<'src> },
     #[serde(rename = "snd")]
-    Sound { data: Sound<'src> },
+    Sound { data: ChestSound<'src> },
     #[serde(rename = "loc")]
-    Location { data: Location },
+    Location { data: ChestLocation },
     #[serde(rename = "vec")]
-    Vector { data: Vec3D },
+    Vector { data: ChestVec3D },
     #[serde(rename = "txt")]
-    Text { data: Text<'src> },
+    Text { data: ChestText<'src> },
+    #[serde(rename = "num")]
+    Number { data: ChestNumber },
     #[serde(rename = "part")]
-    StyledText { data: StyledText<'src> },
+    StyledText { data: ChestStyledText<'src> },
     #[serde(rename = "bl_tag")]
-    BlockTag { data: BlockTag<'src> },
+    BlockTag { data: ChestBlockTag<'src> },
 }
 
 #[derive(Serialize, PartialEq)]
-pub struct BlockTag<'src> {
-    option: &'src str,
-    tag: &'src str,
-    action: &'src str,
-    block: BlockType,
+pub struct ChestBlockTag<'src> {
+    pub option: &'src str,
+    pub tag: &'src str,
+    pub action: &'src str,
+    pub block: BlockType,
 }
 
 #[derive(Serialize, PartialEq)]
-pub struct StyledText<'src> {
-    name: &'src str,
+pub struct ChestStyledText<'src> {
+    pub name: &'src str,
 }
 
 #[derive(Serialize, PartialEq)]
-pub struct Text<'src> {
-    name: &'src str,
+pub struct ChestText<'src> {
+    pub name: &'src str,
 }
 
 #[derive(Serialize, PartialEq)]
-pub struct Vec3D {
-    x: DfNumber,
-    y: DfNumber,
-    z: DfNumber,
+pub struct ChestNumber {
+    pub name: DfNumber,
+}
+
+#[derive(Serialize, PartialEq)]
+pub struct ChestVec3D {
+    pub x: DfNumber,
+    pub y: DfNumber,
+    pub z: DfNumber,
 }
 
 #[derive(Serialize, PartialEq)]
 #[serde(rename = "camelCase")]
-pub struct Location {
-    is_block: bool,
-    loc: LocationData,
+pub struct ChestLocation {
+    pub is_block: bool,
+    pub loc: LocationData,
 }
 
 #[derive(Serialize, PartialEq)]
 #[serde(rename = "camelCase")]
 pub struct LocationData {
-    x: DfNumber,
-    y: DfNumber,
-    z: DfNumber,
-    pitch: DfNumber,
-    yaw: DfNumber,
+    pub x: f64,
+    pub y: f64,
+    pub z: f64,
+    pub pitch: f32,
+    pub yaw: f32,
 }
 
 #[derive(Serialize, PartialEq)]
-pub struct Sound<'src> {
-    sound: &'src str,
-    pitch: DfNumber,
-    vol: DfNumber,
+pub struct ChestSound<'src> {
+    pub sound: &'src str,
+    pub pitch: f32,
+    pub vol: f32,
 }
 
 #[derive(Serialize, PartialEq)]
-pub struct Variable<'src> {
+pub struct ChestVariable<'src> {
     pub name: &'src str,
     pub scope: VariableScope,
 }
 
 #[derive(Serialize, PartialEq)]
-pub struct Potion<'src> {
+pub struct ChestPotion<'src> {
     pub pot: &'src str,
     pub dur: u8,
     pub amp: u8,
 }
 
 #[derive(Serialize, PartialEq)]
-pub struct GameValue<'src> {
+pub struct ChestGameValue<'src> {
     #[serde(rename = "type")]
-    kind: &'src str,
-    target: GValSelector,
+    pub kind: &'src str,
+    pub target: GValSelector,
 }
 
 #[derive(Serialize, PartialEq)]
-pub struct Particle<'src> {
-    particle: &'src str,
-    cluster: ParticleCluster,
+pub struct ChestParticle<'src> {
+    pub particle: &'src str,
+    pub cluster: ParticleCluster,
     // ParticleData is very big and inflates the Data enum by around 2 times
     // Some allocation can't really hurt
-    data: Box<ParticleData<'src>>,
+    pub data: Box<ParticleData<'src>>,
 }
 
 // This could be smaller if this was a union but eh
 #[derive(Serialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct ParticleData<'src> {
-    x: Option<DfNumber>,
-    y: Option<DfNumber>,
-    z: Option<DfNumber>,
-    size: Option<DfNumber>,
-    size_variation: Option<u8>,
-    color: Option<Color>,
-    color_variation: Option<u8>,
-    roll: Option<DfNumber>,
-    motion_variation: Option<u8>,
-    material: Option<&'src str>,
+    pub x: Option<f32>,
+    pub y: Option<f32>,
+    pub z: Option<f32>,
+    pub size: Option<f32>,
+    pub size_variation: Option<u8>,
+    pub color: Option<Color>,
+    pub color_variation: Option<u8>,
+    pub roll: Option<f32>,
+    pub motion_variation: Option<u8>,
+    pub material: Option<&'src str>,
 }
 
 #[derive(Serialize, PartialEq)]
 pub struct ParticleCluster {
-    horizontal: DfNumber,
-    verticle: DfNumber,
-    amount: u16,
+    pub horizontal: f32,
+    pub verticle: f32,
+    pub amount: u16,
 }
 

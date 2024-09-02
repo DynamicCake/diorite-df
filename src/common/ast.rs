@@ -1,17 +1,52 @@
+use std::num::ParseFloatError;
+
 use arrayvec::ArrayString;
 use enum_assoc::Assoc;
 use serde::{Serialize, Serializer};
 
 use super::tree::EventType;
 
+/// A fixed point [i64] with 3 decimal digits of precision
 #[derive(Debug, PartialEq)]
 pub struct DfNumber(i64);
 impl DfNumber {
-    pub fn new(value: i64) -> Result<Self, ()> {
-        Ok(Self(value))
+    /// Constructs a new instance of [DfNumber]
+    /// ```
+    /// DfNumber::new(12345) // equal to 12.345
+    /// ```
+    pub fn new(value: i64) -> Self {
+        Self(value)
     }
     pub fn value(&self) -> i64 {
         self.0
+    }
+    pub fn to_string(&self) -> String {
+        let value = self.0;
+        format!(
+            "{}{}.{:0>3}",
+            // Monkey brain solution: make number bigger, make range bigger by 1
+            if value.is_negative() { "-" } else { "" },
+            (value as i128).abs() / 1000i128,
+            (value as i128 % 1000i128).abs()
+        )
+    }
+}
+
+impl TryFrom<DfNumber> for f32 {
+    type Error = ();
+
+    fn try_from(value: DfNumber) -> Result<Self, Self::Error> {
+        // Oh the misery
+        Ok(value.to_string().parse().map_err(|_| ())?)
+    }
+}
+
+impl TryFrom<DfNumber> for f64 {
+    type Error = ();
+
+    fn try_from(value: DfNumber) -> Result<Self, Self::Error> {
+        // Oh the misery
+        Ok(value.to_string().parse().map_err(|_| ())?)
     }
 }
 
@@ -20,14 +55,7 @@ impl Serialize for DfNumber {
     where
         S: serde::Serializer,
     {
-        let value = self.0;
-        let num = format!(
-            "{}{}.{:0>3}",
-            // Monkey brain solution: make number bigger, make range bigger by 1
-            if value.is_negative() { "-" } else { "" },
-            (value as i128).abs() / 1000i128,
-            (value as i128 % 1000i128).abs()
-        );
+        let num = self.to_string();
         serializer.serialize_str(&num)
     }
 }

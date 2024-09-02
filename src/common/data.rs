@@ -106,7 +106,7 @@ impl<T> CalcSpan for Wrapped<T> {
 
 #[derive(Debug, PartialEq)]
 pub struct StringLiteral {
-    inner: Spur,
+    pub inner: Spur,
 }
 
 impl StringLiteral {
@@ -119,7 +119,7 @@ impl StringLiteral {
 
 #[derive(Debug, PartialEq)]
 pub struct NumberLiteral {
-    inner: Spur,
+    pub inner: Spur,
 }
 
 impl NumberLiteral {
