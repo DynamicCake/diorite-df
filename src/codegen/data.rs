@@ -63,12 +63,12 @@ pub struct ChestVec3D {
 #[serde(rename = "camelCase")]
 pub struct ChestLocation {
     pub is_block: bool,
-    pub loc: LocationData,
+    pub loc: ChestLocationData,
 }
 
 #[derive(Serialize, PartialEq)]
 #[serde(rename = "camelCase")]
-pub struct LocationData {
+pub struct ChestLocationData {
     pub x: f64,
     pub y: f64,
     pub z: f64,

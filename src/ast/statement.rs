@@ -147,11 +147,11 @@ pub struct AstVec3D {
 #[derive(Debug, PartialEq)]
 pub struct AstLocation {
     pub is_block: bool,
-    pub loc: LocationData,
+    pub loc: ChestLocationData,
 }
 
 #[derive(Debug, PartialEq)]
-pub struct LocationData {
+pub struct ChestLocationData {
     pub x: f64,
     pub y: f64,
     pub z: f64,

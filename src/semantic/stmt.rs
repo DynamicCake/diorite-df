@@ -1,9 +1,10 @@
 use super::Analyzer;
 use core::panic;
 use std::sync::Arc;
+use std::vec::IntoIter;
 
 use crate::ast::prelude::*;
-use crate::codegen::data::{ChestLocation, LocationData};
+use crate::codegen::data::ChestLocation;
 use crate::common::prelude::*;
 use crate::dump::Action;
 use crate::error::semantic::{
@@ -15,6 +16,70 @@ use crate::tree::prelude::*;
 use lasso::Spur;
 
 impl<'d> Analyzer<'d> {
+    pub(super) async fn statements(&self, stmts: TreeStatements, file: Spur) -> AstStatements<'d> {
+        let mut ast = Vec::new();
+        let mut errs = Vec::new();
+
+        for stmt in stmts.items {
+            ast.push(match stmt {
+                TreeStatement::Simple(s) => AstStatement::Simple(s.map_inner(|s| {
+                    let block_type: BlockType = s.type_tok.data.clone().into();
+
+                    let main_action = self.dump.search_action_spur(
+                        &self.resolver,
+                        s.action.data.inner,
+                        block_type.caps(),
+                    );
+
+                    if let None = main_action {
+                        let reference = Referenced::new(
+                            s.action
+                                .clone()
+                                .map_inner(|i| ActionReference::new(block_type, i.inner)),
+                            file,
+                        );
+
+                        let suggestions = self.dump.suggest_actions(&reference, self.resolver);
+
+                        errs.push(SemanticError::ActionNotFound(ActionNotFoundError {
+                            token: reference,
+                            suggestions,
+                        }))
+                    }
+
+                    let selection = match self.selectors(s.selection, main_action, file) {
+                        Ok(it) => it,
+                        Err(err) => {
+                            errs.push(err);
+                            None
+                        }
+                    };
+
+                    let tags = match self.tags(s.tags, main_action, file) {
+                        Ok(it) => it,
+                        Err(err) => {
+                            errs.push(err);
+                            None
+                        }
+                    };
+
+                    AstSimpleStatement {
+                        type_tok: s.type_tok,
+                        action: s.action,
+                        resolved: main_action,
+                        selection,
+                        tags,
+                        params: todo!(),
+                    }
+                })),
+                TreeStatement::If(_) => todo!(),
+                TreeStatement::Repeat(_) => todo!(),
+                TreeStatement::Recovery => todo!(),
+            });
+        }
+        AstStatements::new(ast)
+    }
+
     pub(super) async fn inputs_params(
         &self,
         params: Wrapped<TreeFuncParamDef>,
@@ -51,7 +116,6 @@ impl<'d> Analyzer<'d> {
             for tag in inner_tags.items {
                 let key_str = self.resolver.resolve(&tag.key.data);
                 let value_str = self.resolver.resolve(&tag.value.data);
-                // Yes this is On^2, however, there realistically shouldn't be more than 5 tags
                 let key = if let Some(it) = main_action.tags.iter().find(|key| key.name == key_str)
                 {
                     it
@@ -63,7 +127,6 @@ impl<'d> Analyzer<'d> {
                     }));
                 };
 
-                // So is this
                 let value =
                     if let Some(it) = key.options.iter().find(|value| value.name == value_str) {
                         it
@@ -112,60 +175,68 @@ impl<'d> Analyzer<'d> {
         let mut params = Vec::new();
         let mut errs: Vec<SemanticError<'d>> = Vec::new();
         for expr in params_inner.items {
-            params.push(match expr {
-                TreeExpression::Literal(lit) => match lit {
-                    TreeStaticLiteral::String(str) => {
-                        str.map_inner(|str| AstExpression::Text(AstText { name: str.inner }))
-                    }
-                    TreeStaticLiteral::Number(num) => {
-                        let Spanned {
-                            data: num_inner,
-                            ref span,
-                        } = num;
-                        let num = match DfNumber::try_from(self.resolver.resolve(&num_inner.inner))
-                        {
-                            Ok(it) => it,
-                            Err(err) => {
-                                errs.push(SemanticError::from_num(
-                                    Referenced::new(
-                                        Spanned::new(num_inner.inner, num.span.clone()),
-                                        file,
-                                    ),
-                                    err,
-                                ));
-                                DfNumber::new(0)
-                            }
-                        };
-
-                        Spanned::new(AstExpression::Number(AstNumber { name: num }), span.clone())
-                    }
-                },
-                TreeExpression::Expr(expr) => {
-                    let TreeExprLiteral { literal_type, args } = expr;
-                    let type_str = self.resolver.resolve(&literal_type.data.inner);
-                    match type_str {
-                        "loc" => {
-
-                            let loc = LocationData {
-                                x: todo!(),
-                                y: todo!(),
-                                z: todo!(),
-                                pitch: todo!(),
-                                yaw: todo!(),
-                            };
-                            AstExpression::Location(ChestLocation {
-                                is_block: (),
-                                loc,
-                            })
-                        }
-                    }
-                    todo!()
-                }
-            });
+            params.push(self.param(expr, &mut errs, file));
         }
 
         todo!()
     }
+
+    fn param(
+        &self,
+        expr: TreeExpression,
+        errs: &mut Vec<SemanticError<'d>>,
+        file: Spur,
+    ) -> Spanned<AstExpression> {
+        match expr {
+            TreeExpression::Literal(lit) => match lit {
+                TreeStaticLiteral::String(str) => {
+                    str.map_inner(|str| AstExpression::Text(AstText { name: str.inner }))
+                }
+                TreeStaticLiteral::Number(num) => {
+                    let Spanned {
+                        data: num_inner,
+                        ref span,
+                    } = num;
+                    let num = match DfNumber::try_from(self.resolver.resolve(&num_inner.inner)) {
+                        Ok(it) => it,
+                        Err(err) => {
+                            errs.push(SemanticError::from_num(
+                                Referenced::new(
+                                    Spanned::new(num_inner.inner, num.span.clone()),
+                                    file,
+                                ),
+                                err,
+                            ));
+                            DfNumber::new(0)
+                        }
+                    };
+
+                    Spanned::new(AstExpression::Number(AstNumber { name: num }), span.clone())
+                }
+            },
+            TreeExpression::Expr(expr) => {
+                let TreeExprLiteral { literal_type, args } = expr;
+                let type_str = self.resolver.resolve(&literal_type.data.inner);
+                match type_str {
+                    "loc" => {
+                        let params: IntoIter<TreeExprValue> = args.data.tags.data.items.into_iter();
+
+                        let is_block = true;
+                        let loc = ChestLocationData {
+                            x: todo!(),
+                            y: todo!(),
+                            z: todo!(),
+                            pitch: todo!(),
+                            yaw: todo!(),
+                        };
+                        AstExpression::Location(AstLocation { is_block, loc });
+                    }
+                    _ => todo!(),
+                }
+            }
+        }
+    }
+
     // Warning: This function's is very messy and the names are horrible, maybe rename later™?
     pub(super) fn selectors(
         &'d self,
@@ -245,69 +316,5 @@ impl<'d> Analyzer<'d> {
         } else {
             Ok(None)
         }
-    }
-
-    pub(super) async fn statements(&self, stmts: TreeStatements, file: Spur) -> AstStatements<'d> {
-        let mut ast = Vec::new();
-        let mut errs = Vec::new();
-
-        for stmt in stmts.items {
-            ast.push(match stmt {
-                TreeStatement::Simple(s) => AstStatement::Simple(s.map_inner(|s| {
-                    let block_type: BlockType = s.type_tok.data.clone().into();
-
-                    let main_action = self.dump.search_action_spur(
-                        &self.resolver,
-                        s.action.data.inner,
-                        block_type.caps(),
-                    );
-
-                    if let None = main_action {
-                        let reference = Referenced::new(
-                            s.action
-                                .clone()
-                                .map_inner(|i| ActionReference::new(block_type, i.inner)),
-                            file,
-                        );
-
-                        let suggestions = self.dump.suggest_actions(&reference, self.resolver);
-
-                        errs.push(SemanticError::ActionNotFound(ActionNotFoundError {
-                            token: reference,
-                            suggestions,
-                        }))
-                    }
-
-                    let selection = match self.selectors(s.selection, main_action, file) {
-                        Ok(it) => it,
-                        Err(err) => {
-                            errs.push(err);
-                            None
-                        }
-                    };
-
-                    let tags = match self.tags(s.tags, main_action, file) {
-                        Ok(it) => it,
-                        Err(err) => {
-                            errs.push(err);
-                            None
-                        }
-                    };
-
-                    AstSimpleStatement {
-                        type_tok: s.type_tok,
-                        action: s.action,
-                        resolved: main_action,
-                        selection,
-                        tags,
-                        params: todo!(),
-                    }
-                })),
-                TreeStatement::If(_) => todo!(),
-                TreeStatement::Repeat(_) => todo!(),
-                TreeStatement::Recovery => todo!(),
-            });
-        }
-        AstStatements::new(ast)
     }
 }
