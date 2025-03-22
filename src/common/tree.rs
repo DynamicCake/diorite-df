@@ -34,9 +34,9 @@ impl TryInto<IfActionType> for Token {
     }
 }
 
-impl Into<BlockType> for IfActionType {
-    fn into(self) -> BlockType {
-        match self {
+impl From<IfActionType> for BlockType {
+    fn from(val: IfActionType) -> Self {
+        match val {
             IfActionType::Player => BlockType::IfPlayer,
             IfActionType::Entity => BlockType::IfEntity,
             IfActionType::Game => BlockType::IfGame,
@@ -58,9 +58,9 @@ pub enum ActionType {
     Var,
 }
 
-impl Into<BlockType> for ActionType {
-    fn into(self) -> BlockType {
-        match self {
+impl From<ActionType> for BlockType {
+    fn from(val: ActionType) -> Self {
+        match val {
             ActionType::PlayerAction => BlockType::PlayerAction,
             ActionType::EntityAction => BlockType::EntityAction,
             ActionType::GameAction => BlockType::GameAction,

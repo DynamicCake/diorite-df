@@ -78,7 +78,7 @@ impl UnexpectedToken {
     /// Returns a more friendly error message
     pub fn expected_print(&self) -> String {
         if let Some(it) = &self.expected_name {
-            format!("{} ({})", it, self.expected.to_string())
+            format!("{} ({})", it, self.expected)
         } else {
             self.expected.to_string()
         }
@@ -130,7 +130,7 @@ impl Display for ExpectedTokens {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let mut iter = self.expected.iter();
         let first = if let Some(it) = iter.next() {
-            format!("{}", it.expected_print())
+            it.expected_print().to_string()
         } else {
             write!(f, "[]").unwrap();
             return Ok(());

@@ -6,8 +6,8 @@ use crate::{
 use super::{AdvanceUnexpected, Parser};
 
 /// [Parser::statement_recovery] that takes into account end of line errors
-pub fn recover_statement<'lex, T>(
-    parser: &mut Parser<'lex>,
+pub fn recover_statement<T>(
+    parser: &mut Parser<'_>,
     err: AdvanceUnexpected,
 ) -> ParseResult<Result<T, StatementRecovery>> {
     match err {
@@ -21,8 +21,8 @@ pub fn recover_statement<'lex, T>(
     }
 }
 /// [recover_statement] but for the top level instead
-pub fn recover_top_level<'lex, T>(
-    parser: &mut Parser<'lex>,
+pub fn recover_top_level<T>(
+    parser: &mut Parser<'_>,
     err: AdvanceUnexpected,
 ) -> ParseResult<Result<T, TopLevelRecovery>> {
     match err {
@@ -37,7 +37,7 @@ pub fn recover_top_level<'lex, T>(
 }
 
 #[deprecated]
-pub fn handle_result_statement<'src, T, E>(
+pub fn handle_result_statement<T, E>(
     ParseResult {
         data,
         error,
@@ -52,13 +52,13 @@ pub fn handle_result_statement<'src, T, E>(
             Ok(it)
         }
         Err(err) => {
-            return Err(ParseResult::new(Err(err), error, at_eof));
+            Err(ParseResult::new(Err(err), error, at_eof))
         }
     }
 }
 
 /// Puts ParseResults without errors into `Ok(T)` and the ones with errors into `Err(E)`
-pub fn should_return_func<'src, T, R>(
+pub fn should_return_func<T, R>(
     result: ParseResult<Result<T, StatementRecovery>>,
 ) -> Result<T, ParseResult<Result<R, StatementRecovery>>> {
     let ParseResult {
@@ -82,7 +82,7 @@ pub fn should_return_func<'src, T, R>(
 }
 
 /// [should_return_func] but for top level
-pub fn should_return_top_func<'src, T, R>(
+pub fn should_return_top_func<T, R>(
     result: ParseResult<Result<T, TopLevelRecovery>>,
 ) -> Result<T, ParseResult<Result<R, TopLevelRecovery>>> {
     let ParseResult {

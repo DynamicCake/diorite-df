@@ -175,10 +175,7 @@ impl Parser<'_> {
         while {
             // Only repeat when ')' not in sight
             match self.peek() {
-                Ok(it) => match it.data {
-                    Token::CloseParen => false,
-                    _ => true,
-                },
+                Ok(it) => !matches!(it.data, Token::CloseParen),
                 Err(err) => {
                     return ParseResult::new(
                         Err(StatementRecovery),
@@ -282,10 +279,7 @@ impl Parser<'_> {
         }
         while {
             match self.peek() {
-                Ok(it) => match it.data {
-                    Token::CloseParen => false,
-                    _ => true,
-                },
+                Ok(it) => !matches!(it.data, Token::CloseParen),
                 Err(err) => {
                     return ParseResult::new(
                         Err(StatementRecovery),

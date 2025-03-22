@@ -33,7 +33,7 @@ impl<'lex> Parser<'lex> {
             }
         };
 
-        let top = match &token.data {
+        match &token.data {
             Token::PlayerEvent | Token::EntityEvent => {
                 let ParseResult {
                     data,
@@ -77,9 +77,7 @@ impl<'lex> Parser<'lex> {
                     it
                 );
             }
-        };
-
-        top
+        }
     }
 
     fn process(&mut self) -> ParseResult<Result<TreeProcDef, TopLevelRecovery>> {
@@ -126,10 +124,7 @@ impl<'lex> Parser<'lex> {
                         Some("Next param or close")
                     )
                 );
-                match next.data {
-                    Token::CloseParen => false,
-                    _ => true,
-                }
+                !matches!(next.data, Token::CloseParen)
             } {
                 let param = should_return_top!(self.params());
                 params.push(param);

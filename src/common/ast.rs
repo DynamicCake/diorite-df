@@ -20,7 +20,7 @@ impl DfNumber {
     pub fn value(&self) -> i64 {
         self.0
     }
-    pub fn to_string(&self) -> String {
+    pub fn stringify(&self) -> String {
         let value = self.0;
         format!(
             "{}{}.{:0>3}",
@@ -37,7 +37,7 @@ impl TryFrom<DfNumber> for f32 {
 
     fn try_from(value: DfNumber) -> Result<Self, Self::Error> {
         // Oh the misery
-        Ok(value.to_string().parse().map_err(|_| ())?)
+        value.stringify().parse().map_err(|_| ())
     }
 }
 
@@ -46,7 +46,7 @@ impl TryFrom<DfNumber> for f64 {
 
     fn try_from(value: DfNumber) -> Result<Self, Self::Error> {
         // Oh the misery
-        Ok(value.to_string().parse().map_err(|_| ())?)
+        value.stringify().parse().map_err(|_| ())
     }
 }
 
@@ -55,7 +55,7 @@ impl Serialize for DfNumber {
     where
         S: serde::Serializer,
     {
-        let num = self.to_string();
+        let num = self.stringify();
         serializer.serialize_str(&num)
     }
 }
@@ -89,7 +89,7 @@ impl TryFrom<&str> for DfNumber {
         while {
             let peek = chars.peek();
             if let Some(it) = peek {
-                it.is_digit(10)
+                it.is_ascii_digit()
             } else {
                 false
             }
@@ -116,7 +116,7 @@ impl TryFrom<&str> for DfNumber {
                 while {
                     let peek = chars.peek();
                     if let Some(it) = peek {
-                        it.is_digit(10)
+                        it.is_ascii_digit()
                     } else {
                         false
                     }

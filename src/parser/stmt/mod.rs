@@ -155,7 +155,7 @@ impl<'lex> Parser<'lex> {
             }
             _ => {
                 let at_eof = self.statement_recovery();
-                return ParseResult::new(Err(StatementRecovery), Vec::new(), at_eof);
+                ParseResult::new(Err(StatementRecovery), Vec::new(), at_eof)
             }
         }
 

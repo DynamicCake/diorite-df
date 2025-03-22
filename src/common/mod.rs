@@ -56,6 +56,12 @@ pub struct StarterSet {
     pub process: HashSet<Starter>,
 }
 
+impl Default for StarterSet {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl StarterSet {
     pub fn new() -> Self {
         Self {

@@ -121,7 +121,7 @@ pub enum Token {
     Invalid,
 }
 
-fn process_iden<'src>(lex: &mut Lexer<'src, Token>) -> Option<Spur> {
+fn process_iden(lex: &mut Lexer<'_, Token>) -> Option<Spur> {
     let text = lex.slice();
     let res = if text.len() >= 2 && text.starts_with('\'') && text.ends_with('\'') {
         &text[1..text.len() - 1]
@@ -133,7 +133,7 @@ fn process_iden<'src>(lex: &mut Lexer<'src, Token>) -> Option<Spur> {
     Some(spur)
 }
 
-fn process_string<'src>(lex: &mut Lexer<'src, Token>) -> Option<Spur> {
+fn process_string(lex: &mut Lexer<'_, Token>) -> Option<Spur> {
     let text = lex.slice();
     let res = &text[1..text.len() - 1];
     let spur = lex.extras.get_or_intern(res);
@@ -141,7 +141,7 @@ fn process_string<'src>(lex: &mut Lexer<'src, Token>) -> Option<Spur> {
     Some(spur)
 }
 
-fn process_styled_text<'src>(lex: &mut Lexer<'src, Token>) -> Option<Spur> {
+fn process_styled_text(lex: &mut Lexer<'_, Token>) -> Option<Spur> {
     let text = lex.slice();
     let res = &text[2..text.len() - 1];
     let spur = lex.extras.get_or_intern(res);
@@ -149,7 +149,7 @@ fn process_styled_text<'src>(lex: &mut Lexer<'src, Token>) -> Option<Spur> {
     Some(spur)
 }
 
-fn process_number<'src>(lex: &mut Lexer<'src, Token>) -> Option<Spur> {
+fn process_number(lex: &mut Lexer<'_, Token>) -> Option<Spur> {
     let text = lex.slice();
     let spur = lex.extras.get_or_intern(text);
 
@@ -157,7 +157,7 @@ fn process_number<'src>(lex: &mut Lexer<'src, Token>) -> Option<Spur> {
 }
 
 // FIXME: For now this doesn't work
-fn comment<'src>(lexer: &mut Lexer<'src, Token>) -> Result<(), ()> {
+fn comment(lexer: &mut Lexer<'_, Token>) -> Result<(), ()> {
     println!("Comment triggered!");
     #[derive(Logos, Debug)]
     enum CommentHelper {
@@ -193,9 +193,9 @@ impl PartialEq for Token {
     }
 }
 
-impl<'src> Token {
+impl Token {
     pub fn spanned(self, span: Span) -> Spanned<Self> {
-        Spanned::new(self, (span.start as u32)..(span.end as u32))
+        Spanned::new(self, span.start..span.end)
     }
 
     // HACK: Not sure if it is but get another pair of eyes on this
@@ -216,13 +216,13 @@ impl<'src> Token {
     /// Gets the iden, if the varient isn't a Iden, this function panics
     pub fn get_iden_inner(self) -> Spur {
         match self {
-            Self::Iden(it) => return it.unwrap(),
+            Self::Iden(it) => it.unwrap(),
             it => panic!("Expected Iden, recieved {:#?}", it),
         }
     }
 }
 
-impl<'src> Token {
+impl Token {
     /// Statement starters
     pub const STATEMENT: [Token; 13] = [
         Token::PlayerAction,

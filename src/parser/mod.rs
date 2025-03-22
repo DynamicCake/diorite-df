@@ -119,7 +119,7 @@ impl<'lex> Parser<'lex> {
             let (token, span) = it;
             if let Ok(token) = token {
                 let span = (span.start as SpanSize)..(span.end as SpanSize);
-                return if expected.contains(&token) {
+                if expected.contains(&token) {
                     token.spanned(span)
                 } else {
                     panic!(
@@ -128,10 +128,10 @@ impl<'lex> Parser<'lex> {
                             expected: ExpectedTokens::new(expected.into()),
                             received: token.spanned(span),
                             expected_name: None,
-                            file: self.path.clone(),
+                            file: self.path
                         }
                     )
-                };
+                }
             } else {
                 let span = (span.start as SpanSize)..(span.end as SpanSize);
                 panic!(
@@ -164,16 +164,16 @@ impl<'lex> Parser<'lex> {
             let (token, span) = it;
             let span = (span.start as SpanSize)..(span.end as SpanSize);
             if let Ok(token) = token {
-                return if expected.contains(&token) {
+                if expected.contains(&token) {
                     Ok(token.spanned(span))
                 } else {
                     Err(AdvanceUnexpected::Token(UnexpectedToken {
                         expected: ExpectedTokens::new(expected.into()),
                         received: token.spanned(span),
                         expected_name: expected_name.map(|str| str.into()),
-                        file: self.path.clone(),
+                        file: self.path,
                     }))
-                };
+                }
             } else {
                 self.lex_errs.push(LexerError::new(Referenced::<()>::empty(
                     Spanned::<()>::empty(span.clone()),
@@ -198,16 +198,16 @@ impl<'lex> Parser<'lex> {
         if let Some((token, span)) = self.toks.peek() {
             if let Ok(token) = token {
                 let span = (span.start as SpanSize)..(span.end as SpanSize);
-                return if expected.contains(token) {
+                if expected.contains(token) {
                     Ok(Spanned::new(token, span.clone()))
                 } else {
                     Err(AdvanceUnexpected::Token(UnexpectedToken {
                         expected: ExpectedTokens::new(expected.into()),
                         received: token.clone().spanned(span.clone()),
                         expected_name: msg.map(|str| str.into()),
-                        file: self.path.clone(),
+                        file: self.path
                     }))
-                };
+                }
             } else {
                 let span = (span.start as SpanSize)..(span.end as SpanSize);
                 // This clone has minimal overhead as it is only cloning a Range<usize>

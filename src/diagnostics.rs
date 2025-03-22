@@ -15,7 +15,7 @@ pub fn generate_syntax_error<'src>(
     let expected = error.expected_print();
     Report::build(ReportKind::Error, file.clone(), 0)
         .with_code(1)
-        .with_message(format!("Syntax Error"))
+        .with_message("Syntax Error".to_string())
         .with_label(
             Label::new((file, {
                 let Span { start, end } = error.received.span;

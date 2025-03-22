@@ -27,12 +27,24 @@ pub enum SemanticError<'d> {
     ParticleNotFound(ActionNotFoundError<'d>),
     SoundNotFound(ActionNotFoundError<'d>),
     PotionNotFound(ActionNotFoundError<'d>),
-    /// Remember: Selector sometimes could be like IsSneaking because of subActionBlocks
+    // Remember: Selector sometimes could be like IsSneaking because of subActionBlocks
     SelectorNotFound(SelectorNotFound),
+    #[assoc(severe = true)]
+    InvalidExprParam(InvalidParamError),
 
     /// Great inconvenience is placed apon the developers on the code when it isn't UTF-8
     #[assoc(severe = true)]
     NonUtf8FileName(Spur),
+}
+
+pub enum InvalidParamType {
+    
+}
+
+pub enum InvalidParamError {
+    UnexpectedType {
+    },
+    
 }
 
 impl<'d> SemanticError<'d> {

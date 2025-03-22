@@ -1,5 +1,5 @@
 /.antlr
 /.vscode
 /project/src/actiondump.json
-
+/.direnv
 /target

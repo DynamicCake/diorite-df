@@ -86,7 +86,7 @@ impl Project<ParsedProjectFiles> {
             let rodeo = rodeo.clone();
             let handle = tokio::spawn(async move {
                 let src = rodeo.resolve(&file.src);
-                let lexer = Token::lexer_with_extras(&src, rodeo.clone());
+                let lexer = Token::lexer_with_extras(src, rodeo.clone());
                 let tree = Parser::parse(lexer, file.path);
                 (tree, file)
             });
@@ -118,7 +118,7 @@ impl Project<ParsedProjectFiles> {
         let actiondump = actiondump
             .await
             .expect("Task cannot panic or be canceled")
-            .map_err(|e| ProjectCreationError::ActionDump(e))?;
+            .map_err(ProjectCreationError::ActionDump)?;
 
         let resources = ProjectResources::new(rodeo.into_resolver(), root, actiondump);
         let files = ParsedProjectFiles::new(trees, lex_errs, parse_errs, eof_errs);
@@ -184,8 +184,9 @@ pub struct ProjectFile<S: FileResolution> {
 }
 
 impl ProjectFile<RawFile> {
+    /// # Safety
+    /// Hash the file correctly.
     /// Marked unsafe because there is no guarantee that the paths are correct
-    /// Please hash the file correctly
     pub unsafe fn raw(src: Spur, path: Spur, hash: u64, root: Spur) -> Self {
         Self {
             src,
@@ -202,11 +203,11 @@ impl ProjectFile<RawFile> {
         // Open and verify
         let mut file = File::open(path)
             .await
-            .map_err(|e| ProjectFileCreationError::Io(e))?;
+            .map_err(ProjectFileCreationError::Io)?;
 
         let canonical = path
             .canonicalize()
-            .map_err(|e| ProjectFileCreationError::Io(e))?;
+            .map_err(ProjectFileCreationError::Io)?;
         if !canonical.is_absolute() {
             return Err(ProjectFileCreationError::BaseNotAbsolute);
         }
@@ -224,7 +225,7 @@ impl ProjectFile<RawFile> {
         let mut src = String::new();
         file.read_to_string(&mut src)
             .await
-            .map_err(|e| ProjectFileCreationError::Io(e))?;
+            .map_err(ProjectFileCreationError::Io)?;
 
         // Obtain hash
         let mut hasher = FxHasher::default();

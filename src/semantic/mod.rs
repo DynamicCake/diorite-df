@@ -42,8 +42,7 @@ impl<'d> Analyzer<'d> {
         if errs.eof_errs.is_empty() || errs.parse_errs.is_empty() || errs.lex_errs.is_empty() {
             return None;
         }
-        let res = self.resolve_self(program).await;
-        return Some(res);
+        Some(self.resolve_self(program).await)
     }
 
     fn new(resolver: &'d RodeoResolver, dump: &'d ActionDump) -> Self {
@@ -89,8 +88,4 @@ impl<'d> Analyzer<'d> {
     }
 }
 
-pub enum AdvanceTreeExprError {
-
-
-}
-
+pub enum AdvanceTreeExprError {}

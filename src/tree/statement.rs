@@ -31,7 +31,11 @@ impl TreeTags {
         tags: MaybeSpan<Parameters<TreeIdenPair>>,
         close: Spanned<()>,
     ) -> Self {
-        Self { open, inner_tags: tags, close }
+        Self {
+            open,
+            inner_tags: tags,
+            close,
+        }
     }
 }
 
@@ -157,7 +161,6 @@ impl CalcSpan for TreeRepeatLoop {
     }
 }
 
-
 #[derive(Debug, PartialEq)]
 pub struct TreeIdenPair {
     pub key: Spanned<Spur>,
@@ -191,28 +194,25 @@ pub enum TreeExpression {
 
 impl SpanStart for TreeExpression {
     fn start(&self) -> SpanSize {
-        let range = match self {
+        match self {
             Self::Expr(lit) => lit.literal_type.span.start,
             Self::Literal(lit) => match lit {
                 TreeStaticLiteral::String(lit) => lit.span.start,
                 TreeStaticLiteral::Number(lit) => lit.span.start,
             }
-            .clone(),
-        };
-        range
+        }
     }
 }
 
 impl SpanEnd for TreeExpression {
     fn end(&self) -> SpanSize {
-        let range = match self {
+        match self {
             Self::Expr(lit) => lit.literal_type.span.end,
             Self::Literal(lit) => match lit {
                 TreeStaticLiteral::String(lit) => lit.span.end,
                 TreeStaticLiteral::Number(lit) => lit.span.end,
             },
-        };
-        range
+        }
     }
 }
 
@@ -287,4 +287,3 @@ impl TrySpanEnd for TreeStaticLiteral {
         Some(self.end())
     }
 }
-

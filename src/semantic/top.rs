@@ -10,7 +10,7 @@ impl<'d> Analyzer<'d> {
         let mut ast_top: Vec<AstTopLevel<'d>> = Vec::with_capacity(root.top_statements.len());
         for top in root.top_statements {
             ast_top.push(
-                (match top {
+                match top {
                     TreeTopLevel::Event(e) => {
                         let blocktype: BlockType = e.type_tok.data.clone().into();
                         let action = self.dump.search_action_spur(
@@ -18,7 +18,7 @@ impl<'d> Analyzer<'d> {
                             e.name.data.inner,
                             blocktype.caps(),
                         );
-                        if let None = action {
+                        if action.is_none() {
                             let reference = Referenced::new(
                                 e.name.clone().map_inner(|i| {
                                     ActionReference::new(BlockType::PlayerEvent, i.inner)
@@ -55,7 +55,7 @@ impl<'d> Analyzer<'d> {
                         end_tok: p.end_tok,
                     }),
                     TreeTopLevel::Recovery(_) => panic!("Recovery shouldn't appear in semantic"),
-                }),
+                },
             );
         }
 
