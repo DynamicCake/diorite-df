@@ -1,5 +1,4 @@
-/.antlr
 /.vscode
-/project/src/actiondump.json
+**/min_dbc.json
 /.direnv
-/target
+**/target
