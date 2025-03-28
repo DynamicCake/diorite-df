@@ -5,34 +5,33 @@
 // Clogs up the errors, remove when polishing
 #![allow(unused)]
 
-mod args;
-
+pub mod ast;
+pub mod cli;
 pub mod codegen;
-pub mod project;
 pub mod common;
-pub mod diagnostics;
 pub mod dump;
 pub mod error;
-pub mod flow;
 pub mod lexer;
 pub mod parser;
+pub mod project;
 pub mod semantic;
 pub mod test;
 pub mod tree;
-pub mod ast;
 
 use std::{env::set_var, error::Error};
 
-use args::Args;
 use clap::Parser;
+use cli::args::Args;
 use colored::Colorize;
 
 #[tokio::main]
-async fn main() -> Result<(), Box<dyn Error + 'static>> {
-    let args = Args::parse();
+async fn main() -> eyre::Result<()> {
+    color_eyre::install()?;
     set_var("RUST_BACKTRACE", "1");
-    if let Err(err) = flow::handle(args).await {
-        eprintln!("{}{}", "Error: ".red(), err.to_string().red());
+    let args = Args::parse_from(std::env::args());
+    let result = cli::flow::handle(args).await;
+    if let Err(err) = result {
+        eprintln!("{}{}", "Error: ".red(), err);
     };
 
     Ok(())

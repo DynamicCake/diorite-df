@@ -75,10 +75,10 @@ impl Project<ParsedProjectFiles> {
         for file in files {
             if let Some(root) = root {
                 if root != file.resolution.root {
-                    return Err(ProjectCreationError::RootsDoNotMatch(
+                    return Err(ProjectCreationError::RootsDoNotMatch {
                         root,
-                        file.resolution.root,
-                    ));
+                        file: file.resolution.root,
+                    });
                 }
             } else {
                 root = Some(file.resolution.root);
@@ -145,13 +145,13 @@ impl Project<ParsedProjectFiles> {
 pub enum ActionDumpReadError {
     #[error("Io error when reading actiondump at {0} with error {1}")]
     Io(Box<Path>, io::Error),
-    #[error("Parse error at {0} with error {1}")]
+    #[error("Parse error in actiondump at {0} with error {1}")]
     Parse(Box<Path>, serde_json::Error),
 }
 
 #[derive(Debug)]
 pub enum ProjectCreationError {
-    RootsDoNotMatch(Spur, Spur),
+    RootsDoNotMatch { root: Spur, file: Spur },
     NoFilesInputed,
     ActionDump(ActionDumpReadError),
 }
@@ -205,9 +205,7 @@ impl ProjectFile<RawFile> {
             .await
             .map_err(ProjectFileCreationError::Io)?;
 
-        let canonical = path
-            .canonicalize()
-            .map_err(ProjectFileCreationError::Io)?;
+        let canonical = path.canonicalize().map_err(ProjectFileCreationError::Io)?;
         if !canonical.is_absolute() {
             return Err(ProjectFileCreationError::BaseNotAbsolute);
         }

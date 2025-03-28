@@ -244,6 +244,8 @@ impl<'d> Analyzer<'d> {
         main_action: Option<&'d Action>,
         file: Spur,
     ) -> Result<Option<Spanned<AstSelection<'d>>>, SemanticError<'d>> {
+        todo!();
+        /*
         if let Some(span_selection) = selection {
             // Destructure spanned for later reconstruction, not using map_inner(f) because of
             // it is easier to return errors without it
@@ -316,5 +318,6 @@ impl<'d> Analyzer<'d> {
         } else {
             Ok(None)
         }
+*/
     }
 }
