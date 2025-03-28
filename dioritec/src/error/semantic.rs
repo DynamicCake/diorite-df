@@ -1,7 +1,10 @@
 use enum_assoc::Assoc;
 use lasso::Spur;
 
-use crate::{common::prelude::*, dump::{Action, Choice, Tag}};
+use crate::{
+    common::prelude::*,
+    dump::{Action, Choice, Tag},
+};
 
 #[derive(Assoc)]
 #[func(pub const fn severe(&self) -> bool { false })]
@@ -37,14 +40,10 @@ pub enum SemanticError<'d> {
     NonUtf8FileName(Spur),
 }
 
-pub enum InvalidParamType {
-    
-}
+pub enum InvalidParamType {}
 
 pub enum InvalidParamError {
-    UnexpectedType {
-    },
-    
+    UnexpectedType {},
 }
 
 impl<'d> SemanticError<'d> {
@@ -53,7 +52,7 @@ impl<'d> SemanticError<'d> {
             DfNumberParseError::TooBig => SemanticError::NumberOutOfBounds(num),
             DfNumberParseError::TooPercise => SemanticError::NumberTooPrecise(num),
             DfNumberParseError::UnexpectedChar => panic!("Unexpected character {:#?}", num),
-            DfNumberParseError::EmptyInput => panic!("Empty input {:#?}", num)
+            DfNumberParseError::EmptyInput => panic!("Empty input {:#?}", num),
         }
     }
 }

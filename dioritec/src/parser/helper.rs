@@ -51,9 +51,7 @@ pub fn handle_result_statement<T, E>(
             }
             Ok(it)
         }
-        Err(err) => {
-            Err(ParseResult::new(Err(err), error, at_eof))
-        }
+        Err(err) => Err(ParseResult::new(Err(err), error, at_eof)),
     }
 }
 

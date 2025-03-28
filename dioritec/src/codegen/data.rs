@@ -1,6 +1,6 @@
+use crate::common::prelude::*;
 use ast::{BlockType, DfNumber};
 use serde::Serialize;
-use crate::common::prelude::*;
 
 #[derive(Serialize, PartialEq)]
 #[serde(tag = "id")]
@@ -134,4 +134,3 @@ pub struct ParticleCluster {
     pub verticle: f32,
     pub amount: u16,
 }
-

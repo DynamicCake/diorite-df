@@ -52,4 +52,3 @@ pub struct Item<'src> {
     item: ChestValue<'src>,
     slot: u8,
 }
-

@@ -1,12 +1,9 @@
 //! Provides structs to create a parse tree to be used [crate::parser]
 
 pub mod prelude {
+    pub use crate::ast::{statement::*, top::*, AstRoot};
     pub use crate::common::prelude::*;
-    pub use crate::ast::{AstRoot, statement::*, top::*};
 }
-
-
-
 
 use self::top::AstTopLevel;
 
@@ -23,5 +20,3 @@ impl<'d> AstRoot<'d> {
         Self { top_statements }
     }
 }
-
-

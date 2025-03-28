@@ -155,16 +155,10 @@ pub struct Referenced<T> {
 
 impl<T> Referenced<T> {
     pub fn new(spanned: Spanned<T>, file_path: Spur) -> Self {
-        Self {
-            spanned,
-            file_path
-        }
+        Self { spanned, file_path }
     }
     pub fn empty(spanned: Spanned<()>, file_path: Spur) -> Referenced<()> {
-        Referenced {
-            spanned,
-            file_path
-        }
+        Referenced { spanned, file_path }
     }
     pub fn to_empty(self) -> Referenced<()> {
         Referenced {

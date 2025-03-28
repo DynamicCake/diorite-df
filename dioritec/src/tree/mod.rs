@@ -2,11 +2,8 @@
 
 pub mod prelude {
     pub use crate::common::prelude::*;
-    pub use crate::tree::{TreeRoot, recovery::*, statement::*, top::*};
+    pub use crate::tree::{recovery::*, statement::*, top::*, TreeRoot};
 }
-
-
-
 
 use self::top::TreeTopLevel;
 
@@ -24,5 +21,3 @@ impl TreeRoot {
         Self { top_statements }
     }
 }
-
-

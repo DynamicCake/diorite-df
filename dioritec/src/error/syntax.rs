@@ -2,7 +2,10 @@ use std::{fmt::Display, sync::Arc};
 
 use lasso::Spur;
 
-use crate::{common::span::{Referenced, Spanned}, lexer::Token};
+use crate::{
+    common::span::{Referenced, Spanned},
+    lexer::Token,
+};
 
 /// Represents a parse result that every parsing function should return
 /// All parsing functions are called by [Parser::parse](crate::parser::Parser::parse)

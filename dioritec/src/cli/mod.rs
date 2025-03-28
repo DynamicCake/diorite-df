@@ -3,19 +3,12 @@ pub mod diagnostics;
 
 use args::Args;
 use eyre::eyre;
-use std::{
-    io::{Read},
-    path::Path,
-    sync::Arc,
-};
+use std::{io::Read, path::Path, sync::Arc};
 
 use futures::future;
 use lasso::{Resolver, ThreadedRodeo};
 
-use crate::project::{
-    Project, ProjectCreationError, ProjectFile,
-};
-
+use crate::project::{Project, ProjectCreationError, ProjectFile};
 
 pub async fn handle(args: Args) -> eyre::Result<String> {
     let src_paths = args.files;
@@ -88,4 +81,3 @@ pub async fn handle(args: Args) -> eyre::Result<String> {
     // TODO: Create project analysis and codegen
     todo!()
 }
-

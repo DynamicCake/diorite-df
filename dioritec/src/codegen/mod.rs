@@ -1,6 +1,9 @@
 //! Moule for the code generation step
 
-use crate::{dump::ActionDump, project::{AnalyzedFile, ProjectFile}};
+use crate::{
+    dump::ActionDump,
+    project::{AnalyzedFile, ProjectFile},
+};
 
 pub mod block;
 pub mod data;

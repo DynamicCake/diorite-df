@@ -129,7 +129,11 @@ impl<'lex> Parser<'lex> {
                 match data {
                     Ok(it) => {
                         let span = it.calculate_span();
-                        ParseResult::new(Ok(TreeStatement::If(Spanned::new(it, span))), error, at_eof)
+                        ParseResult::new(
+                            Ok(TreeStatement::If(Spanned::new(it, span))),
+                            error,
+                            at_eof,
+                        )
                     }
                     Err(err) => ParseResult::new(Err(err), error, at_eof),
                 }

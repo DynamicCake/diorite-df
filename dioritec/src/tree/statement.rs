@@ -197,7 +197,7 @@ impl SpanStart for TreeExpression {
             Self::Literal(lit) => match lit {
                 TreeStaticLiteral::String(lit) => lit.span.start,
                 TreeStaticLiteral::Number(lit) => lit.span.start,
-            }
+            },
         }
     }
 }

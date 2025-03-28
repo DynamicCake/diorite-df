@@ -21,7 +21,9 @@ impl Parser<'_> {
     }
 
     /// Must start with an iden
-    pub fn pair_list(&mut self) -> ParseResult<Result<Parameters<TreeIdenPair>, StatementRecovery>> {
+    pub fn pair_list(
+        &mut self,
+    ) -> ParseResult<Result<Parameters<TreeIdenPair>, StatementRecovery>> {
         let mut pairs = Vec::new();
 
         // Allow [] to happen
@@ -137,7 +139,9 @@ impl Parser<'_> {
     }
 
     // Must start with '('
-    pub fn call_params(&mut self) -> ParseResult<Result<Wrapped<TreeExpression>, StatementRecovery>> {
+    pub fn call_params(
+        &mut self,
+    ) -> ParseResult<Result<Wrapped<TreeExpression>, StatementRecovery>> {
         // (
         let open = self.next_assert(&[Token::OpenParen]);
 
@@ -272,7 +276,10 @@ impl Parser<'_> {
                     Parameters::new(items).try_calculate_span_wrap(),
                     next.to_empty(),
                 );
-                return ParseResult::ok(Ok(TreeExprLiteral::new(kind, wrapped.calculate_span_wrap())));
+                return ParseResult::ok(Ok(TreeExprLiteral::new(
+                    kind,
+                    wrapped.calculate_span_wrap(),
+                )));
             }
             Token::Number(_) | Token::Iden(_) => {}
             _ => panic!("Should have been caught by peek_expect"),

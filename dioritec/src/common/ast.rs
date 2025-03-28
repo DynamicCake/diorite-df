@@ -1,4 +1,3 @@
-
 use enum_assoc::Assoc;
 use serde::{Serialize, Serializer};
 

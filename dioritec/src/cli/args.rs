@@ -7,7 +7,7 @@ use clap::Parser;
 pub struct Args {
     pub files: Vec<PathBuf>,
     /// Path to the actiondump
-    #[arg(short,long)]
+    #[arg(short, long)]
     pub dump: PathBuf,
 
     /// File to output hypercube project to
@@ -15,7 +15,7 @@ pub struct Args {
     pub output: PathBuf,
     #[arg(short, long, default_value_os_t = env::current_dir().expect("Cannot get current dir"))]
     pub base_dir: PathBuf,
-    /// Project Name 
+    /// Project Name
     #[arg(short, long, default_value = "untitled")]
     pub name: String,
 }

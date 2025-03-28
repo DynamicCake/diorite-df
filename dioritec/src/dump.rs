@@ -131,7 +131,6 @@ impl Tag {
     }
 }
 
-
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", rename = "option")]
 pub struct Choice {

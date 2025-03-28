@@ -201,7 +201,7 @@ impl<'lex> Parser<'lex> {
                         expected: ExpectedTokens::new(expected.into()),
                         received: token.clone().spanned(span.clone()),
                         expected_name: msg.map(|str| str.into()),
-                        file: self.path
+                        file: self.path,
                     }))
                 }
             } else {
