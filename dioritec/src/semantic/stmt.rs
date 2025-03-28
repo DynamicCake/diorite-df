@@ -3,10 +3,11 @@ use std::vec::IntoIter;
 
 use crate::ast::prelude::*;
 use crate::dump::Action;
-use crate::error::semantic::ActionReference;
 use crate::error::semantic::{
-    ActionNotFoundError, SemanticError, TagKeyNotFoundError, TagValueNotFoundError,
+    ActionNotFoundError, SemanticError, SubActionNotFoundError, SubActionReference,
+    TagKeyNotFoundError, TagValueNotFoundError,
 };
+use crate::error::semantic::{ActionReference, SelectorNotFound};
 use crate::tree::prelude::*;
 
 use lasso::Spur;
@@ -268,80 +269,88 @@ impl<'d> Analyzer<'d> {
         main_action: Option<&'d Action>,
         file: Spur,
     ) -> Result<Option<Spanned<AstSelection<'d>>>, SemanticError<'d>> {
-        todo!();
-        /*
-                if let Some(span_selection) = selection {
-                    // Destructure spanned for later reconstruction, not using map_inner(f) because of
-                    // it is easier to return errors without it
-                    let Spanned {
-                        data: tree_selection,
-                        span: span_selection_span,
-                    } = span_selection;
+        if let Some(span_selection) = selection {
+            // Destructure spanned for later reconstruction, not using map_inner(f)
+            // because you cannot `return` errors to escape out of this function
+            let Spanned {
+                data: tree_selection,
+                span: span_selection_span,
+            } = span_selection;
 
-                    // If (parse tree) selection exists, do some modifications, otherwise, return null
-                    // Equivilent of Option.map()
-                    let selection = if let Some(selection_some) = &tree_selection.selection {
-                        let name = self.resolver.resolve(&selection_some.data);
-                        // Attempt convert to basic
-                        let mut selection_inner: ActionSelector<'d> = ActionSelector::basic_from_str(name);
-                        // It selection is ActionSelector::Other if it doesn't have a usual name
-                        // either being invalid or a subaction
-                        if let ActionSelector::Other(_inner) = selection_inner {
-                            // Is the main action resolved?
-                            if let Some(main_action) = main_action {
-                                let mut found_subaction = None;
-                                // Find action using sub_action_blocks and name
-                                for block_name in &main_action.sub_action_blocks {
-                                    let block_type = BlockType::from_iden(block_name).expect(&format!(
-                                        "Actiondump does not contain block {}",
-                                        block_name
-                                    ));
-                                    let found_action = if let Some(action) =
-                                        self.dump.search_action(name, block_type.caps())
-                                    {
-                                        found_subaction = Some(action);
-                                        break;
-                                    } else {
-                                        let reference = Referenced::new(
-                                            Spanned::new(
-                                                ActionReference::new(block_type, selection_some.data),
-                                                span_selection_span,
-                                            ),
-                                            file,
-                                        );
-                                        let suggestions =
-                                            self.dump.suggest_actions(&reference, self.resolver);
-
-                                        return Err(SemanticError::ActionNotFound(ActionNotFoundError {
-                                            token: reference,
-                                            suggestions,
-                                        }));
-                                    };
-                                }
-                                selection_inner = ActionSelector::Other(found_subaction);
-                                if found_subaction.is_none() {
-                                    return Err(SemanticError::SelectorNotFound(SelectorNotFound {
-                                        selector: Referenced::new(
-                                            Spanned::new(selection_some.data, span_selection_span),
-                                            file,
-                                        ),
-                                    }));
-                                }
+            // If (parse tree) selection exists, do some modifications, otherwise, return null
+            // Equivilent of Option.map()
+            let selection = if let Some(selection_some) = &tree_selection.selection {
+                let name = self.resolver.resolve(&selection_some.data);
+                // Attempt convert to basic
+                let mut selection_inner: ActionSelector<'d> = ActionSelector::basic_from_str(name);
+                // It selection is ActionSelector::Other if it doesn't have a usual name
+                // either being invalid or a subaction
+                if let ActionSelector::Other(_) = selection_inner {
+                    // Is the main action resolved?
+                    if let Some(main_action) = main_action {
+                        let mut found_subaction = None;
+                        // Find action using sub_action_blocks and name
+                        let blocks: Vec<_> = main_action
+                            .sub_action_blocks
+                            .iter()
+                            .map(|block_name| {
+                                BlockType::from_iden(block_name).unwrap_or_else(|| {
+                                    panic!("Actiondump does not contain block {}", block_name)
+                                })
+                            })
+                            .collect();
+                        for block_type in &blocks {
+                            if let Some(action) = self.dump.search_action(name, block_type.caps()) {
+                                found_subaction = Some(action);
+                                break;
                             };
-                        };
-                        Some(Spanned::new(selection_inner, span_selection_span.clone()))
+                        }
+
+                        if found_subaction.is_none() {
+                            let suggestions = self.dump.suggest_sub_actions(
+                                &blocks,
+                                selection_some.data,
+                                self.resolver,
+                            );
+                            let reference = Referenced::new(
+                                Spanned::new(
+                                    SubActionReference::new(
+                                        blocks,
+                                        selection_some.data,
+                                    ),
+                                    span_selection_span.clone(),
+                                ),
+                                file,
+                            );
+
+                            return Err(SemanticError::SubactionNotFound(SubActionNotFoundError {
+                                token: reference,
+                                suggestions,
+                            }));
+                        }
+
+                        selection_inner = ActionSelector::Other(found_subaction);
                     } else {
-                        None
-                    };
-                    let selection = AstSelection {
-                        open: tree_selection.open,
-                        selection,
-                        close: tree_selection.close,
-                    };
-                    Ok(Some(Spanned::new(selection, span_selection_span)))
-                } else {
-                    Ok(None)
-                }
-        */
+                        return Err(SemanticError::SelectorNotFound(SelectorNotFound {
+                            selector: Referenced::new(
+                                Spanned::new(selection_some.data, span_selection_span),
+                                file,
+                            ),
+                        }));
+                    }
+                };
+                Some(Spanned::new(selection_inner, span_selection_span.clone()))
+            } else {
+                None
+            };
+            let selection = AstSelection {
+                open: tree_selection.open,
+                selection,
+                close: tree_selection.close,
+            };
+            Ok(Some(Spanned::new(selection, span_selection_span)))
+        } else {
+            Ok(None)
+        }
     }
 }

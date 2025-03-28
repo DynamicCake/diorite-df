@@ -160,7 +160,7 @@ pub enum DfNumberParseError {
     EmptyInput,
 }
 
-#[derive(Assoc, PartialEq, Debug)]
+#[derive(Assoc, PartialEq, Debug, Clone)]
 #[func(pub const fn caps(&self) -> &'static str)]
 #[func(pub const fn iden(&self) -> &'static str)]
 pub enum BlockType {

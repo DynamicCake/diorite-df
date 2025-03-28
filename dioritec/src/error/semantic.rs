@@ -23,6 +23,7 @@ pub enum SemanticError<'d> {
 
     EventNotFound(ActionNotFoundError<'d>),
     ActionNotFound(ActionNotFoundError<'d>),
+    SubactionNotFound(SubActionNotFoundError<'d>),
 
     TagKeyNotFound(TagKeyNotFoundError<'d>),
     TagValueNotFound(TagValueNotFoundError<'d>),
@@ -62,6 +63,17 @@ pub struct ActionReference {
     pub name: Spur,
 }
 
+pub struct SubActionReference {
+    pub blocks: Vec<BlockType>,
+    pub name: Spur,
+}
+
+impl SubActionReference {
+    pub fn new(blocks: Vec<BlockType>, name: Spur) -> Self {
+        Self { blocks, name }
+    }
+}
+
 impl ActionReference {
     pub fn new(block: BlockType, name: Spur) -> Self {
         Self { block, name }
@@ -78,6 +90,11 @@ pub struct TagValueNotFoundError<'d> {
     pub key: &'d Tag,
     pub token: Referenced<Spur>,
     pub suggestions: Vec<&'d Choice>,
+}
+
+pub struct SubActionNotFoundError<'d> {
+    pub token: Referenced<SubActionReference>,
+    pub suggestions: Vec<&'d Action>,
 }
 
 pub struct ActionNotFoundError<'d> {

@@ -10,6 +10,7 @@ use serde::Deserialize;
 use serde::Serialize;
 use serde_json::Value;
 
+use crate::common::ast::BlockType;
 use crate::common::span::Referenced;
 use crate::error::semantic::ActionReference;
 
@@ -46,18 +47,36 @@ impl ActionDump {
     }
 
     // TODO: Improve suggestions
+    pub fn suggest_sub_actions<'d>(
+        &'d self,
+        block_types: &Vec<BlockType>,
+        prompt: Spur,
+        resolver: &'d RodeoResolver,
+    ) -> Vec<&'d Action> {
+        let mut res = Vec::new();
+        let block_types = block_types.iter().map(|bl| bl.caps()).collect::<Box<[&'static str]>>();
+        for action in &self.actions {
+            let s = resolver.resolve(&prompt);
+            if block_types.contains(&action.codeblock_name.as_ref()) && action.name.starts_with(s) {
+                res.push((action, s.len()))
+            }
+        }
+        res.sort_by(|a, b| a.1.cmp(&b.1));
+        res.truncate(3);
+        res.into_iter().map(|(action, _)| action).collect()
+    }
+
+    // TODO: Improve suggestions
     pub fn suggest_actions<'d>(
         &'d self,
         reference: &Referenced<ActionReference>,
         resolver: &'d RodeoResolver,
     ) -> Vec<&'d Action> {
         let mut res = Vec::new();
+        let data = &reference.spanned.data;
         for action in &self.actions {
-            let s = resolver.resolve(&reference.spanned.data.name);
-            if action
-                .name
-                .starts_with(s)
-            {
+            let s = resolver.resolve(&data.name);
+            if action.codeblock_name == data.block.caps() && action.name.starts_with(s) {
                 res.push((action, s.len()))
             }
         }

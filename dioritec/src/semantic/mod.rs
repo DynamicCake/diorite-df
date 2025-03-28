@@ -20,9 +20,9 @@ pub struct Analyzer<'d> {
 }
 
 pub struct AnalysisResult<'d> {
-    errors: Vec<SemanticError<'d>>,
-    program: Project<CheckedProjectFiles<'d>>,
-    starters: StarterSet,
+    pub errors: Vec<SemanticError<'d>>,
+    pub program: Project<CheckedProjectFiles<'d>>,
+    pub starters: StarterSet,
 }
 
 impl<'d> Analyzer<'d> {
