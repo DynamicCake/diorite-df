@@ -29,7 +29,7 @@ async fn main() -> eyre::Result<()> {
     color_eyre::install()?;
     set_var("RUST_BACKTRACE", "1");
     let args = Args::parse_from(std::env::args());
-    let result = cli::flow::handle(args).await;
+    let result = cli::handle(args).await;
     if let Err(err) = result {
         eprintln!("{}{}", "Error: ".red(), err);
     };
