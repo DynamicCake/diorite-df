@@ -60,6 +60,7 @@ pub async fn handle(args: Args) -> eyre::Result<String> {
         }
     }
 
+    // raw
     let project = match Project::create_project(
         Arc::try_unwrap(rodeo).expect("rodeo arc escaped scope"),
         files,
@@ -76,7 +77,11 @@ pub async fn handle(args: Args) -> eyre::Result<String> {
             })
         }
     };
-    println!("{:#?}", project.files.parsed);
+    println!("{:#?}", project.files);
+    // parsed
+    let project = project.parse().await;
+    println!("{:#?}", project.files);
+    // let analyzed = project.analyze(); 
 
     // TODO: Create project analysis and codegen
     todo!()

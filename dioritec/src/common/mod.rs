@@ -47,7 +47,7 @@ impl PartialEq for Starter {
 
 impl Eq for Starter {}
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct StarterSet {
     pub player_event: HashSet<Starter>,
     pub entity_event: HashSet<Starter>,

@@ -3,7 +3,7 @@
 use std::option::IntoIter;
 
 use crate::ast::prelude::*;
-use crate::project::{CheckedProjectFiles, ParsedProjectFiles, Project};
+use crate::project::{AnalyzedrojectFiles, ParsedProjectFiles, Project};
 use crate::tree::prelude::*;
 use crate::{dump::ActionDump, error::semantic::SemanticError};
 
@@ -21,7 +21,7 @@ pub struct Analyzer<'d> {
 
 pub struct AnalysisResult<'d> {
     pub errors: Vec<SemanticError<'d>>,
-    pub program: Project<CheckedProjectFiles<'d>>,
+    pub program: Project<AnalyzedrojectFiles<'d>>,
     pub starters: StarterSet,
 }
 
@@ -68,7 +68,7 @@ impl<'d> Analyzer<'d> {
             starters,
             program: Project {
                 resources: program.resources.clone(),
-                files: CheckedProjectFiles { programs: roots },
+                files: AnalyzedrojectFiles { programs: roots },
                 hash: program.hash,
             },
         }
