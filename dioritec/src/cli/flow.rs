@@ -17,11 +17,8 @@ use ariadne::Source;
 use futures::future;
 use lasso::{Resolver, ThreadedRodeo};
 
-use crate::{
-    error::cli::CliError,
-    project::{
-        ActionDumpReadError, Project, ProjectCreationError, ProjectFile, ProjectFileCreationError,
-    },
+use crate::project::{
+    ActionDumpReadError, Project, ProjectCreationError, ProjectFile, ProjectFileCreationError,
 };
 
 use super::{args::Args, diagnostics};
