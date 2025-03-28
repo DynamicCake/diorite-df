@@ -1,3 +1,8 @@
+# Using dioritec
+Dioritec is meant to be a simpler interface for the diorite langauge.
+
+`dioritec `
+
 # Getting started
 `diorite new <project name>` or `diorite init` to initialize current directory
 
