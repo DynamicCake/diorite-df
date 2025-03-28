@@ -1,6 +1,7 @@
 mod dfnum {
     use crate::common::ast::DfNumber;
 
+    #[allow(dead_code)]
     fn test_num(txt: &str, exp: &str, val: i64) {
         let num: DfNumber = txt.try_into().unwrap();
         assert_eq!(val, num.value());

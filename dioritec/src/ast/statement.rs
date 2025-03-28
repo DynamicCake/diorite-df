@@ -1,3 +1,5 @@
+//! Basically tree.rs but for the analyzer
+
 use crate::{
     ast::prelude::*,
     dump::{Action, Choice, Tag},

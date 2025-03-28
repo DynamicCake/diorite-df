@@ -3,8 +3,7 @@ use lasso::Spur;
 use crate::error::semantic::{ActionNotFoundError, ActionReference, SemanticError};
 
 use super::{
-    Analyzer, AstEvent, AstFuncDef, AstProcDef, AstRoot, AstTopLevel, BlockType, Referenced,
-    TreeRoot, TreeTopLevel,
+    Analyzer, AstEvent, AstFuncDef, AstFuncParamDef, AstProcDef, AstRoot, AstTopLevel, BlockType, Referenced, TreeFuncParamDef, TreeRoot, TreeTopLevel, Wrapped
 };
 
 impl<'d> Analyzer<'d> {
@@ -63,5 +62,13 @@ impl<'d> Analyzer<'d> {
         AstRoot {
             top_statements: ast_top,
         }
+    }
+
+    pub(super) async fn inputs_params(
+        &self,
+        params: Wrapped<TreeFuncParamDef>,
+        file: Spur,
+    ) -> Wrapped<AstFuncParamDef> {
+        todo!()
     }
 }

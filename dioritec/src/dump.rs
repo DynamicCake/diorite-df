@@ -5,6 +5,7 @@ use core::fmt;
 
 use lasso::RodeoResolver;
 use lasso::Spur;
+use logos::Source;
 use serde::Deserialize;
 use serde::Serialize;
 use serde_json::Value;
@@ -44,6 +45,7 @@ impl ActionDump {
         self.search_action(resolver.resolve(&name), block)
     }
 
+    // TODO: Improve suggestions
     pub fn suggest_actions<'d>(
         &'d self,
         reference: &Referenced<ActionReference>,
@@ -51,11 +53,17 @@ impl ActionDump {
     ) -> Vec<&'d Action> {
         let mut res = Vec::new();
         for action in &self.actions {
-            if action.name == resolver.resolve(&reference.spanned.data.name) {
-                res.push(action)
+            let s = resolver.resolve(&reference.spanned.data.name);
+            if action
+                .name
+                .starts_with(s)
+            {
+                res.push((action, s.len()))
             }
         }
-        res
+        res.sort_by(|a, b| a.1.cmp(&b.1));
+        res.truncate(3);
+        res.into_iter().map(|(action, _)| action).collect()
     }
 }
 

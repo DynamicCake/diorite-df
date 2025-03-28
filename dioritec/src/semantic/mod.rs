@@ -31,13 +31,15 @@ impl<'d> Analyzer<'d> {
         program: Project<ParsedProjectFiles>,
     ) -> Option<AnalysisResult<'d>> {
         let errs = &program.files;
-        if errs.eof_errs.is_empty() || errs.parse_errs.is_empty() || errs.lex_errs.is_empty() {
+        // Make sure that there are no errors in the parsing stage
+        // Maybe this restriction can be lifted later
+        if !errs.eof_errs.is_empty() || !errs.parse_errs.is_empty() || !errs.lex_errs.is_empty() {
             return None;
         }
         Some(self.resolve_self(program).await)
     }
 
-    fn new(resolver: &'d RodeoResolver, dump: &'d ActionDump) -> Self {
+    pub fn new(resolver: &'d RodeoResolver, dump: &'d ActionDump) -> Self {
         Self { resolver, dump }
     }
 
@@ -47,8 +49,8 @@ impl<'d> Analyzer<'d> {
         let programs_len = program.files.parsed.len();
 
         // Add all starters to `starters` and get errors early
-        program.files.parsed.iter().map(|file| {
-            file.resolution.root.top_statements.iter().map(|top| {
+        program.files.parsed.iter().for_each(|file| {
+            file.resolution.root.top_statements.iter().for_each(|top| {
                 if let Err(err) = top.add_starter(file.path, &mut starters) {
                     starter_collisions.push(err);
                 }

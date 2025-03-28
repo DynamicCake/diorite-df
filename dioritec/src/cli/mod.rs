@@ -3,10 +3,10 @@ pub mod diagnostics;
 
 use args::Args;
 use eyre::eyre;
-use std::{io::Read, path::Path, sync::Arc};
+use std::{path::Path, sync::Arc};
 
 use futures::future;
-use lasso::{Resolver, ThreadedRodeo};
+use lasso::ThreadedRodeo;
 
 use crate::project::{Project, ProjectCreationError, ProjectFile};
 

@@ -5,7 +5,7 @@ use crate::{
     error::syntax::{LexerError, UnexpectedEOF, UnexpectedToken},
     parser::Parser,
 };
-use lasso::{Interner, ThreadedRodeo};
+use lasso::ThreadedRodeo;
 use logos::Lexer;
 use std::sync::Arc;
 

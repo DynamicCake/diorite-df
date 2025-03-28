@@ -147,6 +147,7 @@ where
     }
 }
 
+/// A token identified throughout all files
 #[derive(Debug, PartialEq, Clone)]
 pub struct Referenced<T> {
     pub spanned: Spanned<T>,

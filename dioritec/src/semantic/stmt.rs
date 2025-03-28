@@ -12,7 +12,11 @@ use crate::tree::prelude::*;
 use lasso::Spur;
 
 impl<'d> Analyzer<'d> {
-    pub(super) async fn statements(&self, stmts: TreeStatements, file: Spur) -> AstStatements<'d> {
+    pub(super) async fn statements(
+        &'d self,
+        stmts: TreeStatements,
+        file: Spur,
+    ) -> AstStatements<'d> {
         let mut ast = Vec::new();
         let mut errs = Vec::new();
 
@@ -22,12 +26,12 @@ impl<'d> Analyzer<'d> {
                     let block_type: BlockType = s.type_tok.data.clone().into();
 
                     let main_action = self.dump.search_action_spur(
-                        &self.resolver,
+                        self.resolver,
                         s.action.data.inner,
                         block_type.caps(),
                     );
 
-                    if let None = main_action {
+                    if main_action.is_none() {
                         let reference = Referenced::new(
                             s.action
                                 .clone()
@@ -59,13 +63,38 @@ impl<'d> Analyzer<'d> {
                         }
                     };
 
+                    // TODO: Find a way to not need to do this
+                    let cry = {
+                        let data = &s.params.data;
+                        Spanned::new(
+                            Wrapped {
+                                open: data.open.clone(),
+                                tags: MaybeSpan::new(
+                                    Parameters::new(Vec::new()),
+                                    data.tags.span.clone(),
+                                ),
+                                close: data.close.clone(),
+                            },
+                            s.params.span.clone(),
+                        )
+                    };
+                    // let tags: Option<Spanned<AstTags<'d>>>
+                    // let params: Spanned<Wrapped<AstExpression>>
+                    let params = match self.action_params(s.params, file) {
+                        Ok(it) => it,
+                        Err(mut err) => {
+                            errs.append(&mut err);
+                            cry
+                        }
+                    };
+
                     AstSimpleStatement {
                         type_tok: s.type_tok,
                         action: s.action,
                         resolved: main_action,
                         selection,
                         tags,
-                        params: todo!(),
+                        params,
                     }
                 })),
                 TreeStatement::If(_) => todo!(),
@@ -74,14 +103,6 @@ impl<'d> Analyzer<'d> {
             });
         }
         AstStatements::new(ast)
-    }
-
-    pub(super) async fn inputs_params(
-        &self,
-        params: Wrapped<TreeFuncParamDef>,
-        file: Spur,
-    ) -> Wrapped<AstFuncParamDef> {
-        todo!()
     }
 
     pub(super) fn tags(
@@ -174,7 +195,14 @@ impl<'d> Analyzer<'d> {
             params.push(self.param(expr, &mut errs, file));
         }
 
-        todo!()
+        Ok(Spanned::new(
+            Wrapped::new(
+                params_outer.open,
+                MaybeSpan::new(Parameters::new(params), param_inner_span),
+                params_outer.close,
+            ),
+            param_outer_span,
+        ))
     }
 
     fn param(
@@ -182,12 +210,12 @@ impl<'d> Analyzer<'d> {
         expr: TreeExpression,
         errs: &mut Vec<SemanticError<'d>>,
         file: Spur,
-    ) -> Spanned<AstExpression> {
+    ) -> AstExpression {
         match expr {
             TreeExpression::Literal(lit) => match lit {
-                TreeStaticLiteral::String(str) => {
-                    str.map_inner(|str| AstExpression::Text(AstText { name: str.inner }))
-                }
+                TreeStaticLiteral::String(str) => AstExpression::Text(AstText {
+                    name: str.data.inner,
+                }),
                 TreeStaticLiteral::Number(num) => {
                     let Spanned {
                         data: num_inner,
@@ -207,7 +235,7 @@ impl<'d> Analyzer<'d> {
                         }
                     };
 
-                    Spanned::new(AstExpression::Number(AstNumber { name: num }), span.clone())
+                    AstExpression::Number(AstNumber { name: num })
                 }
             },
             TreeExpression::Expr(expr) => {
