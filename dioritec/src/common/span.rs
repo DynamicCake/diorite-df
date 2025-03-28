@@ -1,6 +1,6 @@
 use std::fmt::Write;
 
-use crate::{common::prelude::*, project::ProjectFile};
+use crate::common::prelude::*;
 
 /// A fancy [Range](`core::ops::Range<SpanSize>`) with a size of [SpanSize]
 /// Don't be afraid to clone this as it is only 8 bytes

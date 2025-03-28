@@ -1,7 +1,6 @@
 //! Moule for the code generation step
-use std::sync::Arc;
 
-use crate::{common::prelude::*, dump::ActionDump, project::{AnalyzedFile, ProjectFile}};
+use crate::{dump::ActionDump, project::{AnalyzedFile, ProjectFile}};
 
 pub mod block;
 pub mod data;

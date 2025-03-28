@@ -3,7 +3,6 @@
     elided_lifetimes_in_paths,
 )]
 // Clogs up the errors, remove when polishing
-#![allow(unused)]
 
 pub mod ast;
 pub mod cli;
@@ -18,7 +17,7 @@ pub mod semantic;
 pub mod test;
 pub mod tree;
 
-use std::{env::set_var, error::Error};
+use std::env::set_var;
 
 use clap::Parser;
 use cli::args::Args;

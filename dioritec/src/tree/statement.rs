@@ -1,8 +1,6 @@
-use crate::{lexer::Token, tree::prelude::*};
-use std::sync::Arc;
+use crate::tree::prelude::*;
 
-use lasso::{Spur, ThreadedRodeo};
-use serde::Serialize;
+use lasso::Spur;
 use span::Span;
 
 #[derive(Debug, PartialEq)]

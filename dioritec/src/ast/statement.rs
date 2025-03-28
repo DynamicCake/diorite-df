@@ -1,13 +1,9 @@
 use crate::{
     ast::prelude::*,
     dump::{Action, Choice, Tag},
-    lexer::Token,
 };
-use std::{marker::PhantomData, sync::Arc};
 
-use lasso::{Spur, ThreadedRodeo};
-use serde::Serialize;
-use span::Span;
+use lasso::Spur;
 
 #[derive(Debug, PartialEq)]
 pub struct AstSelection<'d> {

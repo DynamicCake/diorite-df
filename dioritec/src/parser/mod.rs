@@ -1,11 +1,7 @@
 //! Crates a new parse tree using the [crate::tree] module
 
-use std::collections::HashMap;
-use std::hash::{BuildHasher, DefaultHasher, Hash, Hasher, RandomState};
+use std::hash::{Hash, Hasher};
 use std::iter::Peekable;
-use std::mem::transmute;
-use std::path::Path;
-use std::sync::Arc;
 
 use lasso::Spur;
 use logos::{Lexer, SpannedIter};

@@ -3,7 +3,6 @@
 use std::collections::HashSet;
 
 use data::Iden;
-use enum_assoc::Assoc;
 use lasso::Spur;
 use serde::Serialize;
 use span::Referenced;

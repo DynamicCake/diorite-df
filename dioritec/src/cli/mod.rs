@@ -1,24 +1,19 @@
 pub mod args;
 pub mod diagnostics;
 
-use core::panic;
 use args::Args;
 use eyre::eyre;
 use std::{
-    fs::{self, File},
-    io::{self, stdin, stdout, BufRead, BufReader, Read, Write},
-    path::{Path, PathBuf},
-    rc::Rc,
+    io::{Read},
+    path::Path,
     sync::Arc,
-    time::Instant,
 };
 
-use ariadne::Source;
 use futures::future;
 use lasso::{Resolver, ThreadedRodeo};
 
 use crate::project::{
-    ActionDumpReadError, Project, ProjectCreationError, ProjectFile, ProjectFileCreationError,
+    Project, ProjectCreationError, ProjectFile,
 };
 
 
@@ -27,7 +22,7 @@ pub async fn handle(args: Args) -> eyre::Result<String> {
     let actiondump = args.dump;
     let out = args.output;
     let rodeo = Arc::new(ThreadedRodeo::new());
-    let mut handles = src_paths.into_iter().map(|path| {
+    let handles = src_paths.into_iter().map(|path| {
         let rodeo = rodeo.clone();
         tokio::spawn(async move {
             let src_path = path.canonicalize().unwrap();

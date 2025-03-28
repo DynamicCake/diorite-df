@@ -104,7 +104,7 @@ pub struct Action {
 
 impl Action {
     pub fn suggest_tags<'d>(&'d self, inputted: &str) -> Vec<&'d Tag> {
-        let mut res = Vec::new();
+        let res = Vec::new();
         for action in &self.tags {
             // TODO: Implement, not so important so nothing for now
         }
@@ -123,7 +123,7 @@ pub struct Tag {
 
 impl Tag {
     pub fn suggest_tag_values<'d>(&'d self, inputted: &str) -> Vec<&'d Choice> {
-        let mut res = Vec::new();
+        let res = Vec::new();
         for action in &self.options {
             // TODO: Implement, not so important so nothing for now
         }

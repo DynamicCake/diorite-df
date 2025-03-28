@@ -6,7 +6,6 @@ use crate::error::syntax::UnexpectedToken;
 use crate::tree::recovery::StatementRecovery;
 
 use crate::tree::statement::{TreeElseBlock, TreeRepeatLoop, TreeStatements};
-use crate::common::prelude::*;
 use crate::{
     lexer::Token,
     tree::statement::{TreeIfStatement, TreeSimpleStatement},

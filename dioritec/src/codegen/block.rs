@@ -1,8 +1,5 @@
-use super::{data::*, EventType};
-use arrayvec::ArrayString;
-use enum_assoc::Assoc;
-use serde::{Serialize, Serializer};
-use serde_json::Number;
+use super::data::*;
+use serde::Serialize;
 
 #[derive(Serialize)]
 pub struct GeneratedCode<'src> {

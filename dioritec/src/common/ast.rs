@@ -1,6 +1,4 @@
-use std::num::ParseFloatError;
 
-use arrayvec::ArrayString;
 use enum_assoc::Assoc;
 use serde::{Serialize, Serializer};
 
@@ -70,7 +68,7 @@ impl TryFrom<&str> for DfNumber {
         let mut chars = value.chars().peekable();
 
         if let Some(minus) = chars.peek() {
-            if (*minus == '-') {
+            if *minus == '-' {
                 chars.next();
                 total = total.checked_neg().expect("0 is not MIN");
                 negative = true; // this is to allow it to be negated when the value is 0 (always)

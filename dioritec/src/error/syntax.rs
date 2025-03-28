@@ -1,4 +1,4 @@
-use std::{fmt::Display, path::Path, sync::Arc};
+use std::{fmt::Display, sync::Arc};
 
 use lasso::Spur;
 

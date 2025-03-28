@@ -3,14 +3,13 @@ use crate::{
     common::prelude::*,
     dump::ActionDump,
     error::syntax::{LexerError, UnexpectedEOF, UnexpectedToken},
-    parser::{ParsedFile, Parser},
+    parser::Parser,
     tree::TreeRoot,
 };
 
 use std::{
     hash::{Hash, Hasher},
     path::Path,
-    string::ParseError,
     sync::Arc,
 };
 
@@ -20,7 +19,6 @@ use rustc_hash::FxHasher;
 use tokio::{
     fs::{read_to_string, File},
     io::{self, AsyncReadExt},
-    sync::Mutex,
 };
 
 #[derive(thiserror::Error, Debug)]

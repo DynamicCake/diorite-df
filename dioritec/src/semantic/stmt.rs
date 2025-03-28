@@ -1,16 +1,12 @@
 use super::Analyzer;
-use core::panic;
-use std::sync::Arc;
 use std::vec::IntoIter;
 
 use crate::ast::prelude::*;
-use crate::codegen::data::ChestLocation;
-use crate::common::prelude::*;
 use crate::dump::Action;
 use crate::error::semantic::{
     ActionNotFoundError, SemanticError, TagKeyNotFoundError, TagValueNotFoundError,
 };
-use crate::error::semantic::{ActionReference, SelectorNotFound};
+use crate::error::semantic::ActionReference;
 use crate::tree::prelude::*;
 
 use lasso::Spur;

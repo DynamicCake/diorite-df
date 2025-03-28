@@ -1,14 +1,13 @@
 //! Parser tests are conducted here
 //! No semantic analysis here so names do not need to be valid
 //! Sometimes `gaction JankCheck ()` is added to make sure the parser is in an okay state
-use super::ParsedFile;
 use crate::{
     error::syntax::{LexerError, UnexpectedEOF, UnexpectedToken},
     parser::Parser,
 };
 use lasso::{Interner, ThreadedRodeo};
 use logos::Lexer;
-use std::{path::Path, sync::Arc};
+use std::sync::Arc;
 
 type ParseResult = Result<(), ParseFileErrors>;
 

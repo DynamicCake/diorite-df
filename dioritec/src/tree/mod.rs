@@ -5,14 +5,8 @@ pub mod prelude {
     pub use crate::tree::{TreeRoot, recovery::*, statement::*, top::*};
 }
 
-use std::marker::PhantomData;
 
-use lasso::Spur;
 
-use crate::{common::span::{
-    CalcSpan, MaybeSpan, Span, SpanEnd, SpanSize, SpanStart, Spanned, TryCalcSpan, TrySpanEnd,
-    TrySpanStart,
-}, semantic::Analyzer};
 
 use self::top::TreeTopLevel;
 
