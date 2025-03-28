@@ -8,7 +8,7 @@ use std::{path::Path, sync::Arc};
 use futures::future;
 use lasso::ThreadedRodeo;
 
-use crate::project::{Project, ProjectCreationError, ProjectFile};
+use crate::project::{raw::ProjectCreationError, Project, ProjectFile};
 
 pub async fn handle(args: Args) -> eyre::Result<String> {
     let src_paths = args.files;
