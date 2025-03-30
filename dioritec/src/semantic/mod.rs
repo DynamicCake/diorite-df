@@ -3,14 +3,13 @@
 use std::option::IntoIter;
 
 use crate::ast::prelude::*;
-use crate::project::analyzed::AnalyzedProjectFiles;
-use crate::project::parsed::ParsedProjectFiles;
-use crate::project::{  Project};
+use crate::project::parsed::{ParsedProjectFiles, TreeFile};
+use crate::project::{Project, ProjectFile};
 use crate::tree::prelude::*;
 use crate::{dump::ActionDump, error::semantic::SemanticError};
 
 use futures::{stream, StreamExt};
-use lasso::{Resolver, RodeoResolver};
+use lasso::RodeoResolver;
 
 pub mod stmt;
 pub mod top;
@@ -23,35 +22,45 @@ pub struct Analyzer<'d> {
 
 pub struct AnalysisResult<'d> {
     pub errors: Vec<SemanticError<'d>>,
-    pub program: Project<AnalyzedProjectFiles<'d>>,
-    pub starters: StarterSet,
+    pub files: Vec<ProjectFile<AnalyzedFile<'d>>>,
+    // Not useful in codegen
+    // pub starters: StarterSet,
+}
+
+#[derive(Debug, PartialEq)]
+pub struct AnalyzedFile<'d> {
+    pub root: AstRoot<'d>,
+}
+
+impl<'d> AnalyzedFile<'d> {
+    pub fn new(root: AstRoot<'d>) -> Self {
+        Self { root }
+    }
 }
 
 impl<'d> Analyzer<'d> {
-    pub async fn verify(
-        &'d self,
-        program: Project<ParsedProjectFiles>,
-    ) -> Option<AnalysisResult<'d>> {
+    #[allow(unused)]
+    async fn verify(&'d self, program: Project<ParsedProjectFiles>) -> Option<AnalysisResult<'d>> {
         let errs = &program.files;
         // Make sure that there are no errors in the parsing stage
         // Maybe this restriction can be lifted later
         if !errs.eof_errs.is_empty() || !errs.parse_errs.is_empty() || !errs.lex_errs.is_empty() {
             return None;
         }
-        Some(self.resolve_self(program).await)
+        Some(self.resolve_self(program.files.parsed).await)
     }
 
     pub fn new(resolver: &'d RodeoResolver, dump: &'d ActionDump) -> Self {
         Self { resolver, dump }
     }
 
-    async fn resolve_self(&'d self, program: Project<ParsedProjectFiles>) -> AnalysisResult<'d> {
+    pub async fn resolve_self(&'d self, program: Vec<ProjectFile<TreeFile>>) -> AnalysisResult<'d> {
         let mut starters = StarterSet::new();
         let mut starter_collisions = Vec::new();
-        let programs_len = program.files.parsed.len();
+        let programs_len = program.len();
 
         // Add all starters to `starters` and get errors early
-        program.files.parsed.iter().for_each(|file| {
+        program.iter().for_each(|file| {
             file.resolution.root.top_statements.iter().for_each(|top| {
                 if let Err(err) = top.add_starter(file.path, &mut starters) {
                     starter_collisions.push(err);
@@ -59,21 +68,13 @@ impl<'d> Analyzer<'d> {
             });
         });
 
-        let stream = stream::iter(program.files.parsed)
-            .map(|file| self.resolve_file(file.resolution.root, file.path));
+        let stream =
+            stream::iter(program).map(|file| self.resolve_project_file(file));
 
         let errors = Vec::new();
-        let roots: Vec<_> = stream.buffered(programs_len).collect().await;
+        let files: Vec<_> = stream.buffered(programs_len).collect().await;
 
-        AnalysisResult {
-            errors,
-            starters,
-            program: Project {
-                resources: program.resources.clone(),
-                files: AnalyzedProjectFiles { programs: roots },
-                hash: program.hash,
-            },
-        }
+        AnalysisResult { errors, files }
     }
 
     pub(crate) fn advance_tree_expr(

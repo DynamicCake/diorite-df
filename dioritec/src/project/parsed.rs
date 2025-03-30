@@ -14,7 +14,7 @@ use std::{
 };
 
 use super::{raw::RawProjectFiles, FileResolution, Project, ProjectFile, ProjectFiles };
-use lasso::{Spur, ThreadedRodeo};
+use lasso::{RodeoResolver, Spur, ThreadedRodeo};
 use logos::{Lexer, Logos};
 use rustc_hash::FxHasher;
 use tokio::{
@@ -52,7 +52,8 @@ impl Project<RawProjectFiles> {
             let file = file.to_parsed(tree.root);
             trees.push(file);
         }
-        let files = ParsedProjectFiles::new(trees, lex_errs, parse_errs, eof_errs);
+        let resolver = Arc::try_unwrap(rodeo).expect("Rodeo escaped scope").into_resolver();
+        let files = ParsedProjectFiles::new(trees, lex_errs, parse_errs, eof_errs, Arc::new(resolver));
         Project::<ParsedProjectFiles> {
             resources: self.resources,
             hash: self.hash,
@@ -68,6 +69,7 @@ pub struct ParsedProjectFiles {
     pub parse_errs: Vec<UnexpectedToken>,
     pub eof_errs: Vec<UnexpectedEOF>,
     pub parsed: Vec<ProjectFile<TreeFile>>,
+    pub resolver: Arc<RodeoResolver>,
 }
 
 impl ParsedProjectFiles {
@@ -76,12 +78,14 @@ impl ParsedProjectFiles {
         lex_errs: Vec<LexerError>,
         parse_errs: Vec<UnexpectedToken>,
         eof_errs: Vec<UnexpectedEOF>,
+        resolver: Arc<RodeoResolver>
     ) -> Self {
         Self {
             parsed: files,
             lex_errs,
             parse_errs,
             eof_errs,
+            resolver
         }
     }
 }

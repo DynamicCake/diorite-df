@@ -1,13 +1,29 @@
 use lasso::Spur;
 
-use crate::error::semantic::{ActionNotFoundError, ActionReference, SemanticError};
+use crate::{
+    error::semantic::{ActionNotFoundError, ActionReference, SemanticError},
+    project::{parsed::TreeFile, ProjectFile},
+};
 
 use super::{
-    Analyzer, AstEvent, AstFuncDef, AstFuncParamDef, AstProcDef, AstRoot, AstTopLevel, BlockType, Referenced, TreeFuncParamDef, TreeRoot, TreeTopLevel, Wrapped
+    AnalyzedFile, Analyzer, AstEvent, AstFuncDef, AstFuncParamDef, AstProcDef, AstRoot,
+    AstTopLevel, BlockType, Referenced, TreeFuncParamDef, TreeRoot, TreeTopLevel, Wrapped,
 };
 
 impl<'d> Analyzer<'d> {
-    pub(super) async fn resolve_file(&'d self, root: TreeRoot, file: Spur) -> AstRoot<'d> {
+    #[inline]
+    pub(super) async fn resolve_project_file(
+        &'d self,
+        file: ProjectFile<TreeFile>,
+    ) -> ProjectFile<AnalyzedFile<'d>> {
+        ProjectFile {
+            src: file.src,
+            path: file.path,
+            hash: file.hash,
+            resolution: self.resolve_file(file.resolution.root, file.path).await,
+        }
+    }
+    pub(super) async fn resolve_file(&'d self, root: TreeRoot, file: Spur) -> AnalyzedFile<'d> {
         let mut errs = Vec::new();
         let mut ast_top: Vec<AstTopLevel<'d>> = Vec::with_capacity(root.top_statements.len());
         for top in root.top_statements {
@@ -59,9 +75,9 @@ impl<'d> Analyzer<'d> {
             });
         }
 
-        AstRoot {
+        AnalyzedFile::new(AstRoot {
             top_statements: ast_top,
-        }
+        })
     }
 
     pub(super) async fn inputs_params(

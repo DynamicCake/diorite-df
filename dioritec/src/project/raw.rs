@@ -63,7 +63,7 @@ impl Project<NoProjectFiles> {
         };
 
         let actiondump = actiondump.await.map_err(ProjectCreationError::ActionDump)?;
-        let resources = ProjectResources::new(root, actiondump);
+        let resources = ProjectResources::new(root, Arc::new(actiondump));
 
         Ok(Project::<RawProjectFiles> {
             resources: Arc::new(resources),

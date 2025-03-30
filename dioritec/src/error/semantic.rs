@@ -6,7 +6,7 @@ use crate::{
     dump::{Action, Choice, Tag},
 };
 
-#[derive(Assoc)]
+#[derive(Debug, PartialEq, Assoc)]
 #[func(pub const fn severe(&self) -> bool { false })]
 /// Represents a semantic error duing semantic anaylsis.
 ///
@@ -43,6 +43,7 @@ pub enum SemanticError<'d> {
 
 pub enum InvalidParamType {}
 
+#[derive(Debug, PartialEq)]
 pub enum InvalidParamError {
     UnexpectedType {},
 }
@@ -58,11 +59,13 @@ impl<'d> SemanticError<'d> {
     }
 }
 
+#[derive(Debug, PartialEq)]
 pub struct ActionReference {
     pub block: BlockType,
     pub name: Spur,
 }
 
+#[derive(Debug, PartialEq)]
 pub struct SubActionReference {
     pub blocks: Vec<BlockType>,
     pub name: Spur,
@@ -80,33 +83,39 @@ impl ActionReference {
     }
 }
 
+#[derive(Debug, PartialEq)]
 pub struct TagKeyNotFoundError<'d> {
     pub action: &'d Action,
     pub token: Referenced<Spur>,
     pub suggestions: Vec<&'d Tag>,
 }
 
+#[derive(Debug, PartialEq)]
 pub struct TagValueNotFoundError<'d> {
     pub key: &'d Tag,
     pub token: Referenced<Spur>,
     pub suggestions: Vec<&'d Choice>,
 }
 
+#[derive(Debug, PartialEq)]
 pub struct SubActionNotFoundError<'d> {
     pub token: Referenced<SubActionReference>,
     pub suggestions: Vec<&'d Action>,
 }
 
+#[derive(Debug, PartialEq)]
 pub struct ActionNotFoundError<'d> {
     pub token: Referenced<ActionReference>,
     pub suggestions: Vec<&'d Action>,
 }
 
+#[derive(Debug, PartialEq)]
 pub struct DuplicateLineStarter {
     pub original: Referenced<()>,
     pub doppelganger: Referenced<()>,
 }
 
+#[derive(Debug, PartialEq)]
 pub struct SelectorNotFound {
     pub selector: Referenced<Spur>,
 }

@@ -1,9 +1,8 @@
-use crate::{ast::AstRoot, common::prelude::*, dump::ActionDump};
+use crate::{common::prelude::*, dump::ActionDump};
 
 use std::sync::Arc;
 
 use lasso::Spur;
-use logos::Lexer;
 
 pub mod analyzed;
 pub mod parsed;
@@ -13,10 +12,11 @@ pub mod raw;
 #[derive(Debug)]
 pub struct ProjectResources {
     project_root: Spur,
-    actiondump: ActionDump,
+    actiondump: Arc<ActionDump>,
 }
 
-/// Used for the type state pattern with project
+/// A trait to indicate if a struct has state-specific project data
+/// ProjectFiles typically contain a Vec with FileResoltion implemented
 pub trait ProjectFiles {}
 
 #[derive(Debug)]
@@ -29,7 +29,7 @@ pub struct Project<T: ProjectFiles> {
 }
 
 impl ProjectResources {
-    pub fn new(project_root: Spur, actiondump: ActionDump) -> Self {
+    pub fn new(project_root: Spur, actiondump: Arc<ActionDump>) -> Self {
         Self {
             project_root,
             actiondump,
@@ -45,9 +45,10 @@ impl ProjectResources {
     }
 }
 
+/// A trait to indicate if a struct is resolution data for a file
 pub trait FileResolution {}
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct ProjectFile<S: FileResolution> {
     pub src: Spur,
     /// Relative path of the file from the project root
