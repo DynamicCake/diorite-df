@@ -1,4 +1,5 @@
 use super::Analyzer;
+use std::sync::Arc;
 use std::vec::IntoIter;
 
 use crate::ast::prelude::*;
@@ -12,12 +13,12 @@ use crate::tree::prelude::*;
 
 use lasso::Spur;
 
-impl<'d> Analyzer<'d> {
+impl Analyzer {
     pub(super) async fn statements(
-        &'d self,
+        &self,
         stmts: TreeStatements,
         file: Spur,
-    ) -> AstStatements<'d> {
+    ) -> AstStatements {
         let mut ast = Vec::new();
         let mut errs = Vec::new();
 
@@ -27,7 +28,7 @@ impl<'d> Analyzer<'d> {
                     let block_type: BlockType = s.type_tok.data.clone().into();
 
                     let main_action = self.dump.search_action_spur(
-                        self.resolver,
+                        &self.resolver,
                         s.action.data.inner,
                         block_type.caps(),
                     );
@@ -40,7 +41,7 @@ impl<'d> Analyzer<'d> {
                             file,
                         );
 
-                        let suggestions = self.dump.suggest_actions(&reference, self.resolver);
+                        let suggestions = self.dump.suggest_actions(&reference, &self.resolver);
 
                         errs.push(SemanticError::ActionNotFound(ActionNotFoundError {
                             token: reference,
@@ -48,7 +49,7 @@ impl<'d> Analyzer<'d> {
                         }))
                     }
 
-                    let selection = match self.selectors(s.selection, main_action, file) {
+                    let selection = match self.selectors(s.selection, main_action.clone(), file) {
                         Ok(it) => it,
                         Err(err) => {
                             errs.push(err);
@@ -56,7 +57,7 @@ impl<'d> Analyzer<'d> {
                         }
                     };
 
-                    let tags = match self.tags(s.tags, main_action, file) {
+                    let tags = match self.tags(s.tags, main_action.clone(), file) {
                         Ok(it) => it,
                         Err(err) => {
                             errs.push(err);
@@ -79,7 +80,7 @@ impl<'d> Analyzer<'d> {
                             s.params.span.clone(),
                         )
                     };
-                    // let tags: Option<Spanned<AstTags<'d>>>
+                    // let tags: Option<Spanned<AstTags>>
                     // let params: Spanned<Wrapped<AstExpression>>
                     let params = match self.action_params(s.params, file) {
                         Ok(it) => it,
@@ -107,11 +108,11 @@ impl<'d> Analyzer<'d> {
     }
 
     pub(super) fn tags(
-        &'d self,
+        & self,
         tags: Option<Spanned<TreeTags>>,
-        main_action: Option<&'d Action>,
+        main_action: Option<Arc<Action>>,
         file: Spur,
-    ) -> Result<Option<Spanned<AstTags<'d>>>, SemanticError<'d>> {
+    ) -> Result<Option<Spanned<AstTags>>, SemanticError> {
         let main_action = if let Some(it) = main_action {
             it
         } else {
@@ -136,10 +137,10 @@ impl<'d> Analyzer<'d> {
                 let value_str = self.resolver.resolve(&tag.value.data);
                 let key = if let Some(it) = main_action.tags.iter().find(|key| key.name == key_str)
                 {
-                    it
+                    it.clone()
                 } else {
                     return Err(SemanticError::TagKeyNotFound(TagKeyNotFoundError {
-                        action: main_action,
+                        action: main_action.clone(),
                         token: Referenced::new(tag.key, file),
                         suggestions: main_action.suggest_tags(key_str),
                     }));
@@ -147,10 +148,10 @@ impl<'d> Analyzer<'d> {
 
                 let value =
                     if let Some(it) = key.options.iter().find(|value| value.name == value_str) {
-                        it
+                        it.clone()
                     } else {
                         return Err(SemanticError::TagValueNotFound(TagValueNotFoundError {
-                            key,
+                            key: key.clone(),
                             token: Referenced::new(tag.key, file),
                             suggestions: key.suggest_tag_values(key_str),
                         }));
@@ -161,7 +162,7 @@ impl<'d> Analyzer<'d> {
                     colon: tag.colon,
                     value: tag.value,
                     tag: key,
-                    choice: value,
+                    choice: value
                 })
             }
 
@@ -177,10 +178,10 @@ impl<'d> Analyzer<'d> {
     }
 
     pub(super) fn action_params(
-        &'d self,
+        &self,
         params: Spanned<Wrapped<TreeExpression>>,
         file: Spur,
-    ) -> Result<Spanned<Wrapped<AstExpression>>, Vec<SemanticError<'d>>> {
+    ) -> Result<Spanned<Wrapped<AstExpression>>, Vec<SemanticError>> {
         let Spanned {
             data: params_outer,
             span: param_outer_span,
@@ -191,7 +192,7 @@ impl<'d> Analyzer<'d> {
         } = params_outer.tags;
 
         let mut params = Vec::new();
-        let mut errs: Vec<SemanticError<'d>> = Vec::new();
+        let mut errs: Vec<SemanticError> = Vec::new();
         for expr in params_inner.items {
             params.push(self.param(expr, &mut errs, file));
         }
@@ -209,7 +210,7 @@ impl<'d> Analyzer<'d> {
     fn param(
         &self,
         expr: TreeExpression,
-        errs: &mut Vec<SemanticError<'d>>,
+        errs: &mut Vec<SemanticError>,
         file: Spur,
     ) -> AstExpression {
         match expr {
@@ -264,11 +265,11 @@ impl<'d> Analyzer<'d> {
 
     // Warning: This function's is very messy and the names are horrible, maybe rename later™?
     pub(super) fn selectors(
-        &'d self,
+        &self,
         selection: Option<Spanned<TreeSelection>>,
-        main_action: Option<&'d Action>,
+        main_action: Option<Arc<Action>>,
         file: Spur,
-    ) -> Result<Option<Spanned<AstSelection<'d>>>, SemanticError<'d>> {
+    ) -> Result<Option<Spanned<AstSelection>>, SemanticError> {
         if let Some(span_selection) = selection {
             // Destructure spanned for later reconstruction, not using map_inner(f)
             // because you cannot `return` errors to escape out of this function
@@ -282,7 +283,7 @@ impl<'d> Analyzer<'d> {
             let selection = if let Some(selection_some) = &tree_selection.selection {
                 let name = self.resolver.resolve(&selection_some.data);
                 // Attempt convert to basic
-                let mut selection_inner: ActionSelector<'d> = ActionSelector::basic_from_str(name);
+                let mut selection_inner: ActionSelector = ActionSelector::basic_from_str(name);
                 // It selection is ActionSelector::Other if it doesn't have a usual name
                 // either being invalid or a subaction
                 if let ActionSelector::Other(_) = selection_inner {
@@ -310,7 +311,7 @@ impl<'d> Analyzer<'d> {
                             let suggestions = self.dump.suggest_sub_actions(
                                 &blocks,
                                 selection_some.data,
-                                self.resolver,
+                                &self.resolver,
                             );
                             let reference = Referenced::new(
                                 Spanned::new(

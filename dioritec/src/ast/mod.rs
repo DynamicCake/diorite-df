@@ -11,12 +11,12 @@ pub mod statement;
 pub mod top;
 
 #[derive(Debug, PartialEq)]
-pub struct AstRoot<'d> {
-    pub top_statements: Vec<AstTopLevel<'d>>,
+pub struct AstRoot {
+    pub top_statements: Vec<AstTopLevel>,
 }
 
-impl<'d> AstRoot<'d> {
-    pub fn new(top_statements: Vec<AstTopLevel<'d>>) -> Self {
+impl AstRoot {
+    pub fn new(top_statements: Vec<AstTopLevel>) -> Self {
         Self { top_statements }
     }
 }

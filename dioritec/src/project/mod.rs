@@ -11,8 +11,8 @@ pub mod raw;
 /// Immutable resources used for the project not including the source
 #[derive(Debug)]
 pub struct ProjectResources {
-    project_root: Spur,
-    actiondump: Arc<ActionDump>,
+    pub project_root: Spur,
+    pub actiondump: Arc<ActionDump>,
 }
 
 /// A trait to indicate if a struct has state-specific project data
@@ -36,13 +36,10 @@ impl ProjectResources {
         }
     }
 
-    pub fn project_root(&self) -> Spur {
-        self.project_root
-    }
 
-    pub fn actiondump(&self) -> &ActionDump {
-        &self.actiondump
-    }
+    // pub fn actiondump(&self) -> &ActionDump {
+    //     &self.actiondump
+    // }
 }
 
 /// A trait to indicate if a struct is resolution data for a file

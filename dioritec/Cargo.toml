@@ -8,7 +8,7 @@ edition = "2021"
 [dependencies]
 ariadne = "0.3.0"
 base64 = "0.21.0"
-serde = { version = "1.0.171", features = ["derive"] }
+serde = { version = "1.0.171", features = ["derive", "rc"] }
 serde_json = { version = "1.0.96", features = ["arbitrary_precision"] }
 logos = "0.13.0"
 clap = { version = "4.4.8", features = ["derive"] }

@@ -1,80 +1,93 @@
 //! Crates a new parse tree using the [crate::ast] module
 
+use std::iter;
 use std::option::IntoIter;
+use std::slice::ChunksMut;
+use std::sync::Arc;
 
 use crate::ast::prelude::*;
+use crate::error::semantic::AnalysisResult;
 use crate::project::parsed::{ParsedProjectFiles, TreeFile};
 use crate::project::{Project, ProjectFile};
 use crate::tree::prelude::*;
 use crate::{dump::ActionDump, error::semantic::SemanticError};
 
-use futures::{stream, StreamExt};
+use futures::{stream, SinkExt, StreamExt};
 use lasso::RodeoResolver;
+use tokio::sync::Mutex;
 
 pub mod stmt;
 pub mod top;
 
-#[derive(Debug)]
-pub struct Analyzer<'d> {
-    dump: &'d ActionDump,
-    resolver: &'d RodeoResolver,
+#[derive(Debug, PartialEq)]
+pub struct Analyzer {
+    resolver: Arc<RodeoResolver>,
+    dump: Arc<ActionDump>,
 }
 
-pub struct AnalysisResult<'d> {
-    pub errors: Vec<SemanticError<'d>>,
-    pub files: Vec<ProjectFile<AnalyzedFile<'d>>>,
-    // Not useful in codegen
-    // pub starters: StarterSet,
+/// TODO: Find a better name
+#[derive(Debug, PartialEq)]
+pub struct AnalyzedResult {
+    pub errors: Vec<SemanticError>,
+    pub files: Vec<ProjectFile<AnalyzedFile>>,
 }
 
 #[derive(Debug, PartialEq)]
-pub struct AnalyzedFile<'d> {
-    pub root: AstRoot<'d>,
+pub struct AnalyzedFile {
+    pub root: AstRoot,
 }
 
-impl<'d> AnalyzedFile<'d> {
-    pub fn new(root: AstRoot<'d>) -> Self {
+impl AnalyzedFile {
+    pub fn new(root: AstRoot) -> Self {
         Self { root }
     }
 }
 
-impl<'d> Analyzer<'d> {
-    #[allow(unused)]
-    async fn verify(&'d self, program: Project<ParsedProjectFiles>) -> Option<AnalysisResult<'d>> {
-        let errs = &program.files;
-        // Make sure that there are no errors in the parsing stage
-        // Maybe this restriction can be lifted later
-        if !errs.eof_errs.is_empty() || !errs.parse_errs.is_empty() || !errs.lex_errs.is_empty() {
-            return None;
-        }
-        Some(self.resolve_self(program.files.parsed).await)
-    }
+impl Analyzer {
+    // #[allow(unused)]
+    // async fn verify(&'d self, program: Project<ParsedProjectFiles>) -> Option<AnalysisResult<'d>> {
+    //     let errs = &program.files;
+    //     // Make sure that there are no errors in the parsing stage
+    //     // Maybe this restriction can be lifted later
+    //     if !errs.eof_errs.is_empty() || !errs.parse_errs.is_empty() || !errs.lex_errs.is_empty() {
+    //         return None;
+    //     }
+    //     Some(self.resolve_self(program.files.parsed).await)
+    // }
+    //
 
-    pub fn new(resolver: &'d RodeoResolver, dump: &'d ActionDump) -> Self {
+    pub fn new(resolver: Arc<RodeoResolver>, dump: Arc<ActionDump>) -> Self {
         Self { resolver, dump }
     }
 
-    pub async fn resolve_self(&'d self, program: Vec<ProjectFile<TreeFile>>) -> AnalysisResult<'d> {
+    pub async fn resolve<'a>(self, program: Vec<ProjectFile<TreeFile>>) -> AnalyzedResult {
         let mut starters = StarterSet::new();
-        let mut starter_collisions = Vec::new();
-        let programs_len = program.len();
+        let mut errors = Vec::new();
 
         // Add all starters to `starters` and get errors early
         program.iter().for_each(|file| {
             file.resolution.root.top_statements.iter().for_each(|top| {
                 if let Err(err) = top.add_starter(file.path, &mut starters) {
-                    starter_collisions.push(err);
+                    errors.push(SemanticError::DuplicateLineStarter(err));
                 }
             });
         });
 
-        let stream =
-            stream::iter(program).map(|file| self.resolve_project_file(file));
+        let program_len = program.len();
+        let files: Vec<_> = stream::iter(program)
+            .map(|file| self.resolve_project_file(file))
+            .buffered(program_len)
+            .collect()
+            .await;
+        let files: Vec<_> = files
+            .into_iter()
+            .map(|mut f| {
+                errors.append(&mut f.error);
+                f.data
+            })
+            .collect();
 
-        let errors = Vec::new();
-        let files: Vec<_> = stream.buffered(programs_len).collect().await;
-
-        AnalysisResult { errors, files }
+        AnalyzedResult { errors, files }
     }
 
     pub(crate) fn advance_tree_expr(

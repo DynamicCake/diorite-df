@@ -81,7 +81,8 @@ pub async fn handle(args: Args) -> eyre::Result<String> {
     // parsed
     let project = project.parse().await;
     println!("{:#?}", project.files);
-    // let analyzed = project.analyze(); 
+    let analyzed = project.analyze().await;
+    println!("{:#?}", analyzed.files);
 
     // TODO: Create project analysis and codegen
     todo!()

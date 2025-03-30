@@ -26,7 +26,7 @@ use colored::Colorize;
 #[tokio::main]
 async fn main() -> eyre::Result<()> {
     color_eyre::install()?;
-    set_var("RUST_BACKTRACE", "1");
+    set_var("RUST_BACKTRACE", "full");
     let args = Args::parse_from(std::env::args());
     let result = cli::handle(args).await;
     if let Err(err) = result {

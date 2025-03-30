@@ -1,3 +1,5 @@
+use std::{marker::PhantomData, sync::Arc};
+
 use enum_assoc::Assoc;
 use lasso::Spur;
 
@@ -6,13 +8,19 @@ use crate::{
     dump::{Action, Choice, Tag},
 };
 
+#[derive(Debug, PartialEq)]
+pub struct AnalysisResult<T, E> {
+    pub data: T,
+    pub error: E,
+}
+
 #[derive(Debug, PartialEq, Assoc)]
 #[func(pub const fn severe(&self) -> bool { false })]
 /// Represents a semantic error duing semantic anaylsis.
 ///
 /// the `severe()` function returns true it is impossible to compile with this error.
 /// Do note that that you usually don't want to put errors in the ignore list
-pub enum SemanticError<'d> {
+pub enum SemanticError {
     /// Only thing that makes no data mutation sharing across threads impossible
     #[assoc(severe = true)]
     DuplicateLineStarter(DuplicateLineStarter),
@@ -21,16 +29,16 @@ pub enum SemanticError<'d> {
     #[assoc(severe = true)]
     NumberOutOfBounds(Referenced<Spur>),
 
-    EventNotFound(ActionNotFoundError<'d>),
-    ActionNotFound(ActionNotFoundError<'d>),
-    SubactionNotFound(SubActionNotFoundError<'d>),
+    EventNotFound(ActionNotFoundError),
+    ActionNotFound(ActionNotFoundError),
+    SubactionNotFound(SubActionNotFoundError),
 
-    TagKeyNotFound(TagKeyNotFoundError<'d>),
-    TagValueNotFound(TagValueNotFoundError<'d>),
-    GameValueNotFound(ActionNotFoundError<'d>),
-    ParticleNotFound(ActionNotFoundError<'d>),
-    SoundNotFound(ActionNotFoundError<'d>),
-    PotionNotFound(ActionNotFoundError<'d>),
+    TagKeyNotFound(TagKeyNotFoundError),
+    TagValueNotFound(TagValueNotFoundError),
+    GameValueNotFound(ActionNotFoundError),
+    ParticleNotFound(ActionNotFoundError),
+    SoundNotFound(ActionNotFoundError),
+    PotionNotFound(ActionNotFoundError),
     // Remember: Selector sometimes could be like IsSneaking because of subActionBlocks
     SelectorNotFound(SelectorNotFound),
     #[assoc(severe = true)]
@@ -48,8 +56,8 @@ pub enum InvalidParamError {
     UnexpectedType {},
 }
 
-impl<'d> SemanticError<'d> {
-    pub fn from_num(num: Referenced<Spur>, err: DfNumberParseError) -> SemanticError<'d> {
+impl SemanticError {
+    pub fn from_num(num: Referenced<Spur>, err: DfNumberParseError) -> SemanticError {
         match err {
             DfNumberParseError::TooBig => SemanticError::NumberOutOfBounds(num),
             DfNumberParseError::TooPercise => SemanticError::NumberTooPrecise(num),
@@ -84,29 +92,29 @@ impl ActionReference {
 }
 
 #[derive(Debug, PartialEq)]
-pub struct TagKeyNotFoundError<'d> {
-    pub action: &'d Action,
+pub struct TagKeyNotFoundError {
+    pub action: Arc<Action>,
     pub token: Referenced<Spur>,
-    pub suggestions: Vec<&'d Tag>,
+    pub suggestions: Vec<Arc<Tag>>,
 }
 
 #[derive(Debug, PartialEq)]
-pub struct TagValueNotFoundError<'d> {
-    pub key: &'d Tag,
+pub struct TagValueNotFoundError {
+    pub key: Arc<Tag>,
     pub token: Referenced<Spur>,
-    pub suggestions: Vec<&'d Choice>,
+    pub suggestions: Vec<Arc<Choice>>,
 }
 
 #[derive(Debug, PartialEq)]
-pub struct SubActionNotFoundError<'d> {
+pub struct SubActionNotFoundError {
     pub token: Referenced<SubActionReference>,
-    pub suggestions: Vec<&'d Action>,
+    pub suggestions: Vec<Arc<Action>>,
 }
 
 #[derive(Debug, PartialEq)]
-pub struct ActionNotFoundError<'d> {
+pub struct ActionNotFoundError {
     pub token: Referenced<ActionReference>,
-    pub suggestions: Vec<&'d Action>,
+    pub suggestions: Vec<Arc<Action>>,
 }
 
 #[derive(Debug, PartialEq)]

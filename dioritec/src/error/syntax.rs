@@ -1,4 +1,4 @@
-use std::{fmt::Display, sync::Arc};
+use std::{fmt::Display, marker::PhantomData, sync::Arc};
 
 use lasso::Spur;
 
@@ -6,6 +6,8 @@ use crate::{
     common::span::{Referenced, Spanned},
     lexer::Token,
 };
+
+use super::semantic::SemanticError;
 
 /// Represents a parse result that every parsing function should return
 /// All parsing functions are called by [Parser::parse](crate::parser::Parser::parse)
@@ -43,6 +45,7 @@ impl<T, E> ParseResult<T, E> {
         ParseResult::<R, E>::new(res, error, at_eof)
     }
 }
+
 
 impl<T> ParseResult<T> {
     pub fn ok(data: T) -> Self {

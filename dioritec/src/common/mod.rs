@@ -1,6 +1,6 @@
 //! Provides useful structs to be used in parse tree and ast
 
-use std::collections::HashSet;
+use std::{collections::HashSet, sync::Arc};
 
 use data::Iden;
 use lasso::Spur;
@@ -109,7 +109,7 @@ pub enum GValSelector {
 }
 
 #[derive(Debug, PartialEq)]
-pub enum ActionSelector<'a> {
+pub enum ActionSelector {
     Selection,
     Default,
     Killer,
@@ -121,13 +121,13 @@ pub enum ActionSelector<'a> {
     AllEntities,
     AllMobs,
     LastEntity,
-    Other(Option<&'a Action>),
+    Other(Option<Arc<Action>>),
 }
 
-impl<'a> ActionSelector<'a> {
+impl ActionSelector {
     /// WARNING: This function can never return ActionSelector::Other(Some(_))
     /// It is advised to check if ActionSelector::Other could find an action
-    pub fn basic_from_str(value: &'a str) -> ActionSelector<'a> {
+    pub fn basic_from_str(value: &str) -> ActionSelector {
         match value {
             "selection" => ActionSelector::Selection,
             "default" => ActionSelector::Default,

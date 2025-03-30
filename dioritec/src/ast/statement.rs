@@ -1,5 +1,6 @@
 //! Basically tree.rs but for the analyzer
 
+use std::sync::Arc;
 use crate::{
     ast::prelude::*,
     dump::{Action, Choice, Tag},
@@ -8,23 +9,23 @@ use crate::{
 use lasso::Spur;
 
 #[derive(Debug, PartialEq)]
-pub struct AstSelection<'d> {
+pub struct AstSelection {
     pub open: Spanned<()>,
-    pub selection: Option<Spanned<ActionSelector<'d>>>,
+    pub selection: Option<Spanned<ActionSelector>>,
     pub close: Spanned<()>,
 }
 
 #[derive(Debug, PartialEq)]
-pub struct AstTags<'d> {
+pub struct AstTags {
     pub open: Spanned<()>,
-    pub tags: MaybeSpan<Parameters<AstIdenPair<'d>>>,
+    pub tags: MaybeSpan<Parameters<AstIdenPair>>,
     pub close: Spanned<()>,
 }
 
-impl<'d> AstTags<'d> {
+impl AstTags {
     pub fn new(
         open: Spanned<()>,
-        tags: MaybeSpan<Parameters<AstIdenPair<'d>>>,
+        tags: MaybeSpan<Parameters<AstIdenPair>>,
         close: Spanned<()>,
     ) -> Self {
         Self { open, tags, close }
@@ -32,70 +33,70 @@ impl<'d> AstTags<'d> {
 }
 
 #[derive(Debug, PartialEq)]
-pub struct AstStatements<'d> {
-    pub items: Vec<AstStatement<'d>>,
+pub struct AstStatements {
+    pub items: Vec<AstStatement>,
 }
 
-impl<'d> AstStatements<'d> {
-    pub fn new(items: Vec<AstStatement<'d>>) -> Self {
+impl AstStatements {
+    pub fn new(items: Vec<AstStatement>) -> Self {
         Self { items }
     }
 }
 
 #[derive(Debug, PartialEq)]
-pub enum AstStatement<'d> {
-    Simple(Spanned<AstSimpleStatement<'d>>),
-    If(Spanned<AstIfStatement<'d>>),
-    Repeat(Spanned<AstRepeatLoop<'d>>),
+pub enum AstStatement {
+    Simple(Spanned<AstSimpleStatement>),
+    If(Spanned<AstIfStatement>),
+    Repeat(Spanned<AstRepeatLoop>),
 }
 
 #[derive(Debug, PartialEq)]
-pub struct AstSimpleStatement<'d> {
+pub struct AstSimpleStatement {
     pub type_tok: Spanned<ActionType>,
     pub action: Spanned<Iden>,
-    pub resolved: Option<&'d Action>,
-    pub selection: Option<Spanned<AstSelection<'d>>>,
-    pub tags: Option<Spanned<AstTags<'d>>>,
+    pub resolved: Option<Arc<Action>>,
+    pub selection: Option<Spanned<AstSelection>>,
+    pub tags: Option<Spanned<AstTags>>,
     pub params: Spanned<Wrapped<AstExpression>>,
 }
 
 #[derive(Debug, PartialEq)]
-pub struct AstIfStatement<'d> {
+pub struct AstIfStatement {
     pub type_tok: Spanned<IfActionType>,
     pub not: Option<Spanned<()>>,
     pub action: Spanned<Iden>,
-    pub selection: Option<Spanned<AstSelection<'d>>>,
-    pub tags: Option<Spanned<AstTags<'d>>>,
+    pub selection: Option<Spanned<AstSelection>>,
+    pub tags: Option<Spanned<AstTags>>,
     pub params: Spanned<Wrapped<AstExpression>>,
-    pub statements: AstStatements<'d>,
-    pub else_block: Option<AstElseBlock<'d>>,
+    pub statements: AstStatements,
+    pub else_block: Option<AstElseBlock>,
     pub end: Spanned<()>,
 }
 
 #[derive(Debug, PartialEq)]
-pub struct AstElseBlock<'d> {
+pub struct AstElseBlock {
     pub else_tok: Spanned<()>,
-    pub statements: AstStatements<'d>,
+    pub statements: AstStatements,
 }
 
 #[derive(Debug, PartialEq)]
-pub struct AstRepeatLoop<'d> {
+pub struct AstRepeatLoop {
     pub type_tok: Spanned<()>,
     pub action: Spanned<Iden>,
-    pub selection: Option<Spanned<AstSelection<'d>>>,
-    pub tags: Option<Spanned<AstTags<'d>>>,
+    pub selection: Option<Spanned<AstSelection>>,
+    pub tags: Option<Spanned<AstTags>>,
     pub params: Spanned<Wrapped<AstExpression>>,
-    pub statements: AstStatements<'d>,
+    pub statements: AstStatements,
     pub end: Spanned<()>,
 }
 
 #[derive(Debug, PartialEq)]
-pub struct AstIdenPair<'d> {
+pub struct AstIdenPair {
     pub key: Spanned<Spur>,
     pub colon: Spanned<()>,
     pub value: Spanned<Spur>,
-    pub tag: &'d Tag,
-    pub choice: &'d Choice,
+    pub tag: Arc<Tag>,
+    pub choice: Arc< Choice>,
 }
 #[derive(Debug, PartialEq)]
 pub enum AstExpression {

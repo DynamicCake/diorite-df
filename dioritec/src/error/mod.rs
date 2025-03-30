@@ -5,11 +5,11 @@ pub mod semantic;
 pub mod syntax;
 
 #[derive(Debug, PartialEq)]
-pub enum CompilerError<'d> {
+pub enum CompilerError {
     Lexer(LexerError),
     Parse(UnexpectedToken),
     Eof(UnexpectedEOF),
-    Semantic(SemanticError<'d>)
+    Semantic(SemanticError)
 }
 
 

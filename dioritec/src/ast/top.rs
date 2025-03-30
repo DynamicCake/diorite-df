@@ -1,19 +1,20 @@
 use crate::{ast::prelude::*, dump::Action};
+use std::sync::Arc;
 
 #[derive(Debug, PartialEq)]
-pub enum AstTopLevel<'d> {
-    Event(AstEvent<'d>),
-    FuncDef(AstFuncDef<'d>),
-    ProcDef(AstProcDef<'d>),
+pub enum AstTopLevel {
+    Event(AstEvent),
+    FuncDef(AstFuncDef),
+    ProcDef(AstProcDef),
 }
 
 // Function
 #[derive(Debug, PartialEq)]
-pub struct AstFuncDef<'d> {
+pub struct AstFuncDef {
     pub type_tok: Spanned<()>,
     pub name: Spanned<Iden>,
     pub params: Wrapped<AstFuncParamDef>,
-    pub statements: AstStatements<'d>,
+    pub statements: AstStatements,
     pub end_tok: Spanned<()>,
 }
 
@@ -27,30 +28,30 @@ pub struct AstFuncParamDef {
 
 // Process
 #[derive(Debug, PartialEq)]
-pub struct AstProcDef<'d> {
+pub struct AstProcDef {
     pub type_tok: Spanned<()>,
     pub name: Spanned<Iden>,
-    pub statements: AstStatements<'d>,
+    pub statements: AstStatements,
     pub end_tok: Spanned<()>,
 }
 
 // Event
 #[derive(Debug, PartialEq)]
-pub struct AstEvent<'d> {
+pub struct AstEvent {
     pub type_tok: Spanned<EventType>,
     pub name: Spanned<Iden>,
-    pub statements: AstStatements<'d>,
+    pub statements: AstStatements,
     pub end_tok: Spanned<()>,
-    pub action: Option<&'d Action>,
+    pub action: Option<Arc<Action>>,
 }
 
-impl<'d> AstEvent<'d> {
+impl AstEvent {
     pub fn new(
         type_tok: Spanned<EventType>,
         name: Spanned<Iden>,
-        statements: AstStatements<'d>,
+        statements: AstStatements,
         end_tok: Spanned<()>,
-        action: Option<&'d Action>,
+        action: Option<Arc<Action>>,
     ) -> Self {
         Self {
             type_tok,

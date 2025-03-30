@@ -1,7 +1,7 @@
 use lasso::Spur;
 
 use crate::{
-    error::semantic::{ActionNotFoundError, ActionReference, SemanticError},
+    error::semantic::{ActionNotFoundError, ActionReference, AnalysisResult, SemanticError},
     project::{parsed::TreeFile, ProjectFile},
 };
 
@@ -10,28 +10,38 @@ use super::{
     AstTopLevel, BlockType, Referenced, TreeFuncParamDef, TreeRoot, TreeTopLevel, Wrapped,
 };
 
-impl<'d> Analyzer<'d> {
+impl Analyzer {
     #[inline]
     pub(super) async fn resolve_project_file(
-        &'d self,
+        &self,
         file: ProjectFile<TreeFile>,
-    ) -> ProjectFile<AnalyzedFile<'d>> {
-        ProjectFile {
-            src: file.src,
-            path: file.path,
-            hash: file.hash,
-            resolution: self.resolve_file(file.resolution.root, file.path).await,
+    ) -> AnalysisResult<ProjectFile<AnalyzedFile>, Vec<SemanticError>> {
+        let AnalysisResult { data, error } =
+            self.resolve_file(file.resolution.root, file.path).await;
+        AnalysisResult {
+            data: ProjectFile {
+                src: file.src,
+                path: file.path,
+                hash: file.hash,
+                resolution: data,
+            },
+            error,
         }
     }
-    pub(super) async fn resolve_file(&'d self, root: TreeRoot, file: Spur) -> AnalyzedFile<'d> {
-        let mut errs = Vec::new();
-        let mut ast_top: Vec<AstTopLevel<'d>> = Vec::with_capacity(root.top_statements.len());
+    pub(super) async fn resolve_file(
+        &self,
+        root: TreeRoot,
+        file: Spur,
+    ) -> AnalysisResult<AnalyzedFile, Vec<SemanticError>> {
+        // TODO: Use the error
+        let mut errors = Vec::new();
+        let mut ast_top: Vec<AstTopLevel> = Vec::with_capacity(root.top_statements.len());
         for top in root.top_statements {
             ast_top.push(match top {
                 TreeTopLevel::Event(e) => {
                     let blocktype: BlockType = e.type_tok.data.clone().into();
                     let action = self.dump.search_action_spur(
-                        self.resolver,
+                        &self.resolver,
                         e.name.data.inner,
                         blocktype.caps(),
                     );
@@ -43,9 +53,9 @@ impl<'d> Analyzer<'d> {
                             file,
                         );
 
-                        let suggestions = self.dump.suggest_actions(&reference, self.resolver);
+                        let suggestions = self.dump.suggest_actions(&reference, &self.resolver);
 
-                        errs.push(SemanticError::EventNotFound(ActionNotFoundError {
+                        errors.push(SemanticError::EventNotFound(ActionNotFoundError {
                             token: reference,
                             suggestions,
                         }))
@@ -75,9 +85,12 @@ impl<'d> Analyzer<'d> {
             });
         }
 
-        AnalyzedFile::new(AstRoot {
-            top_statements: ast_top,
-        })
+        AnalysisResult {
+            data: AnalyzedFile::new(AstRoot {
+                top_statements: ast_top,
+            }),
+            error: errors,
+        }
     }
 
     pub(super) async fn inputs_params(
