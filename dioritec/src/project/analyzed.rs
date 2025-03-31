@@ -41,6 +41,7 @@ impl Project<ParsedProjectFiles> {
             resources: self.resources,
             hash: self.hash,
             metadata: self.metadata,
+            file_map: self.file_map,
             files: CheckedProjectFiles {
                 programs: resolved.files,
                 resolver,

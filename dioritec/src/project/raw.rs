@@ -3,9 +3,7 @@ use crate::{
 };
 
 use std::{
-    hash::{Hash, Hasher},
-    path::Path,
-    sync::Arc,
+    collections::HashMap, hash::{Hash, Hasher}, path::Path, sync::Arc
 };
 
 use super::{parsed::TreeFile, FileResolution, Project, ProjectFile, ProjectFiles, ProjectResources};
@@ -61,9 +59,14 @@ impl Project<NoProjectFiles> {
         let actiondump = actiondump.await.map_err(ProjectCreationError::ActionDump)?;
         let resources = ProjectResources::new(root, Arc::new(actiondump));
 
+        let mut file_map = HashMap::new();
+        for file in &files {
+            file_map.insert(file.path, file.src);
+        }
         Ok(Project::<RawProjectFiles> {
             resources: Arc::new(resources),
             files: RawProjectFiles { rodeo, files },
+            file_map, 
             metadata,
             hash,
         })

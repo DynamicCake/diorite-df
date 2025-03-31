@@ -1,6 +1,6 @@
 use crate::{codegen::hcp::ProjectMeta, dump::ActionDump};
 
-use std::sync::Arc;
+use std::{collections::HashMap, sync::Arc};
 
 use lasso::Spur;
 
@@ -26,6 +26,8 @@ pub struct Project<T: ProjectFiles> {
     /// The files that the project has
     pub files: T,
     pub metadata: ProjectMeta,
+    /// Key: File name, value is source code
+    pub file_map: HashMap<Spur, Spur>,
     /// A hash comprised of the project metadata and all the source files
     pub hash: u64,
 }

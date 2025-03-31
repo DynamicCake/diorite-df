@@ -2,13 +2,17 @@ pub mod args;
 pub mod diagnostics;
 
 use crate::codegen::hcp::ProjectMeta;
+use crate::error::CompilerError;
+use crate::{error::diagnostic::DiagnosticsGenerator, semantic::AnalyzedFile};
 use args::Args;
+use ariadne::Source;
 use eyre::{eyre, Context};
+use std::collections::HashMap;
 use std::{path::Path, sync::Arc};
 use tokio::{fs::File, io::AsyncWriteExt};
 
 use futures::future;
-use lasso::ThreadedRodeo;
+use lasso::{Resolver, RodeoResolver, Spur, ThreadedRodeo};
 
 use crate::project::{raw::ProjectCreationError, Project, ProjectFile};
 
@@ -87,20 +91,54 @@ pub async fn handle(args: Args) -> eyre::Result<()> {
             })
         }
     };
-    println!("{:#?}", project.files);
+    // language error territory
     // parsed
     let project = project.parse().await;
-    println!("{:#?}", project.files);
+    let resolver = project.files.resolver.clone();
+    if !project.files.lex_errs.is_empty() {
+        let errors = project
+            .files
+            .lex_errs
+            .into_iter()
+            .map(CompilerError::Lexer)
+            .collect();
+        run_diagnostics(errors, resolver, &project.file_map);
+        return Ok(());
+    }
+    // println!("{:#?}", project.files);
     let analyzed = project.analyze().await;
-    println!("{:#?}", analyzed.files);
-    let generated = analyzed.generate();
+    // println!("{:#?}", analyzed.files);
+    let (generated, errs) = analyzed.generate();
     println!("{:#?}", generated);
 
     let mut file = File::create(out)
         .await
         .wrap_err("Unable to create output file")?;
-    let stringified = serde_json::to_string_pretty(&generated).expect("Serialization shouldn't fail");
-    file.write_all(stringified.as_bytes()).await.wrap_err("Unabled to write to output file")?;
+    let stringified =
+        serde_json::to_string_pretty(&generated).expect("Serialization shouldn't fail");
+    file.write_all(stringified.as_bytes())
+        .await
+        .wrap_err("Unabled to write to output file")?;
 
     Ok(())
+}
+
+fn run_diagnostics(
+    errs: Vec<CompilerError>,
+    resolver: Arc<RodeoResolver>,
+    file_map: &HashMap<Spur, Spur>,
+) {
+    let generator = DiagnosticsGenerator::new(resolver.clone());
+    generator
+        .generate(errs)
+        .into_iter()
+        .for_each(|(err, file)| {
+            err.eprint((
+                resolver.resolve(&file),
+                Source::from(
+                    resolver.resolve(file_map.get(&file).expect("Spur always contain valid path")),
+                ),
+            ))
+            .unwrap()
+        });
 }

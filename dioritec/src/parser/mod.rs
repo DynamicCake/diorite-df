@@ -175,7 +175,10 @@ impl<'lex> Parser<'lex> {
                     Spanned::<()>::empty(span.clone()),
                     self.path,
                 )));
-                Ok(Token::Invalid.spanned(span))
+            Err(AdvanceUnexpected::Eof(UnexpectedEOF {
+                expected: Some(ExpectedTokens::new(expected.into())),
+                expected_name: None,
+            }))
             }
         } else {
             Err(AdvanceUnexpected::Eof(UnexpectedEOF {
@@ -211,7 +214,11 @@ impl<'lex> Parser<'lex> {
                     Spanned::<()>::empty(span.clone()),
                     self.path,
                 )));
-                Ok(Spanned::new(&Token::Invalid, span.clone()))
+                // Ok(Spanned::new(&Token::Invalid, span.clone()))
+                Err(AdvanceUnexpected::Eof(UnexpectedEOF {
+                    expected: Some(ExpectedTokens::new(expected.into())),
+                    expected_name: msg.map(|it| it.to_string()),
+                }))
             }
         } else {
             Err(AdvanceUnexpected::Eof(UnexpectedEOF {

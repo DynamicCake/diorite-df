@@ -18,27 +18,24 @@ pub mod hcp;
 pub mod test;
 
 pub struct CodeGenerator {
-    pub files: CheckedProjectFiles,
+    pub programs: Vec<ProjectFile<AnalyzedFile>>,
     resolver: Arc<RodeoResolver>,
 }
 
 impl<'src> CodeGenerator {
-
-    pub fn new(files: CheckedProjectFiles, resolver: Arc<RodeoResolver>) -> Self {
-        Self { files, resolver }
+    pub fn new(files: Vec<ProjectFile<AnalyzedFile>>, resolver: Arc<RodeoResolver>) -> Self {
+        Self { programs: files, resolver }
     }
 
     pub fn stringify(templates: Vec<GeneratedCode<'src>>) -> Vec<String> {
         templates
             .iter()
-            .map(|template| {
-                serde_json::to_string(template).expect("Serialization shouldn't fail")
-            })
+            .map(|template| serde_json::to_string(template).expect("Serialization shouldn't fail"))
             .collect()
     }
     pub fn generate(&'src self) -> Vec<GeneratedCode<'src>> {
         let mut templates = Vec::new();
-        for file in &self.files.programs {
+        for file in &self.programs {
             let root = &file.resolution.root.top_statements;
             for top in root {
                 templates.push(self.gen_top(top));

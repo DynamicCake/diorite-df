@@ -58,6 +58,7 @@ impl Project<RawProjectFiles> {
             resources: self.resources,
             hash: self.hash,
             metadata: self.metadata,
+            file_map: self.file_map,
             files,
         }
     }
