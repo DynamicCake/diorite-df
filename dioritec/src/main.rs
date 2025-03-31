@@ -2,7 +2,6 @@
     // This compiler uses a lot of lifetimes so this is really important
     elided_lifetimes_in_paths,
 )]
-// Clogs up the errors, remove when polishing
 
 pub mod ast;
 pub mod cli;

@@ -1,28 +1,82 @@
 //! Moule for the code generation step
 
+use std::sync::Arc;
+
+use block::{Arguments, Block, CodeBlock, GeneratedCode};
+use lasso::RodeoResolver;
+
 use crate::{
+    ast::{top::AstTopLevel, AstRoot},
     dump::ActionDump,
-    // project::{analyzed::AnalyzedFile, ProjectFile},
+    project::{analyzed::CheckedProjectFiles, Project, ProjectFile},
+    semantic::AnalyzedFile,
 };
 
 pub mod block;
 pub mod data;
+pub mod hcp;
 pub mod test;
 
-// FIXME: This broke and I want to make a commit
-/*
-pub struct CodeGenerator<'a> {
-    pub dump: &'a ActionDump,
-    pub program: &'a ProjectFile<AnalyzedFile<'a>>,
+pub struct CodeGenerator {
+    pub files: CheckedProjectFiles,
+    resolver: Arc<RodeoResolver>,
 }
 
-impl<'a> CodeGenerator<'a> {
-    pub fn new(dump: &'a ActionDump, program: &'a ProjectFile<AnalyzedFile<'a>>) -> Self {
-        Self { dump, program }
+impl<'src> CodeGenerator {
+
+    pub fn new(files: CheckedProjectFiles, resolver: Arc<RodeoResolver>) -> Self {
+        Self { files, resolver }
     }
 
-    pub fn generate(&self) -> String {
-        "".to_string()
+    pub fn stringify(templates: Vec<GeneratedCode<'src>>) -> Vec<String> {
+        templates
+            .iter()
+            .map(|template| {
+                serde_json::to_string(template).expect("Serialization shouldn't fail")
+            })
+            .collect()
+    }
+    pub fn generate(&'src self) -> Vec<GeneratedCode<'src>> {
+        let mut templates = Vec::new();
+        for file in &self.files.programs {
+            let root = &file.resolution.root.top_statements;
+            for top in root {
+                templates.push(self.gen_top(top));
+            }
+        }
+        // self.program.resolution.root.top_statements;
+        templates
+    }
+    fn gen_top(&'src self, root: &AstTopLevel) -> GeneratedCode<'src> {
+        let mut blocks = Vec::new();
+
+        // TODO: Make use of the statements, the bulk of the program
+        let stmts = match root {
+            AstTopLevel::Event(event) => {
+                blocks.push(CodeBlock::Block(Block {
+                    block: "event",
+                    action: self.resolver.resolve(&event.name.data.inner),
+                    args: Arguments { items: Vec::new() },
+                }));
+                &event.statements
+            }
+            AstTopLevel::FuncDef(func) => {
+                blocks.push(CodeBlock::Block(Block {
+                    block: "func",
+                    action: self.resolver.resolve(&func.name.data.inner),
+                    args: Arguments { items: todo!() },
+                }));
+                &func.statements
+            }
+            AstTopLevel::ProcDef(proc) => {
+                blocks.push(CodeBlock::Block(Block {
+                    block: "proc",
+                    action: self.resolver.resolve(&proc.name.data.inner),
+                    args: Arguments { items: Vec::new() },
+                }));
+                &proc.statements
+            }
+        };
+        GeneratedCode { blocks }
     }
 }
-*/

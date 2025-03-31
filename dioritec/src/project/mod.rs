@@ -1,10 +1,11 @@
-use crate::{common::prelude::*, dump::ActionDump};
+use crate::{codegen::hcp::ProjectMeta, dump::ActionDump};
 
 use std::sync::Arc;
 
 use lasso::Spur;
 
 pub mod analyzed;
+pub mod generated;
 pub mod parsed;
 pub mod raw;
 
@@ -24,6 +25,7 @@ pub struct Project<T: ProjectFiles> {
     pub resources: Arc<ProjectResources>,
     /// The files that the project has
     pub files: T,
+    pub metadata: ProjectMeta,
     /// A hash comprised of the project metadata and all the source files
     pub hash: u64,
 }
@@ -35,7 +37,6 @@ impl ProjectResources {
             actiondump,
         }
     }
-
 
     // pub fn actiondump(&self) -> &ActionDump {
     //     &self.actiondump

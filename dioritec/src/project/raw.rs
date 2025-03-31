@@ -1,10 +1,5 @@
 use crate::{
-    ast::AstRoot,
-    common::prelude::*,
-    dump::ActionDump,
-    error::syntax::{LexerError, UnexpectedEOF, UnexpectedToken},
-    parser::Parser,
-    tree::TreeRoot,
+    ast::AstRoot, codegen::hcp::ProjectMeta, common::prelude::*, dump::ActionDump, error::syntax::{LexerError, UnexpectedEOF, UnexpectedToken}, parser::Parser, tree::TreeRoot
 };
 
 use std::{
@@ -32,6 +27,7 @@ impl Project<NoProjectFiles> {
         rodeo: ThreadedRodeo,
         files: Vec<ProjectFile<RawFile>>,
         actiondump_path: Box<Path>,
+        metadata: ProjectMeta
     ) -> Result<Project<RawProjectFiles>, ProjectCreationError> {
         // Start the action dump reading early
         let actiondump = Self::get_actiondump(actiondump_path);
@@ -68,6 +64,7 @@ impl Project<NoProjectFiles> {
         Ok(Project::<RawProjectFiles> {
             resources: Arc::new(resources),
             files: RawProjectFiles { rodeo, files },
+            metadata,
             hash,
         })
     }

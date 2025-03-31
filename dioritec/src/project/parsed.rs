@@ -57,6 +57,7 @@ impl Project<RawProjectFiles> {
         Project::<ParsedProjectFiles> {
             resources: self.resources,
             hash: self.hash,
+            metadata: self.metadata,
             files,
         }
     }

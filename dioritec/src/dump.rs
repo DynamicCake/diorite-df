@@ -31,7 +31,7 @@ pub struct ActionDump {
 }
 
 impl ActionDump {
-    pub fn search_action<'d>(&'d self, name: &str, block: &str) -> Option<Arc<Action>> {
+    pub fn search_action(&self, name: &str, block: &str) -> Option<Arc<Action>> {
         self.actions
             .iter()
             .find(|action| action.name == name && action.codeblock_name == block)
@@ -50,7 +50,7 @@ impl ActionDump {
     // TODO: Improve suggestions
     pub fn suggest_sub_actions<'d>(
         &'d self,
-        block_types: &Vec<BlockType>,
+        block_types: &[BlockType],
         prompt: Spur,
         resolver: &'d RodeoResolver,
     ) -> Vec<Arc<Action>> {
@@ -134,10 +134,11 @@ pub struct Action {
 }
 
 impl Action {
-    pub fn suggest_tags<'d>(&'d self, inputted: &str) -> Vec<Arc<Tag>> {
+    pub fn suggest_tags(&self, inputted: &str) -> Vec<Arc<Tag>> {
+        // TODO: finish this, this isn't a todo!()
+        // because it isn't that bad that there are no suggestions
         let res = Vec::new();
         for action in &self.tags {
-            // TODO: Implement, not so important so nothing for now
         }
         res
     }
@@ -153,10 +154,11 @@ pub struct Tag {
 }
 
 impl Tag {
-    pub fn suggest_tag_values<'d>(&'d self, inputted: &str) -> Vec<Arc<Choice>> {
+    pub fn suggest_tag_values(&self, inputted: &str) -> Vec<Arc<Choice>> {
+        // TODO: finish this, this isn't a todo!()
+        // because it isn't that bad that there are no suggestions
         let res = Vec::new();
         for action in &self.options {
-            // TODO: Implement, not so important so nothing for now
         }
         res
     }

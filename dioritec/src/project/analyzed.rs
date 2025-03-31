@@ -1,3 +1,7 @@
+use std::sync::Arc;
+
+use lasso::RodeoResolver;
+
 use crate::{
     error::CompilerError,
     semantic::{AnalyzedFile, Analyzer},
@@ -8,6 +12,7 @@ use super::{parsed::ParsedProjectFiles, FileResolution, Project, ProjectFile, Pr
 
 impl Project<ParsedProjectFiles> {
     pub async fn analyze<'d>(self) -> Project<CheckedProjectFiles> {
+        let resolver = self.files.resolver.clone();
         let files = self.files;
         let mut errors = Vec::new();
         files
@@ -35,8 +40,10 @@ impl Project<ParsedProjectFiles> {
         Project {
             resources: self.resources,
             hash: self.hash,
+            metadata: self.metadata,
             files: CheckedProjectFiles {
                 programs: resolved.files,
+                resolver,
                 errors,
             },
         }
@@ -49,5 +56,6 @@ impl FileResolution for AnalyzedFile {}
 pub struct CheckedProjectFiles {
     pub programs: Vec<ProjectFile<AnalyzedFile>>,
     pub errors: Vec<CompilerError>,
+    pub resolver: Arc<RodeoResolver>,
 }
 impl ProjectFiles for CheckedProjectFiles {}

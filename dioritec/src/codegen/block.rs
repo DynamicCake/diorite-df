@@ -3,7 +3,7 @@ use serde::Serialize;
 
 #[derive(Serialize)]
 pub struct GeneratedCode<'src> {
-    blocks: Vec<CodeBlock<'src>>,
+    pub blocks: Vec<CodeBlock<'src>>,
 }
 
 #[derive(Serialize)]
@@ -35,16 +35,16 @@ pub enum BracketState {
 }
 
 #[derive(Serialize)]
+#[serde(tag = "type")]
 pub struct Block<'src> {
-    id: &'static str,
-    block: &'static str,
-    args: Arguments<'src>,
-    action: &'src str,
+    pub block: &'static str,
+    pub args: Arguments<'src>,
+    pub action: &'src str,
 }
 
 #[derive(Serialize)]
 pub struct Arguments<'src> {
-    items: Vec<Item<'src>>,
+    pub items: Vec<Item<'src>>,
 }
 
 #[derive(Serialize)]

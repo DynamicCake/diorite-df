@@ -1,16 +1,18 @@
 pub mod args;
 pub mod diagnostics;
 
+use crate::codegen::hcp::ProjectMeta;
 use args::Args;
-use eyre::eyre;
+use eyre::{eyre, Context};
 use std::{path::Path, sync::Arc};
+use tokio::{fs::File, io::AsyncWriteExt};
 
 use futures::future;
 use lasso::ThreadedRodeo;
 
 use crate::project::{raw::ProjectCreationError, Project, ProjectFile};
 
-pub async fn handle(args: Args) -> eyre::Result<String> {
+pub async fn handle(args: Args) -> eyre::Result<()> {
     let src_paths = args.files;
     let actiondump = args.dump;
     let out = args.output;
@@ -65,6 +67,14 @@ pub async fn handle(args: Args) -> eyre::Result<String> {
         Arc::try_unwrap(rodeo).expect("rodeo arc escaped scope"),
         files,
         actiondump.into(),
+        ProjectMeta {
+            name: "dioritec".to_string(),
+            version: "0.0.1".to_string(),
+            mc_version: "1.21.4".to_string(),
+            description: None,
+            license: "unlicensed".to_string(),
+            authors: vec!["unspecified".to_string()],
+        },
     )
     .await
     {
@@ -83,7 +93,14 @@ pub async fn handle(args: Args) -> eyre::Result<String> {
     println!("{:#?}", project.files);
     let analyzed = project.analyze().await;
     println!("{:#?}", analyzed.files);
+    let generated = analyzed.generate();
+    println!("{:#?}", generated);
 
-    // TODO: Create project analysis and codegen
-    todo!()
+    let mut file = File::create(out)
+        .await
+        .wrap_err("Unable to create output file")?;
+    let stringified = serde_json::to_string_pretty(&generated).expect("Serialization shouldn't fail");
+    file.write_all(stringified.as_bytes()).await.wrap_err("Unabled to write to output file")?;
+
+    Ok(())
 }
