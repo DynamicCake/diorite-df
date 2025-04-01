@@ -1,4 +1,3 @@
 pevent Join
     paction SendMessage <default> [key: 'value much'] (42, 66)
-
 end

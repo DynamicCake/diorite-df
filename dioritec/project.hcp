@@ -1,0 +1,16 @@
+{
+  "hypercube_project": "0.1",
+  "metadata": {
+    "name": "dioritec",
+    "version": "0.0.1",
+    "mc_version": "1.21.4",
+    "description": null,
+    "license": "unlicensed",
+    "authors": [
+      "unspecified"
+    ]
+  },
+  "lines": [
+    "{\"blocks\":[{\"id\":\"block\",\"type\":\"Block\",\"block\":\"event\",\"args\":{\"items\":[]},\"action\":\"Join\"}]}"
+  ]
+}

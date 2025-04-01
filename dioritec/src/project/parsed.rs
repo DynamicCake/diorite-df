@@ -90,6 +90,9 @@ impl ParsedProjectFiles {
             resolver
         }
     }
+    pub fn has_errors(&self) -> bool {
+        !self.lex_errs.is_empty() && !self.parse_errs.is_empty() && !self.eof_errs.is_empty()
+    }
 }
 
 // Parsing

@@ -94,13 +94,17 @@ impl UnexpectedToken {
 /// Created when an unexpected end of file
 #[derive(Debug, PartialEq)]
 pub struct UnexpectedEOF {
+    pub path: Spur,
+    pub len: u32,
     pub expected: Option<ExpectedTokens>,
     pub expected_name: Option<String>,
 }
 
 impl UnexpectedEOF {
-    pub fn new(expected: Option<ExpectedTokens>, expected_name: Option<String>) -> Self {
+    pub fn new(path: Spur, len: u32, expected: Option<ExpectedTokens>, expected_name: Option<String>) -> Self {
         Self {
+            path,
+            len,
             expected,
             expected_name,
         }

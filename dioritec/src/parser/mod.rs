@@ -29,6 +29,8 @@ pub struct Parser<'lex> {
     lex_errs: Vec<LexerError>,
     /// The file this parser belongs to
     path: Spur,
+    /// Length of the buffer
+    len: u32,
 }
 
 #[derive(Debug, PartialEq)]
@@ -67,6 +69,7 @@ impl<'lex> Parser<'lex> {
     }
     pub fn new(lexer: Lexer<'lex, Token>, file: Spur) -> Self {
         Self {
+            len: lexer.source().len() as u32,
             toks: lexer.spanned().peekable(),
             lex_errs: Vec::new(),
             path: file,
@@ -142,6 +145,8 @@ impl<'lex> Parser<'lex> {
             panic!(
                 "Unexpected Error: {:#?}",
                 UnexpectedEOF {
+                    len: self.len,
+                    path: self.path,
                     expected: Some(ExpectedTokens::new(expected.into())),
                     expected_name: None,
                 }
@@ -175,13 +180,17 @@ impl<'lex> Parser<'lex> {
                     Spanned::<()>::empty(span.clone()),
                     self.path,
                 )));
-            Err(AdvanceUnexpected::Eof(UnexpectedEOF {
-                expected: Some(ExpectedTokens::new(expected.into())),
-                expected_name: None,
-            }))
+                Err(AdvanceUnexpected::Eof(UnexpectedEOF {
+                    len: self.len,
+                    path: self.path,
+                    expected: Some(ExpectedTokens::new(expected.into())),
+                    expected_name: None,
+                }))
             }
         } else {
             Err(AdvanceUnexpected::Eof(UnexpectedEOF {
+                len: self.len,
+                path: self.path,
                 expected: Some(ExpectedTokens::new(expected.into())),
                 expected_name: None,
             }))
@@ -216,12 +225,16 @@ impl<'lex> Parser<'lex> {
                 )));
                 // Ok(Spanned::new(&Token::Invalid, span.clone()))
                 Err(AdvanceUnexpected::Eof(UnexpectedEOF {
+                    len: self.len,
+                    path: self.path,
                     expected: Some(ExpectedTokens::new(expected.into())),
                     expected_name: msg.map(|it| it.to_string()),
                 }))
             }
         } else {
             Err(AdvanceUnexpected::Eof(UnexpectedEOF {
+                len: self.len,
+                path: self.path,
                 expected: Some(ExpectedTokens::new(expected.into())),
                 expected_name: msg.map(|it| it.to_string()),
             }))
@@ -247,6 +260,8 @@ impl<'lex> Parser<'lex> {
             }
         } else {
             Err(UnexpectedEOF {
+                len: self.len,
+                path: self.path,
                 expected: None,
                 expected_name: None,
             })
@@ -267,6 +282,8 @@ impl<'lex> Parser<'lex> {
             })
         } else {
             Err(UnexpectedEOF {
+                path: self.path,
+                len: self.len,
                 expected: None,
                 expected_name: None,
             })

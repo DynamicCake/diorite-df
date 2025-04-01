@@ -95,20 +95,34 @@ pub async fn handle(args: Args) -> eyre::Result<()> {
     // parsed
     let project = project.parse().await;
     let resolver = project.files.resolver.clone();
-    if !project.files.lex_errs.is_empty() {
-        let errors = project
-            .files
+    if project.files.has_errors() {
+        let files = project.files;
+        let mut errors = Vec::new();
+        files
             .lex_errs
             .into_iter()
-            .map(CompilerError::Lexer)
-            .collect();
+            .for_each(|e| errors.push(CompilerError::Lexer(e)));
+        files
+            .parse_errs
+            .into_iter()
+            .for_each(|e| errors.push(CompilerError::Parse(e)));
+        files
+            .eof_errs
+            .into_iter()
+            .for_each(|e| errors.push(CompilerError::Eof(e)));
+
         run_diagnostics(errors, resolver, &project.file_map);
         return Ok(());
     }
     // println!("{:#?}", project.files);
     let analyzed = project.analyze().await;
     // println!("{:#?}", analyzed.files);
-    let (generated, errs) = analyzed.generate();
+    let (generated, errs, file_map) = analyzed.generate();
+    println!("{errs:?}");
+    if !errs.is_empty() {
+        run_diagnostics(errs, resolver, &file_map);
+        return Ok(());
+    }
     println!("{:#?}", generated);
 
     let mut file = File::create(out)
