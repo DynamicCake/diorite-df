@@ -1,6 +1,8 @@
 use crate::common::prelude::*;
 use ast::{BlockType, DfNumber};
+use lasso::{RodeoReader, RodeoResolver};
 use serde::Serialize;
+
 
 #[derive(Serialize, PartialEq)]
 #[serde(tag = "id")]
@@ -19,14 +21,28 @@ pub enum ChestValue<'src> {
     Location { data: ChestLocation },
     #[serde(rename = "vec")]
     Vector { data: ChestVec3D },
-    #[serde(rename = "txt")]
-    Text { data: ChestText<'src> },
     #[serde(rename = "num")]
     Number { data: ChestNumber },
-    #[serde(rename = "part")]
+    #[serde(rename = "hint")]
+    FunctionParam { data: ChestFunctionParam<'src> },
+    // TODO: StyledText? String?
+    #[serde(rename = "comp")]
     StyledText { data: ChestStyledText<'src> },
+    #[serde(rename = "txt")]
+    String { data: ChestString<'src> },
     #[serde(rename = "bl_tag")]
     BlockTag { data: ChestBlockTag<'src> },
+}
+// TODO: Figure out params
+#[derive(Serialize, PartialEq)]
+pub struct ChestFunctionParam<'src> {
+    pub name: &'src str,
+    #[serde(rename = "type")]
+    pub typ: &'src str,
+    pub plural: bool,
+    pub optional: bool,
+    pub description: Option<&'src str>,
+    // note is not supported lol
 }
 
 #[derive(Serialize, PartialEq)]
@@ -43,7 +59,7 @@ pub struct ChestStyledText<'src> {
 }
 
 #[derive(Serialize, PartialEq)]
-pub struct ChestText<'src> {
+pub struct ChestString<'src> {
     pub name: &'src str,
 }
 
@@ -69,18 +85,18 @@ pub struct ChestLocation {
 #[derive(Serialize, PartialEq)]
 #[serde(rename = "camelCase")]
 pub struct ChestLocationData {
-    pub x: f64,
-    pub y: f64,
-    pub z: f64,
-    pub pitch: f32,
-    pub yaw: f32,
+    pub x: DfNumber,
+    pub y: DfNumber,
+    pub z: DfNumber,
+    pub pitch: DfNumber,
+    pub yaw: DfNumber,
 }
 
 #[derive(Serialize, PartialEq)]
 pub struct ChestSound<'src> {
     pub sound: &'src str,
-    pub pitch: f32,
-    pub vol: f32,
+    pub pitch: DfNumber,
+    pub vol: DfNumber,
 }
 
 #[derive(Serialize, PartialEq)]
@@ -92,8 +108,8 @@ pub struct ChestVariable<'src> {
 #[derive(Serialize, PartialEq)]
 pub struct ChestPotion<'src> {
     pub pot: &'src str,
-    pub dur: u8,
-    pub amp: u8,
+    pub dur: DfNumber,
+    pub amp: DfNumber,
 }
 
 #[derive(Serialize, PartialEq)]
@@ -116,21 +132,22 @@ pub struct ChestParticle<'src> {
 #[derive(Serialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct ParticleData<'src> {
-    pub x: Option<f32>,
-    pub y: Option<f32>,
-    pub z: Option<f32>,
-    pub size: Option<f32>,
-    pub size_variation: Option<u8>,
+    pub x: Option<DfNumber>,
+    pub y: Option<DfNumber>,
+    pub z: Option<DfNumber>,
+    pub size: Option<DfNumber>,
+    pub size_variation: Option<DfNumber>,
     pub color: Option<Color>,
-    pub color_variation: Option<u8>,
-    pub roll: Option<f32>,
-    pub motion_variation: Option<u8>,
+    pub color_variation: Option<DfNumber>,
+    pub roll: Option<DfNumber>,
+    pub motion_variation: Option<DfNumber>,
     pub material: Option<&'src str>,
 }
 
 #[derive(Serialize, PartialEq)]
 pub struct ParticleCluster {
-    pub horizontal: f32,
-    pub verticle: f32,
-    pub amount: u16,
+    pub horizontal: DfNumber,
+    pub verticle: DfNumber,
+    pub amount: DfNumber,
 }
+

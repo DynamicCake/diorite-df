@@ -71,6 +71,7 @@ pub async fn handle(args: Args) -> eyre::Result<()> {
         Arc::try_unwrap(rodeo).expect("rodeo arc escaped scope"),
         files,
         actiondump.into(),
+        // This will be in the diorite.toml file with diorite and not dioritec
         ProjectMeta {
             name: "dioritec".to_string(),
             version: "0.0.1".to_string(),
@@ -114,9 +115,7 @@ pub async fn handle(args: Args) -> eyre::Result<()> {
         run_diagnostics(errors, resolver, &project.file_map);
         return Ok(());
     }
-    // println!("{:#?}", project.files);
     let analyzed = project.analyze().await;
-    // println!("{:#?}", analyzed.files);
     let (generated, errs, file_map) = analyzed.generate();
     println!("{errs:?}");
     if !errs.is_empty() {

@@ -2,14 +2,14 @@
 
 // Lexer
 // Asserts that the next token is a certain token
-macro_rules! next_eq {
-    ($lexer:expr, $tok:expr) => {
-        assert_eq!($lexer.next().unwrap().unwrap(), $tok);
-    };
-}
 
 #[test]
 fn lexer_test_basic() {
+    macro_rules! next_eq {
+        ($lexer:expr, $tok:expr) => {
+            assert_eq!($lexer.next().unwrap().unwrap(), $tok);
+        };
+    }
     use crate::common::prelude::*;
     use lasso::ThreadedRodeo;
     use logos::Logos;
@@ -90,7 +90,7 @@ fn lexer_iden() {
     let rodeo = Arc::new(ThreadedRodeo::new());
     let src = "'hello'";
     let lexer = Token::lexer_with_extras(src, rodeo.clone());
-    lexer.collect::<Vec<_>>(); // consume
+    let _ = lexer.collect::<Vec<_>>(); // consume
     assert!(rodeo.contains("hello"));
 }
 

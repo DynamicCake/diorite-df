@@ -49,6 +49,6 @@ pub struct Arguments<'src> {
 
 #[derive(Serialize)]
 pub struct Item<'src> {
-    item: ChestValue<'src>,
-    slot: u8,
+    pub item: ChestValue<'src>,
+    pub slot: u8,
 }

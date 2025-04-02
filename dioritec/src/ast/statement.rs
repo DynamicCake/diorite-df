@@ -1,12 +1,13 @@
 //! Basically tree.rs but for the analyzer
 
-use std::sync::Arc;
 use crate::{
     ast::prelude::*,
+    codegen::data,
     dump::{Action, Choice, Tag},
 };
+use std::sync::Arc;
 
-use lasso::Spur;
+use lasso::{RodeoResolver, Spur};
 
 #[derive(Debug, PartialEq)]
 pub struct AstSelection {
@@ -96,7 +97,7 @@ pub struct AstIdenPair {
     pub colon: Spanned<()>,
     pub value: Spanned<Spur>,
     pub tag: Arc<Tag>,
-    pub choice: Arc< Choice>,
+    pub choice: Arc<Choice>,
 }
 #[derive(Debug, PartialEq)]
 pub enum AstExpression {
@@ -107,7 +108,7 @@ pub enum AstExpression {
     Sound(AstSound),
     Location(AstLocation),
     Vector(AstVec3D),
-    Text(AstText),
+    String(AstString),
     Number(AstNumber),
     StyledText(AstStyledText),
     BlockTag(AstBlockTag),
@@ -127,7 +128,7 @@ pub struct AstStyledText {
 }
 
 #[derive(Debug, PartialEq)]
-pub struct AstText {
+pub struct AstString {
     pub name: Spur,
 }
 
@@ -151,18 +152,30 @@ pub struct AstLocation {
 
 #[derive(Debug, PartialEq)]
 pub struct ChestLocationData {
-    pub x: f64,
-    pub y: f64,
-    pub z: f64,
-    pub pitch: f32,
-    pub yaw: f32,
+    pub x: DfNumber,
+    pub y: DfNumber,
+    pub z: DfNumber,
+    pub pitch: DfNumber,
+    pub yaw: DfNumber,
+}
+
+impl ChestLocationData {
+    pub fn resolve(&self) -> data::ChestLocationData {
+        data::ChestLocationData {
+            x: self.x,
+            y: self.y,
+            z: self.z,
+            pitch: self.pitch,
+            yaw: self.yaw,
+        }
+    }
 }
 
 #[derive(Debug, PartialEq)]
 pub struct AstSound {
     pub sound: Spur,
-    pub pitch: f32,
-    pub vol: f32,
+    pub pitch: DfNumber,
+    pub vol: DfNumber,
 }
 
 #[derive(Debug, PartialEq)]
@@ -174,8 +187,8 @@ pub struct AstVariable {
 #[derive(Debug, PartialEq)]
 pub struct AstPotion {
     pub pot: Spur,
-    pub dur: u8,
-    pub amp: u8,
+    pub dur: DfNumber,
+    pub amp: DfNumber,
 }
 
 #[derive(Debug, PartialEq)]
@@ -184,7 +197,7 @@ pub struct AstGameValue {
     pub target: GValSelector,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct AstParticle {
     pub particle: Spur,
     pub cluster: ParticleCluster,
@@ -194,23 +207,50 @@ pub struct AstParticle {
 }
 
 // This could be smaller if this was a union but eh
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct ParticleData {
-    pub x: Option<f32>,
-    pub y: Option<f32>,
-    pub z: Option<f32>,
-    pub size: Option<f32>,
-    pub size_variation: Option<u8>,
+    pub x: Option<DfNumber>,
+    pub y: Option<DfNumber>,
+    pub z: Option<DfNumber>,
+    pub size: Option<DfNumber>,
+    pub size_variation: Option<DfNumber>,
     pub color: Option<Color>,
-    pub color_variation: Option<u8>,
-    pub roll: Option<f32>,
-    pub motion_variation: Option<u8>,
+    pub color_variation: Option<DfNumber>,
+    pub roll: Option<DfNumber>,
+    pub motion_variation: Option<DfNumber>,
     pub material: Option<Spur>,
 }
 
-#[derive(Debug, PartialEq)]
+impl ParticleData {
+    pub fn resolve<'src>(&self, resolver: &'src RodeoResolver) -> data::ParticleData<'src> {
+        data::ParticleData {
+            x: self.x.clone(),
+            y: self.y.clone(),
+            z: self.z.clone(),
+            size: self.size.clone(),
+            size_variation: self.size_variation.clone(),
+            color: self.color.clone(),
+            color_variation: self.color_variation.clone(),
+            roll: self.roll.clone(),
+            motion_variation: self.motion_variation.clone(),
+            material: self.material.map(|mat| resolver.resolve(&mat)),
+        }
+    }
+}
+
+#[derive(Debug, PartialEq, Clone)]
 pub struct ParticleCluster {
-    pub horizontal: f32,
-    pub verticle: f32,
-    pub amount: u16,
+    pub horizontal: DfNumber,
+    pub verticle: DfNumber,
+    pub amount: DfNumber,
+}
+
+impl ParticleCluster {
+    pub fn resolve(&self) -> data::ParticleCluster {
+        data::ParticleCluster {
+            horizontal: self.horizontal,
+            verticle: self.verticle,
+            amount: self.amount,
+        }
+    }
 }

@@ -7,7 +7,8 @@ use crate::{
 
 use super::{
     AnalyzedFile, Analyzer, AstEvent, AstFuncDef, AstFuncParamDef, AstProcDef, AstRoot,
-    AstTopLevel, BlockType, Referenced, TreeFuncParamDef, TreeRoot, TreeTopLevel, Wrapped,
+    AstTopLevel, BlockType, Parameters, Referenced, TreeFuncParamDef, TreeRoot, TreeTopLevel,
+    Wrapped,
 };
 
 impl Analyzer {
@@ -33,7 +34,6 @@ impl Analyzer {
         root: TreeRoot,
         file: Spur,
     ) -> AnalysisResult<AnalyzedFile, Vec<SemanticError>> {
-        // TODO: Use the error
         let mut errors = Vec::new();
         let mut ast_top: Vec<AstTopLevel> = Vec::with_capacity(root.top_statements.len());
         for top in root.top_statements {
@@ -71,7 +71,7 @@ impl Analyzer {
                 TreeTopLevel::FuncDef(f) => AstTopLevel::FuncDef(AstFuncDef {
                     type_tok: f.type_tok,
                     name: f.name,
-                    params: self.inputs_params(f.params, file).await,
+                    params: self.inputs_params(f.params).await,
                     statements: self.statements(f.statements, file).await,
                     end_tok: f.end_tok,
                 }),
@@ -96,8 +96,21 @@ impl Analyzer {
     pub(super) async fn inputs_params(
         &self,
         params: Wrapped<TreeFuncParamDef>,
-        file: Spur,
     ) -> Wrapped<AstFuncParamDef> {
-        todo!()
+        let Wrapped { open, tags, close } = params;
+        let tags = tags.map_inner(|inner| {
+            let params = inner
+                .items
+                .into_iter()
+                .map(|def| AstFuncParamDef {
+                    name: def.name,
+                    colon: def.colon,
+                    data_type: def.data_type,
+                    description: def.description,
+                })
+                .collect();
+            Parameters { items: params }
+        });
+        Wrapped { open, tags, close }
     }
 }

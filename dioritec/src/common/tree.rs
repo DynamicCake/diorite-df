@@ -57,6 +57,20 @@ pub enum ActionType {
     Select,
     Var,
 }
+impl ActionType {
+    pub(crate) fn to_str(&self) -> &'static str {
+        match self {
+            ActionType::PlayerAction => "player_action",
+            ActionType::EntityAction => "entity_action",
+            ActionType::GameAction => "game_action",
+            ActionType::Control => "control",
+            ActionType::CallFunction => "call_func",
+            ActionType::CallProcess => "start_process",
+            ActionType::Select => "select_obj",
+            ActionType::Var => "set_var"
+        }
+    }
+}
 
 impl From<ActionType> for BlockType {
     fn from(val: ActionType) -> Self {

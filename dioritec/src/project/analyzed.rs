@@ -12,7 +12,6 @@ use super::{parsed::ParsedProjectFiles, FileResolution, Project, ProjectFile, Pr
 
 impl Project<ParsedProjectFiles> {
     pub async fn analyze<'d>(self) -> Project<CheckedProjectFiles> {
-        let resolver = self.files.resolver.clone();
         let files = self.files;
         let mut errors = Vec::new();
         files

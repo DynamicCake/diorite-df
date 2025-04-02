@@ -215,7 +215,7 @@ impl Analyzer {
     ) -> AstExpression {
         match expr {
             TreeExpression::Literal(lit) => match lit {
-                TreeStaticLiteral::String(str) => AstExpression::Text(AstText {
+                TreeStaticLiteral::String(str) => AstExpression::String(AstString {
                     name: str.data.inner,
                 }),
                 TreeStaticLiteral::Number(num) => {
@@ -228,7 +228,7 @@ impl Analyzer {
                         Err(err) => {
                             errs.push(SemanticError::from_num(
                                 Referenced::new(
-                                    Spanned::new(num_inner.inner, num.span.clone()),
+                                    Spanned::new(num_inner.inner, span.clone()),
                                     file,
                                 ),
                                 err,

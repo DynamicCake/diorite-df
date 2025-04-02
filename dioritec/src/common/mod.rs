@@ -72,7 +72,7 @@ impl StarterSet {
     }
 }
 
-#[derive(Serialize, PartialEq, Debug)]
+#[derive(Serialize, PartialEq, Debug, Clone)]
 pub struct Color(u16);
 
 impl Color {
@@ -85,7 +85,7 @@ impl Color {
     }
 }
 
-#[derive(Debug, Serialize, PartialEq)]
+#[derive(Debug, Serialize, PartialEq, Clone)]
 #[serde(rename_all = "snake_case")]
 pub enum VariableScope {
     Line,
@@ -96,7 +96,7 @@ pub enum VariableScope {
     Global,
 }
 
-#[derive(Serialize, Debug, PartialEq)]
+#[derive(Serialize, Debug, PartialEq, Clone)]
 pub enum GValSelector {
     Selection,
     Default,

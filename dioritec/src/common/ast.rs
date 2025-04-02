@@ -4,7 +4,7 @@ use serde::{Serialize, Serializer};
 use super::tree::EventType;
 
 /// A fixed point [i64] with 3 decimal digits of precision
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone, Copy)]
 pub struct DfNumber(i64);
 impl DfNumber {
     /// Constructs a new instance of [DfNumber]

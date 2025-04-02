@@ -50,6 +50,7 @@ impl<T> Spanned<T> {
         let res = f(data);
         Spanned::<R>::new(res, span)
     }
+
 }
 
 /// A [Span] but with an optional `span` field
