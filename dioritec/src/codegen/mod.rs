@@ -1,8 +1,10 @@
 //! Moule for the code generation step
 
+use std::any::Any;
 use std::sync::Arc;
 
-use block::{Arguments, Block, CodeBlock, GeneratedCode, Item};
+use block::{Arguments, Block, CodeBlock, ElseBlock, GeneratedCode, Item};
+use block::{Bracket, BracketDirection, BracketKind};
 use data::{
     ChestBlockTag, ChestFunctionParam, ChestGameValue, ChestLocation, ChestNumber, ChestParticle,
     ChestPotion, ChestSound, ChestString, ChestStyledText, ChestValue, ChestVariable, ChestVec3D,
@@ -108,38 +110,80 @@ impl<'src> CodeGenerator {
                 &proc.statements
             }
         };
-        let mut stmts = stmts
-            .items
-            .iter()
-            .map(|item| match item {
-                AstStatement::Simple(stmt) => CodeBlock::Block(Block {
-                    block: stmt.data.type_tok.data.to_str(),
-                    action: self.resolver.resolve(&stmt.data.action.data.inner),
-                    // jesus christ
-                    args: Arguments {
-                        items: stmt
-                            .data
-                            .params
-                            .data
-                            .tags
-                            .data
-                            .items
-                            .iter()
-                            .enumerate()
-                            .map(|(i, arg)| Item {
-                                item: self.arg_convert(arg),
-                                slot: i as u8,
-                            })
-                            .collect(),
-                    },
-                }),
-                AstStatement::If(_) => todo!(),
-                AstStatement::Repeat(_) => todo!(),
-            })
-            .collect();
-        blocks.append(&mut stmts);
+        for stmt in &stmts.items {
+            self.process_item(stmt, &mut blocks);
+        }
 
         GeneratedCode { blocks }
+    }
+
+    fn process_item(&'src self, stmt: &AstStatement, blocks: &mut Vec<CodeBlock<'src>>) {
+        match stmt {
+            AstStatement::Simple(stmt) => blocks.push(CodeBlock::Block(Block {
+                block: stmt.data.type_tok.data.to_str(),
+                action: self.resolver.resolve(&stmt.data.action.data.inner),
+                args: self.args_convert(&stmt.data.params),
+            })),
+            AstStatement::If(stmt) => {
+                let stmt = &stmt.data;
+                blocks.push(CodeBlock::Block(Block {
+                    block: stmt.type_tok.data.to_str(),
+                    args: self.args_convert(&stmt.params),
+                    action: self.resolver.resolve(&stmt.action.data.inner),
+                    // Add attribute for NOT
+                }));
+                blocks.push(CodeBlock::Bracket(Bracket {
+                    direct: BracketDirection::Open,
+                    kind: BracketKind::Norm,
+                }));
+                blocks.push(CodeBlock::Else {
+                    block: ElseBlock::Else,
+                });
+                for stmt in &stmt.statements.items {
+                    self.process_item(stmt, blocks)
+                }
+                if let Some(stmts) = &stmt.else_block {
+                    blocks.push(CodeBlock::Bracket(Bracket {
+                        direct: BracketDirection::Open,
+                        kind: BracketKind::Norm,
+                    }));
+
+                    for stmt in &stmts.statements.items {
+                        self.process_item(stmt, blocks)
+                    }
+
+                    blocks.push(CodeBlock::Bracket(Bracket {
+                        direct: BracketDirection::Close,
+                        kind: BracketKind::Norm,
+                    }));
+                };
+                blocks.push(CodeBlock::Bracket(Bracket {
+                    direct: BracketDirection::Close,
+                    kind: BracketKind::Norm,
+                }));
+            }
+            AstStatement::Repeat(stmt) => {todo!()}
+        }
+    }
+
+    fn args_convert(&'src self, args: &Spanned<Wrapped<AstExpression>>) -> Arguments<'src> {
+        // TODO: Don't forget the tags!
+        todo!();
+        // jesus christ
+        Arguments {
+            items: args
+                .data
+                .tags
+                .data
+                .items
+                .iter()
+                .enumerate()
+                .map(|(i, arg)| Item {
+                    item: self.arg_convert(arg),
+                    slot: i as u8,
+                })
+                .collect(),
+        }
     }
 
     fn arg_convert(&'src self, arg: &AstExpression) -> ChestValue<'src> {
@@ -211,7 +255,7 @@ impl<'src> CodeGenerator {
                         option: resolve(tag.option),
                         tag: resolve(tag.tag),
                         action: resolve(tag.action),
-                        block: tag.block.clone()
+                        block: tag.block.clone(),
                     },
                 }
             }

@@ -20,6 +20,17 @@ pub enum IfActionType {
     Var,
 }
 
+impl IfActionType {
+    pub fn to_str(&self) -> &'static str {
+        match self {
+            IfActionType::Player => "if_player",
+            IfActionType::Entity => "if_entity",
+            IfActionType::Game => "if_game",
+            IfActionType::Var => "if_var"
+        }
+    }
+}
+
 impl TryInto<IfActionType> for Token {
     type Error = ();
 

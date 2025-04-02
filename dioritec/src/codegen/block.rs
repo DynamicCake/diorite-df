@@ -10,14 +10,31 @@ pub struct GeneratedCode<'src> {
 #[serde(tag = "id", rename_all = "snake_case")]
 pub enum CodeBlock<'src> {
     Block(Block<'src>),
-    Bracket(Bracket<'src>),
+    // To appease serde
+    #[serde(rename = "block")]
+    Else {
+        block: ElseBlock,
+    },
+    Bracket(Bracket),
+}
+#[derive(Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum ElseBlock {
+    Else
 }
 
 #[derive(Serialize)]
-pub struct Bracket<'src> {
-    direct: &'src str,
+pub struct Bracket {
+    pub direct: BracketDirection,
     #[serde(rename = "type")]
-    kind: BracketKind,
+    pub kind: BracketKind,
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum BracketDirection {
+    Open,
+    Close,
 }
 
 #[derive(Serialize)]
